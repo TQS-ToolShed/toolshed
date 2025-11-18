@@ -36,10 +36,12 @@ jobs:
           node-version: '21'
 
       - name: Install backend dependencies
-        run: ./backend/mvnw install -DskipTests
+        run: ./mvnw install -DskipTests
+        working-directory: backend
 
       - name: Run backend tests
-        run: ./backend/mvnw test
+        run: ./mvnw test
+        working-directory: backend
 
       - name: Install frontend dependencies
         run: |
