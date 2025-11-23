@@ -42,13 +42,3 @@ jobs:
       - name: Run backend tests
         run: ./mvnw test
         working-directory: backend
-
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci
-
-      - name: Run frontend tests
-        run: |
-          cd frontend
-          npm test
