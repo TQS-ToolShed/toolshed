@@ -67,7 +67,12 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Build and analyze
+        working-directory: backend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        working-directory: backend
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=TQS-ToolShed_toolshed
+        run: |
+          ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.organization=tqs-toolshed \
+            -Dsonar.projectKey=TQS-ToolShed_toolshed
