@@ -5,13 +5,8 @@ import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.toolshed.backend.repository.enums.UserRole;
-import com.toolshed.backend.repository.enums.UserStatus;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -22,12 +17,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "app_user") 
+@Table(name = "admin_user")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class User {
+public class AdminUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -46,18 +41,16 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private UserRole role;
-
-    @Enumerated(EnumType.STRING)
-    private UserStatus status;
-
-    @Column(nullable = false)
-    private Double reputationScore;
+    private boolean active;
 
     @CreationTimestamp
-    private LocalDateTime registeredDate;
+    private LocalDateTime createdDate;
+
+    private LocalDateTime lastLoginDate;
+
+    @Column(length = 500)
+    private String permissions; // Can store JSON or comma-separated permissions
 
     // Getters and setters
     public UUID getId() { return id; }
@@ -75,15 +68,15 @@ public class User {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
-    public UserRole getRole() { return role; }
-    public void setRole(UserRole role) { this.role = role; }
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
 
-    public Double getReputationScore() { return reputationScore; }
-    public void setReputationScore(Double reputationScore) { this.reputationScore = reputationScore; }
+    public LocalDateTime getCreatedDate() { return createdDate; }
+    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }
 
-    public UserStatus getStatus() { return status; }
-    public void setStatus(UserStatus status) { this.status = status; }
+    public LocalDateTime getLastLoginDate() { return lastLoginDate; }
+    public void setLastLoginDate(LocalDateTime lastLoginDate) { this.lastLoginDate = lastLoginDate; }
 
-    public LocalDateTime getRegisteredDate() { return registeredDate; }
-    public void setRegisteredDate(LocalDateTime registeredDate) { this.registeredDate = registeredDate; }
+    public String getPermissions() { return permissions; }
+    public void setPermissions(String permissions) { this.permissions = permissions; }
 }
