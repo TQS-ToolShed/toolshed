@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/modules/auth/context/AuthContext';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -7,17 +8,14 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  // TODO: Implement real auth logic
-  const userRole = "RENTER"; // Mock role for now
-  const isAuthenticated = true; // Mock auth status
+  const { isAuthenticated, role } = useAuth();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Simple check, in real app might need more robust logic
-  if (!allowedRoles.includes(userRole) && !allowedRoles.includes("BOTH")) {
-    // Redirect to home or unauthorized page
+  // If there's no role, or the role is not allowed, redirect
+  if (!role || !allowedRoles.includes(role)) {
     return <Navigate to="/" replace />; 
   }
 

@@ -1,12 +1,16 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import { LoginPage } from "@/modules/auth/pages/LoginPage";
 import { RegisterPage } from "@/modules/auth/pages/RegisterPage";
 import { RenterDashboardPage } from "@/modules/renter/pages/RenterDashboardPage";
-import { OwnerDashboardPage } from "@/modules/owner/pages/OwnerDashboardPage";
+import { SupplierDashboardPage } from "@/modules/supplier/pages/SupplierDashboardPage";
 import { AdminDashboardPage } from "@/modules/admin/pages/AdminDashboardPage";
 import { ProtectedRoute } from "@/modules/shared/components/ProtectedRoute";
 
 export const router = createBrowserRouter([
+  {
+    path: "/",
+    element: <Navigate to="/login" replace />,
+  },
   {
     path: "/login",
     element: <LoginPage />,
@@ -18,16 +22,16 @@ export const router = createBrowserRouter([
   {
     path: "/renter",
     element: (
-      <ProtectedRoute allowedRoles={["RENTER", "BOTH"]}>
+      <ProtectedRoute allowedRoles={["RENTER"]}>
         <RenterDashboardPage />
       </ProtectedRoute>
     ),
   },
   {
-    path: "/owner",
+    path: "/supplier",
     element: (
-      <ProtectedRoute allowedRoles={["OWNER", "BOTH"]}>
-        <OwnerDashboardPage />
+      <ProtectedRoute allowedRoles={["SUPPLIER"]}>
+        <SupplierDashboardPage />
       </ProtectedRoute>
     ),
   },

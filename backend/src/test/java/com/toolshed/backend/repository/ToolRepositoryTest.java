@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import com.toolshed.backend.repository.entities.Tool;
+import com.toolshed.backend.repository.entities.User;
 
 @DataJpaTest
 public class ToolRepositoryTest {
