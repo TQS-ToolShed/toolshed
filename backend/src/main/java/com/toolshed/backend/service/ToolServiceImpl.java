@@ -23,13 +23,14 @@ public class ToolServiceImpl implements ToolService {
      * Handles input validation (null/whitespace) before delegating to the repository.
      */
     @Override
-    public List<Tool> searchTools(String keyword) {
+    public List<Tool> searchTools(String keyword, String location) {
 
         if (keyword == null) {
             return Collections.emptyList();
         }
 
         String trimmedKeyword = keyword.trim();
-        return toolRepo.searchTools(trimmedKeyword);
+        String trimmedLocation = location == null ? null : location.trim();
+        return toolRepo.searchTools(trimmedKeyword, trimmedLocation);
     }
 }

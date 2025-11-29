@@ -50,7 +50,7 @@ class ToolControllerTest {
         Tool drill = createSampleTool("Power Drill");
         
         // Mock the Service call
-        when(toolService.searchTools(keyword)).thenReturn(List.of(drill));
+        when(toolService.searchTools(keyword, null)).thenReturn(List.of(drill));
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
@@ -61,7 +61,7 @@ class ToolControllerTest {
                 .andExpect(jsonPath("$[0].title", is("Power Drill"))); // Check content
         
         // Verification: Ensure the service layer was called correctly
-        verify(toolService, times(1)).searchTools(keyword);
+        verify(toolService, times(1)).searchTools(keyword, null);
     }
 
     @Test
@@ -71,7 +71,7 @@ class ToolControllerTest {
         String keyword = "unicorn";
         
         // Mock the Service call to return an empty list
-        when(toolService.searchTools(keyword)).thenReturn(Collections.emptyList());
+        when(toolService.searchTools(keyword, null)).thenReturn(Collections.emptyList());
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
@@ -81,7 +81,7 @@ class ToolControllerTest {
                 .andExpect(content().json("[]")); // The response body is an empty JSON array
 
         // Verification
-        verify(toolService, times(1)).searchTools(keyword);
+        verify(toolService, times(1)).searchTools(keyword, null);
     }
     
     @Test
@@ -89,7 +89,7 @@ class ToolControllerTest {
     void testSearchTools_MissingParameter_ReturnsEmptyArray() throws Exception {
         // Arrange
         // The service layer should return an empty list when faced with a null/empty query
-        when(toolService.searchTools(null)).thenReturn(Collections.emptyList());
+        when(toolService.searchTools(null, null)).thenReturn(Collections.emptyList());
 
         // Act & Assert
         // We call the endpoint without the required 'keyword' parameter
@@ -99,8 +99,6 @@ class ToolControllerTest {
                 .andExpect(content().json("[]"));
 
         // Verification: Ensure the service was called with 'null' or handled appropriately
-        // Note: Spring may pass null or an empty string, depending on configuration.
-        // We'll verify the service wasn't called with a non-null, non-empty argument.
-        verify(toolService, times(1)).searchTools(null); 
+        verify(toolService, times(1)).searchTools(null, null); 
     }
 }

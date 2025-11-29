@@ -33,12 +33,12 @@ public class ToolController {
     }
 
     /**
-     * Search tools by keyword.
-     * Endpoint: GET /api/tools/search?keyword=something
+     * Search tools by keyword and optional location.
+     * Endpoint: GET /api/tools/search?keyword=something&location=somewhere
      */
     @Operation(
-        summary = "Search active tools by keyword in title or description",
-        description = "Performs a case-insensitive search across tool titles and descriptions. Filters out inactive tools.",
+        summary = "Search active tools by keyword in title or description and optional location",
+        description = "Performs a case-insensitive search across tool titles and descriptions. Filters out inactive tools. Optionally filters by location.",
         responses = {
             @ApiResponse(
                 responseCode = "200", 
@@ -48,16 +48,18 @@ public class ToolController {
             ),
             @ApiResponse(
                 responseCode = "400", 
-                description = "Invalid input or missing required 'keyword' parameter"
+                description = "Invalid input or missing required parameters"
             )
         }
     )
     @GetMapping("/search")
     public ResponseEntity<List<Tool>> searchTools(
-            @Parameter(description = "Keyword to search for (e.g., 'drill', 'saw'). Required.", required = true)
-            @RequestParam(value = "keyword", required = false) String keyword) {
+            @Parameter(description = "Keyword to search for (e.g., 'drill', 'saw'). Optional; if omitted returns empty list.")
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @Parameter(description = "Location filter (partial match, case-insensitive). Optional.")
+            @RequestParam(value = "location", required = false) String location) {
 
-        List<Tool> results = toolService.searchTools(keyword);
+        List<Tool> results = toolService.searchTools(keyword, location);
         return ResponseEntity.ok(results);
     }
 }

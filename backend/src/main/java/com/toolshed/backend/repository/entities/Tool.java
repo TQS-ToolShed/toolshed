@@ -48,5 +48,4 @@ public class Tool {
 
     private Double overallRating;
 
-    // Damage information has been moved to ToolDamage entity
 }
