@@ -1,10 +1,12 @@
 package com.toolshed.backend.repository.entities;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 
@@ -15,6 +17,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -59,6 +62,10 @@ public class User {
     @CreationTimestamp
     private LocalDateTime registeredDate;
 
+    @OneToMany(mappedBy = "owner")
+    @JsonIgnore // Prevent infinite recursion
+    private List<Tool> tools;
+
     // Getters and setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -78,11 +85,11 @@ public class User {
     public UserRole getRole() { return role; }
     public void setRole(UserRole role) { this.role = role; }
 
-    public Double getReputationScore() { return reputationScore; }
-    public void setReputationScore(Double reputationScore) { this.reputationScore = reputationScore; }
-
     public UserStatus getStatus() { return status; }
     public void setStatus(UserStatus status) { this.status = status; }
+
+    public Double getReputationScore() { return reputationScore; }
+    public void setReputationScore(Double reputationScore) { this.reputationScore = reputationScore; }
 
     public LocalDateTime getRegisteredDate() { return registeredDate; }
     public void setRegisteredDate(LocalDateTime registeredDate) { this.registeredDate = registeredDate; }
