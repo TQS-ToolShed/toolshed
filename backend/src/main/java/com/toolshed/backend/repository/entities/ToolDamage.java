@@ -1,14 +1,10 @@
 package com.toolshed.backend.repository.entities;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
-import com.toolshed.backend.repository.enums.BookingStatus;
-import com.toolshed.backend.repository.enums.PaymentStatus;
-
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -22,12 +18,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "booking")
+@Table(name = "tool_damage")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Booking {
+public class ToolDamage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -38,24 +34,22 @@ public class Booking {
     private Tool tool;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "renter_id", nullable = false)
-    private User renter;
+    @JoinColumn(name = "reported_by_user_id")
+    private User reportedBy;
 
-    // Denormalized reference to owner for easier queries/history
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", nullable = false)
-    private User owner;
+    @JoinColumn(name = "booking_id")
+    private Booking booking;
 
-    private LocalDate startDate;
-    private LocalDate endDate;
+    @Column(length = 1000)
+    private String damageDescription;
 
-    @Enumerated(EnumType.STRING)
-    private BookingStatus status;
+    private LocalDateTime reportedDate;
 
-    @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    private boolean resolved;
 
-    private Double totalPrice;
+    private LocalDateTime resolvedDate;
 
-    // Damage tracking has been moved to ToolDamage entity
+    @Column(length = 1000)
+    private String resolutionNotes;
 }
