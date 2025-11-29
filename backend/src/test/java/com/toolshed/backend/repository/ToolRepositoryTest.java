@@ -37,7 +37,7 @@ class ToolRepositoryTest {
         defaultOwner.setLastName("Doe"); 
         defaultOwner.setEmail("john@example.com");
         defaultOwner.setPassword("hashedpass");
-        defaultOwner.setRole(UserRole.USER); 
+        defaultOwner.setRole(UserRole.SUPPLIER); 
         defaultOwner.setStatus(UserStatus.ACTIVE);
         defaultOwner.setReputationScore(4.5); 
         defaultOwner.setRegisteredDate(LocalDateTime.now().minusMonths(6));
@@ -53,9 +53,6 @@ class ToolRepositoryTest {
         drill.setOwner(defaultOwner);
         drill.setAvailabilityCalendar("{\"mon\": true, \"tue\": true, \"wed\": false}");
         drill.setOverallRating(4.8);
-        drill.setDamaged(false);
-        drill.setDamageDescription(null);
-        drill.setDamageReportedDate(null);
 
         // 2. Description Match
         Tool bitSet = new Tool();
@@ -67,9 +64,6 @@ class ToolRepositoryTest {
         bitSet.setOwner(defaultOwner);
         bitSet.setAvailabilityCalendar("{\"weekends\": true}");
         bitSet.setOverallRating(4.5);
-        bitSet.setDamaged(false);
-        bitSet.setDamageDescription(null);
-        bitSet.setDamageReportedDate(null);
 
         // 3. Case Insensitivity (Upper case in DB)
         Tool hammer = new Tool();
@@ -81,9 +75,6 @@ class ToolRepositoryTest {
         hammer.setOwner(defaultOwner);
         hammer.setAvailabilityCalendar("{\"available\": true}");
         hammer.setOverallRating(3.9);
-        hammer.setDamaged(false);
-        hammer.setDamageDescription(null);
-        hammer.setDamageReportedDate(null);
 
         // 4. Distractor (Should not match 'drill' or 'hammer')
         Tool saw = new Tool();
@@ -95,9 +86,6 @@ class ToolRepositoryTest {
         saw.setOwner(defaultOwner);
         saw.setAvailabilityCalendar("{\"available\": true}");
         saw.setOverallRating(5.0);
-        saw.setDamaged(false);
-        saw.setDamageDescription(null);
-        saw.setDamageReportedDate(null);
         
         // 5. Inactive Tool (constraint check)
         Tool inactive = new Tool();
@@ -108,9 +96,6 @@ class ToolRepositoryTest {
         inactive.setOwner(defaultOwner);
         inactive.setAvailabilityCalendar("{\"available\": false}");
         inactive.setOverallRating(1.2);
-        inactive.setDamaged(true);
-        inactive.setDamageDescription("Motor burnt out, smoke detected.");
-        inactive.setDamageReportedDate(LocalDateTime.now().minusDays(10));
     
         toolRepo.saveAll(java.util.List.of(drill, bitSet, hammer, saw, inactive));
         
@@ -233,19 +218,17 @@ class ToolRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should return damaged tools if they are still marked Active")
-    void testSearchReturnsDamagedActiveTools() {
-        // Quality Check: Does "Active" mean "Not Damaged"? 
-        // Based on the current Query logic, it only checks the 'active' boolean.
-        // This test confirms that business rule.
+    @DisplayName("Should return active tools regardless of damage status (damage is tracked separately)")
+    void testSearchReturnsActiveTools() {
+        // Note: Damage tracking has been moved to the ToolDamage entity
+        // The Tool entity only tracks whether it's active or not
         
-        Tool damagedButActive = new Tool();
-        damagedButActive.setTitle("Scratched Saw");
-        damagedButActive.setDescription("Works fine but looks ugly");
-        damagedButActive.setActive(true); // Active
-        damagedButActive.setDamaged(true); // But Damaged
-        damagedButActive.setOwner(userRepo.findAll().get(0));
-        toolRepo.save(damagedButActive);
+        Tool activeTool = new Tool();
+        activeTool.setTitle("Scratched Saw");
+        activeTool.setDescription("Works fine but looks ugly");
+        activeTool.setActive(true); // Active
+        activeTool.setOwner(userRepo.findAll().get(0));
+        toolRepo.save(activeTool);
 
         List<Tool> results = toolRepo.searchTools("Scratched");
 
