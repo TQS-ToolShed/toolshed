@@ -11,5 +11,5 @@ public interface ToolService {
      * * @param keyword The search term (title or description).
      * @return A list of matching tools.
      */
-    List<Tool> searchTools(String keyword);
+    List<Tool> searchTools(String keyword, String location);
 }

@@ -44,17 +44,17 @@ class ToolServiceTest {
     void testSearchToolsWithValidKeyword() {
         // Arrange
         String keyword = "Drill";
-        when(toolRepo.searchTools(keyword)).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools(keyword, null)).thenReturn(List.of(sampleTool));
 
         // Act
-        List<Tool> result = toolService.searchTools(keyword);
+        List<Tool> result = toolService.searchTools(keyword, null);
 
         // Assert
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("Mock Drill");
         
         // Verification: Did the service actually call the repo?
-        verify(toolRepo, times(1)).searchTools(keyword);
+        verify(toolRepo, times(1)).searchTools(keyword, null);
     }
 
     @Test
@@ -64,22 +64,22 @@ class ToolServiceTest {
         String dirtyKeyword = "  Drill  ";
         String cleanedKeyword = "Drill";
         
-        when(toolRepo.searchTools(cleanedKeyword)).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools(cleanedKeyword, null)).thenReturn(List.of(sampleTool));
 
         // Act
-        toolService.searchTools(dirtyKeyword);
+        toolService.searchTools(dirtyKeyword, null);
 
         // Assert
         // Verify the repo was called with the TRIMMED version, not the dirty one
-        verify(toolRepo).searchTools(cleanedKeyword);
-        verify(toolRepo, never()).searchTools(dirtyKeyword);
+        verify(toolRepo).searchTools(cleanedKeyword, null);
+        verify(toolRepo, never()).searchTools(dirtyKeyword, null);
     }
 
     @Test
     @DisplayName("Should return empty list immediately if keyword is null (Defensive Coding)")
     void testSearchToolsWithNullKeyword() {
         // Act
-        List<Tool> result = toolService.searchTools(null);
+        List<Tool> result = toolService.searchTools(null, null);
 
         // Assert
         assertThat(result).isEmpty();
@@ -93,10 +93,10 @@ class ToolServiceTest {
     void testSearchToolsNoResults() {
         // Arrange
         String keyword = "Unicorn";
-        when(toolRepo.searchTools(keyword)).thenReturn(Collections.emptyList());
+        when(toolRepo.searchTools(keyword, null)).thenReturn(Collections.emptyList());
 
         // Act
-        List<Tool> result = toolService.searchTools(keyword);
+        List<Tool> result = toolService.searchTools(keyword, null);
 
         // Assert
         assertThat(result).isEmpty();
@@ -108,14 +108,14 @@ class ToolServiceTest {
         String keyword = "hammer";
         
         // Arrange
-        when(toolRepo.searchTools(keyword)).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools(keyword, null)).thenReturn(List.of(sampleTool));
 
         // Act
-        toolService.searchTools(keyword);
+        toolService.searchTools(keyword, null);
 
         // Assert
         // Verify that the specific method designed for filtering was called
-        verify(toolRepo, times(1)).searchTools(keyword);
+        verify(toolRepo, times(1)).searchTools(keyword, null);
         
         // Safety check: Verify that a generic, unfiltered method was NOT called
         verify(toolRepo, never()).findAll(); 
@@ -128,13 +128,13 @@ class ToolServiceTest {
         String mixedCaseKeyword = "HaMmEr";
 
         // Act
-        toolService.searchTools(mixedCaseKeyword);
+        toolService.searchTools(mixedCaseKeyword, null);
 
         // Assert
         // Verify the repository was called exactly with the mixed-case string
-        verify(toolRepo).searchTools(mixedCaseKeyword);
+        verify(toolRepo).searchTools(mixedCaseKeyword, null);
         
         // Safety check: Verify the service did NOT try to change the keyword to lowercase itself
-        verify(toolRepo, never()).searchTools(mixedCaseKeyword.toLowerCase());
+        verify(toolRepo, never()).searchTools(mixedCaseKeyword.toLowerCase(), null);
     }
 }

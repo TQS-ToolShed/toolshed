@@ -43,25 +43,51 @@ class ToolControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 200 OK and matching tools for a valid search")
+    @DisplayName("Should pass both Keyword AND Location to service")
+    void testSearchWithKeywordAndLocation() throws Exception {
+        // Arrange
+        String keyword = "drill";
+        String location = "Downtown";
+        Tool drill = createSampleTool("Downtown Drill");
+
+        // Mock the service to expect BOTH arguments
+        when(toolService.searchTools(keyword, location)).thenReturn(List.of(drill));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("keyword", keyword)
+                .param("location", location) 
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].title", is("Downtown Drill")));
+
+        // Verification: Ensure location was NOT null
+        verify(toolService, times(1)).searchTools(keyword, location);
+    }
+
+
+    
+    @Test
+    @DisplayName("Should return 200 OK and matching tools for a valid search (Location is null)")
     void testSearchTools_ValidKeyword_ReturnsResults() throws Exception {
         // Arrange
         String keyword = "drill";
         Tool drill = createSampleTool("Power Drill");
-        
-        // Mock the Service call
-        when(toolService.searchTools(keyword)).thenReturn(List.of(drill));
+
+        // Mock: expect null for location because we don't send the param
+        when(toolService.searchTools(keyword, null)).thenReturn(List.of(drill));
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
                 .param("keyword", keyword)
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk()) // HTTP Status 200
-                .andExpect(jsonPath("$", hasSize(1))) // Check array size
-                .andExpect(jsonPath("$[0].title", is("Power Drill"))); // Check content
-        
-        // Verification: Ensure the service layer was called correctly
-        verify(toolService, times(1)).searchTools(keyword);
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].title", is("Power Drill")));
+
+        // Verification
+        verify(toolService, times(1)).searchTools(keyword, null);
     }
 
     @Test
@@ -69,38 +95,34 @@ class ToolControllerTest {
     void testSearchTools_NoMatches_ReturnsEmptyArray() throws Exception {
         // Arrange
         String keyword = "unicorn";
-        
-        // Mock the Service call to return an empty list
-        when(toolService.searchTools(keyword)).thenReturn(Collections.emptyList());
+
+        when(toolService.searchTools(keyword, null)).thenReturn(Collections.emptyList());
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
                 .param("keyword", keyword)
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk()) // Status 200 OK (empty list is success)
-                .andExpect(content().json("[]")); // The response body is an empty JSON array
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
 
         // Verification
-        verify(toolService, times(1)).searchTools(keyword);
+        verify(toolService, times(1)).searchTools(keyword, null);
     }
-    
+
     @Test
     @DisplayName("Should handle missing keyword parameter gracefully")
     void testSearchTools_MissingParameter_ReturnsEmptyArray() throws Exception {
         // Arrange
-        // The service layer should return an empty list when faced with a null/empty query
-        when(toolService.searchTools(null)).thenReturn(Collections.emptyList());
+        when(toolService.searchTools(null, null)).thenReturn(Collections.emptyList());
 
         // Act & Assert
-        // We call the endpoint without the required 'keyword' parameter
+        // Calling endpoint with NO parameters
         mockMvc.perform(get("/api/tools/search")
                 .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk()) // Still 200 OK
+                .andExpect(status().isOk())
                 .andExpect(content().json("[]"));
 
-        // Verification: Ensure the service was called with 'null' or handled appropriately
-        // Note: Spring may pass null or an empty string, depending on configuration.
-        // We'll verify the service wasn't called with a non-null, non-empty argument.
-        verify(toolService, times(1)).searchTools(null); 
+        // Verification: Ensure service called with nulls
+        verify(toolService, times(1)).searchTools(null, null);
     }
 }
