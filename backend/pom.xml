@@ -28,6 +28,7 @@
     </scm>
     <properties>
         <java.version>21</java.version>
+        <sonar.organization>tqs-toolshed</sonar.organization>
     </properties>
     <dependencies>
         <!-- https://mvnrepository.com/artifact/org.mockito/mockito-junit-jupiter -->
@@ -131,5 +132,6 @@
 
         </plugins>
     </build>
+
 
 </project>
