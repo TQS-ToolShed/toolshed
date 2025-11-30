@@ -3,6 +3,7 @@ import { LoginPage } from "@/modules/auth/pages/LoginPage";
 import { RegisterPage } from "@/modules/auth/pages/RegisterPage";
 import { RenterDashboardPage } from "@/modules/renter/pages/RenterDashboardPage";
 import { SupplierDashboardPage } from "@/modules/supplier/pages/SupplierDashboardPage";
+import { SupplierToolsPage } from "@/modules/supplier/pages/SupplierToolsPage";
 import { AdminDashboardPage } from "@/modules/admin/pages/AdminDashboardPage";
 import { ProtectedRoute } from "@/modules/shared/components/ProtectedRoute";
 
@@ -32,6 +33,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={["SUPPLIER"]}>
         <SupplierDashboardPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/supplier/tools",
+    element: (
+      <ProtectedRoute allowedRoles={["SUPPLIER"]}>
+        <SupplierToolsPage />
       </ProtectedRoute>
     ),
   },
