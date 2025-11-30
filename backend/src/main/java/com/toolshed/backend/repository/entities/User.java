@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import org.hibernate.annotations.CreationTimestamp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -63,7 +64,7 @@ public class User {
     private LocalDateTime registeredDate;
 
     @OneToMany(mappedBy = "owner")
-    @JsonIgnore // Prevent infinite recursion
+    @JsonManagedReference
     private List<Tool> tools;
 
     // Getters and setters

@@ -1,15 +1,19 @@
 package com.toolshed.backend.service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
+import com.toolshed.backend.dto.UpdateToolInput;
 import com.toolshed.backend.repository.entities.Tool;
+import com.toolshed.backend.dto.CreateToolInput;
 
 public interface ToolService {
-    
-    /**
-     * Searches for tools based on a keyword.
-     * * @param keyword The search term (title or description).
-     * @return A list of matching tools.
-     */
     List<Tool> searchTools(String keyword, String location);
+    Optional<Tool> getById(UUID id);
+    List<Tool> getAll();
+    String createTool(CreateToolInput input);
+    void deleteTool(String toolId);
+    void updateTool(String toolId, UpdateToolInput input);
+
 }

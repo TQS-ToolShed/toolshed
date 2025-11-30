@@ -1,0 +1,117 @@
+import axios from 'axios';
+
+const API_URL = 'http://localhost:8080/api/tools';
+
+// Tool type definition
+export interface Tool {
+  id: string;
+  title: string;
+  description: string;
+  pricePerDay: number;
+  location: string;
+  active: boolean;
+  availabilityCalendar?: string;
+  overallRating: number;
+  numRatings: number;
+}
+
+// CreateToolInput - matches backend DTO
+export interface CreateToolInput {
+  title: string;
+  description: string;
+  pricePerDay: number;
+  supplierId: string;
+  location: string;
+}
+
+// UpdateToolInput - matches backend DTO
+export interface UpdateToolInput {
+  title?: string;
+  description?: string;
+  pricePerDay?: number;
+  location?: string;
+  ownerId?: string;
+  active?: boolean;
+  availabilityCalendar?: string;
+  overallRating?: number;
+  numRatings?: number;
+}
+
+// Get all tools
+export const getAllTools = async (): Promise<Tool[]> => {
+  try {
+    const response = await axios.get<Tool[]>(API_URL);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to fetch tools');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+
+// Get tool by ID
+export const getToolById = async (toolId: string): Promise<Tool> => {
+  try {
+    const response = await axios.get<Tool>(`${API_URL}/${toolId}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to fetch tool');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+
+// Search tools
+export const searchTools = async (keyword?: string, location?: string): Promise<Tool[]> => {
+  try {
+    const params = new URLSearchParams();
+    if (keyword) params.append('keyword', keyword);
+    if (location) params.append('location', location);
+    
+    const response = await axios.get<Tool[]>(`${API_URL}/search`, { params });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to search tools');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+
+// Create a new tool
+export const createTool = async (input: CreateToolInput): Promise<void> => {
+  try {
+    await axios.post(API_URL, input);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to create tool');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+
+// Update a tool
+export const updateTool = async (toolId: string, input: UpdateToolInput): Promise<void> => {
+  try {
+    await axios.put(`${API_URL}/${toolId}`, input);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to update tool');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+
+// Delete a tool
+export const deleteTool = async (toolId: string): Promise<void> => {
+  try {
+    await axios.delete(`${API_URL}/${toolId}`);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to delete tool');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
