@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import { LoginPage } from "@/modules/auth/pages/LoginPage";
 import { RegisterPage } from "@/modules/auth/pages/RegisterPage";
 import { RenterDashboardPage } from "@/modules/renter/pages/RenterDashboardPage";
+import { RenterBookingsPage } from "@/modules/renter/pages/RenterBookingsPage";
 import { SupplierDashboardPage } from "@/modules/supplier/pages/SupplierDashboardPage";
 import { SupplierToolsPage } from "@/modules/supplier/pages/SupplierToolsPage";
 import { AdminDashboardPage } from "@/modules/admin/pages/AdminDashboardPage";
@@ -25,6 +26,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={["RENTER"]}>
         <RenterDashboardPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/renter/bookings/:toolId",
+    element: (
+      <ProtectedRoute allowedRoles={["RENTER"]}>
+        <RenterBookingsPage />
       </ProtectedRoute>
     ),
   },

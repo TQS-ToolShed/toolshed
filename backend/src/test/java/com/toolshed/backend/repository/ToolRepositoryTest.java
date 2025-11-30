@@ -24,6 +24,22 @@ class ToolRepositoryTest {
     @Autowired
     private UserRepository userRepo;
 
+    private User defaultOwner;
+
+    private Tool baseTool(String title, String description, String location, double price, boolean active) {
+        Tool tool = new Tool();
+        tool.setTitle(title);
+        tool.setDescription(description);
+        tool.setPricePerDay(price);
+        tool.setActive(active);
+        tool.setLocation(location);
+        tool.setOwner(defaultOwner);
+        tool.setAvailabilityCalendar("{\"available\": true}");
+        tool.setOverallRating(4.5);
+        tool.setNumRatings(10);
+        return tool;
+    }
+
     @BeforeEach
     @SuppressWarnings("unused")
     void setUp() {
@@ -45,56 +61,25 @@ class ToolRepositoryTest {
         defaultOwner = userRepo.save(defaultOwner); // Use managed entity
 
         // 1. Direct title match
-        Tool drill = new Tool();
-        drill.setTitle("Power Drill");
-        drill.setDescription("Cordless 18V battery powered");
-        drill.setPricePerDay(4.5);
-        drill.setActive(true);
-        drill.setLocation("Downtown Garage");
-        drill.setOwner(defaultOwner);
+        Tool drill = baseTool("Power Drill", "Cordless 18V battery powered", "Downtown Garage", 4.5, true);
         drill.setAvailabilityCalendar("{\"mon\": true, \"tue\": true, \"wed\": false}");
         drill.setOverallRating(4.8);
 
         // 2. Description Match
-        Tool bitSet = new Tool();
-        bitSet.setTitle("Bit Set");
-        bitSet.setDescription("Titanium bits for drill and driver");
-        bitSet.setPricePerDay(5.0);
-        bitSet.setActive(true);
-        bitSet.setLocation("Eastside Workshop");
-        bitSet.setOwner(defaultOwner);
+        Tool bitSet = baseTool("Bit Set", "Titanium bits for drill and driver", "Eastside Workshop", 5.0, true);
         bitSet.setAvailabilityCalendar("{\"weekends\": true}");
         bitSet.setOverallRating(4.5);
 
         // 3. Case Insensitivity (Upper case in DB)
-        Tool hammer = new Tool();
-        hammer.setTitle("Heavy HAMMER");
-        hammer.setDescription("Standard claw hammer");
-        hammer.setPricePerDay(10.0);
-        hammer.setActive(true);
-        hammer.setLocation("Westside Storage");
-        hammer.setOwner(defaultOwner);
-        hammer.setAvailabilityCalendar("{\"available\": true}");
+        Tool hammer = baseTool("Heavy HAMMER", "Standard claw hammer", "Westside Storage", 10.0, true);
         hammer.setOverallRating(3.9);
 
         // 4. Distractor (Should not match 'drill' or 'hammer')
-        Tool saw = new Tool();
-        saw.setTitle("Circular Saw");
-        saw.setDescription("Perfect for cutting wood");
-        saw.setPricePerDay(20.0);
-        saw.setActive(true);
-        saw.setLocation("Eastside Shed");
-        saw.setOwner(defaultOwner);
-        saw.setAvailabilityCalendar("{\"available\": true}");
+        Tool saw = baseTool("Circular Saw", "Perfect for cutting wood", "Eastside Shed", 20.0, true);
         saw.setOverallRating(5.0);
         
         // 5. Inactive Tool (constraint check)
-        Tool inactive = new Tool();
-        inactive.setTitle("Old Drill");
-        inactive.setDescription("Broken");
-        inactive.setActive(false);
-        inactive.setLocation("Recycling Bin");
-        inactive.setOwner(defaultOwner);
+        Tool inactive = baseTool("Old Drill", "Broken", "Recycling Bin", 1.0, false);
         inactive.setAvailabilityCalendar("{\"available\": false}");
         inactive.setOverallRating(1.2);
     
@@ -159,6 +144,10 @@ class ToolRepositoryTest {
         inactiveTool.setDescription("Hidden from public");
         inactiveTool.setActive(false); // Explicitly inactive
         inactiveTool.setOwner(userRepo.findAll().get(0)); // Use existing owner
+        inactiveTool.setLocation("Hidden");
+        inactiveTool.setPricePerDay(7.0);
+        inactiveTool.setOverallRating(3.0);
+        inactiveTool.setNumRatings(1);
         toolRepo.save(inactiveTool);
 
         // Act
@@ -194,6 +183,9 @@ class ToolRepositoryTest {
         specialTool.setPricePerDay(10.0);
         specialTool.setActive(true);
         specialTool.setOwner(userRepo.findAll().get(0));
+        specialTool.setLocation("Downtown Garage");
+        specialTool.setOverallRating(4.2);
+        specialTool.setNumRatings(3);
         toolRepo.save(specialTool);
 
         // Act: Search using the symbol "&"
@@ -229,6 +221,10 @@ class ToolRepositoryTest {
         activeTool.setDescription("Works fine but looks ugly");
         activeTool.setActive(true); // Active
         activeTool.setOwner(userRepo.findAll().get(0));
+        activeTool.setLocation("Westside Storage");
+        activeTool.setPricePerDay(12.0);
+        activeTool.setOverallRating(4.0);
+        activeTool.setNumRatings(2);
         toolRepo.save(activeTool);
 
         List<Tool> results = toolRepo.searchTools("Scratched", null);
@@ -247,6 +243,10 @@ class ToolRepositoryTest {
         nullDescTool.setDescription(null); 
         nullDescTool.setActive(true);
         nullDescTool.setOwner(userRepo.findAll().get(0));
+        nullDescTool.setLocation("Eastside Workshop");
+        nullDescTool.setPricePerDay(6.0);
+        nullDescTool.setOverallRating(4.1);
+        nullDescTool.setNumRatings(2);
         toolRepo.save(nullDescTool);
 
         // Act
@@ -268,6 +268,10 @@ class ToolRepositoryTest {
         underscoreTool.setDescription("Used for 90 degree angles");
         underscoreTool.setActive(true);
         underscoreTool.setOwner(userRepo.findAll().get(0));
+        underscoreTool.setLocation("Eastside Shed");
+        underscoreTool.setPricePerDay(9.0);
+        underscoreTool.setOverallRating(4.3);
+        underscoreTool.setNumRatings(5);
         toolRepo.save(underscoreTool);
 
         // Act

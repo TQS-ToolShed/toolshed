@@ -2,9 +2,12 @@ package com.toolshed.backend.boundary;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.times;
@@ -21,6 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.toolshed.backend.repository.entities.Tool;
+import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.service.ToolService;
 
 @WebMvcTest(ToolController.class) //
@@ -34,10 +38,22 @@ class ToolControllerTest {
 
     private Tool createSampleTool(String title) {
         Tool tool = new Tool();
+        tool.setId(UUID.randomUUID());
         tool.setTitle(title);
         tool.setDescription("A basic tool");
         tool.setActive(true);
         tool.setPricePerDay(5.0);
+        tool.setLocation("Downtown");
+        tool.setOverallRating(4.5);
+        tool.setNumRatings(10);
+
+        User owner = new User();
+        owner.setId(UUID.randomUUID());
+        owner.setFirstName("Alice");
+        owner.setLastName("Builder");
+        owner.setEmail("alice@example.com");
+        owner.setReputationScore(4.9);
+        tool.setOwner(owner);
         // NOTE: In a real test, you would set all mandatory fields including the Owner
         return tool;
     }
@@ -66,8 +82,6 @@ class ToolControllerTest {
         verify(toolService, times(1)).searchTools(keyword, location);
     }
 
-
-    
     @Test
     @DisplayName("Should return 200 OK and matching tools for a valid search (Location is null)")
     void testSearchTools_ValidKeyword_ReturnsResults() throws Exception {
@@ -124,5 +138,46 @@ class ToolControllerTest {
 
         // Verification: Ensure service called with nulls
         verify(toolService, times(1)).searchTools(null, null);
+    }
+
+    @Test
+    @DisplayName("Should return tool details including owner summary for GET /api/tools/{id}")
+    void testGetToolByIdReturnsDetails() throws Exception {
+        Tool tool = createSampleTool("Detail Drill");
+        tool.setAvailabilityCalendar("2024-09: available weekdays");
+
+        when(toolService.getById(tool.getId())).thenReturn(Optional.of(tool));
+
+        mockMvc.perform(get("/api/tools/{toolId}", tool.getId().toString())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(tool.getId().toString())))
+                .andExpect(jsonPath("$.title", is("Detail Drill")))
+                .andExpect(jsonPath("$.pricePerDay", is(tool.getPricePerDay())))
+                .andExpect(jsonPath("$.location", is(tool.getLocation())))
+                .andExpect(jsonPath("$.availabilityCalendar", is(tool.getAvailabilityCalendar())))
+                .andExpect(jsonPath("$.overallRating", is(tool.getOverallRating())))
+                .andExpect(jsonPath("$.numRatings", is(tool.getNumRatings())))
+                .andExpect(jsonPath("$.owner.id", is(tool.getOwner().getId().toString())))
+                .andExpect(jsonPath("$.owner.firstName", is(tool.getOwner().getFirstName())))
+                .andExpect(jsonPath("$.owner.lastName", is(tool.getOwner().getLastName())))
+                .andExpect(jsonPath("$.owner.email", is(tool.getOwner().getEmail())))
+                .andExpect(jsonPath("$.owner.reputationScore", is(tool.getOwner().getReputationScore())));
+
+        verify(toolService).getById(tool.getId());
+    }
+
+    @Test
+    @DisplayName("Should return 404 when tool is not found")
+    void testGetToolByIdNotFound() throws Exception {
+        UUID missingId = UUID.randomUUID();
+        when(toolService.getById(missingId)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/tools/{toolId}", missingId.toString())
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound())
+                .andExpect(content().string(notNullValue()));
+
+        verify(toolService).getById(missingId);
     }
 }

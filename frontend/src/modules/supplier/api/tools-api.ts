@@ -15,6 +15,18 @@ export interface Tool {
   numRatings: number;
 }
 
+export interface ToolOwnerSummary {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  reputationScore: number;
+}
+
+export interface ToolDetails extends Tool {
+  owner: ToolOwnerSummary;
+}
+
 // CreateToolInput - matches backend DTO
 export interface CreateToolInput {
   title: string;
@@ -51,9 +63,22 @@ export const getAllTools = async (): Promise<Tool[]> => {
 };
 
 // Get tool by ID
-export const getToolById = async (toolId: string): Promise<Tool> => {
+export const getToolById = async (toolId: string): Promise<ToolDetails> => {
   try {
-    const response = await axios.get<Tool>(`${API_URL}/${toolId}`);
+    const response = await axios.get<ToolDetails>(`${API_URL}/${toolId}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to fetch tool');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+
+// Explicit tool details accessor (alias for readability)
+export const getToolDetails = async (toolId: string): Promise<ToolDetails> => {
+  try {
+    const response = await axios.get<ToolDetails>(`${API_URL}/${toolId}`);
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
