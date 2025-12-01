@@ -168,4 +168,15 @@ class ToolServiceTest {
         assertThat(sampleTool.getOverallRating()).isEqualTo(4.0);
         verify(toolRepo).save(sampleTool);
     }
+
+    @Test
+    @DisplayName("Should return active tools via service")
+    void testGetActiveTools() {
+        when(toolRepo.findByActiveTrue()).thenReturn(List.of(sampleTool));
+
+        List<Tool> result = toolService.getActive();
+
+        assertThat(result).containsExactly(sampleTool);
+        verify(toolRepo).findByActiveTrue();
+    }
 }
