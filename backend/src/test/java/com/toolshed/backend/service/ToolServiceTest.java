@@ -2,6 +2,8 @@ package com.toolshed.backend.service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +20,8 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.toolshed.backend.repository.ToolRepository;
+import com.toolshed.backend.repository.UserRepository;
+import com.toolshed.backend.dto.UpdateToolInput;
 import com.toolshed.backend.repository.entities.Tool;
 
 @ExtendWith(MockitoExtension.class) // Initializes mocks
@@ -25,6 +29,9 @@ class ToolServiceTest {
 
     @Mock 
     private ToolRepository toolRepo;
+
+    @Mock
+    private UserRepository userRepo;
 
     @InjectMocks
     private ToolServiceImpl toolService;
@@ -35,7 +42,13 @@ class ToolServiceTest {
     void setUp() {
         // Create a simple dummy tool for returning in mocks
         sampleTool = new Tool();
+        sampleTool.setId(UUID.randomUUID());
         sampleTool.setTitle("Mock Drill");
+        sampleTool.setDescription("Desc");
+        sampleTool.setLocation("Loc");
+        sampleTool.setPricePerDay(10.0);
+        sampleTool.setNumRatings(2);
+        sampleTool.setOverallRating(4.0);
         sampleTool.setActive(true);
     }
 
@@ -136,5 +149,23 @@ class ToolServiceTest {
         
         // Safety check: Verify the service did NOT try to change the keyword to lowercase itself
         verify(toolRepo, never()).searchTools(mixedCaseKeyword.toLowerCase(), null);
+    }
+
+    @Test
+    @DisplayName("Should toggle only active flag without nulling other fields")
+    void testUpdateToolActiveOnly() {
+        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
+        when(toolRepo.save(sampleTool)).thenReturn(sampleTool);
+
+        UpdateToolInput input = UpdateToolInput.builder()
+                .active(false)
+                .build();
+
+        toolService.updateTool(sampleTool.getId().toString(), input);
+
+        assertThat(sampleTool.isActive()).isFalse();
+        assertThat(sampleTool.getNumRatings()).isEqualTo(2);
+        assertThat(sampleTool.getOverallRating()).isEqualTo(4.0);
+        verify(toolRepo).save(sampleTool);
     }
 }

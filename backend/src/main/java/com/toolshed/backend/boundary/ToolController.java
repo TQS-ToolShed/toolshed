@@ -63,6 +63,11 @@ public class ToolController {
         return ResponseEntity.ok(toolService.getAll());
     }
 
+    @GetMapping("/active")
+    public ResponseEntity<List<Tool>> getActiveTools() {
+        return ResponseEntity.ok(toolService.getActive());
+    }
+
     @GetMapping("/{toolId}")
     public ResponseEntity<ToolDetailsResponse> getToolById(@PathVariable String toolId) {
         UUID id = UUID.fromString(toolId);

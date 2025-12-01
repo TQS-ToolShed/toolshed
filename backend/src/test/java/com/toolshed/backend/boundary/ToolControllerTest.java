@@ -180,4 +180,20 @@ class ToolControllerTest {
 
         verify(toolService).getById(missingId);
     }
+
+    @Test
+    @DisplayName("Should return active tools list")
+    void testGetActiveTools() throws Exception {
+        Tool activeTool = createSampleTool("Active Saw");
+        activeTool.setActive(true);
+
+        when(toolService.getActive()).thenReturn(List.of(activeTool));
+
+        mockMvc.perform(get("/api/tools/active").contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].title", is("Active Saw")));
+
+        verify(toolService).getActive();
+    }
 }

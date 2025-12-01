@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { AvailableToolCard } from '../components/AvailableToolCard';
-import { getAllTools, searchTools, type Tool } from '@/modules/supplier/api/tools-api';
+import { getActiveTools, searchTools, type Tool } from '@/modules/supplier/api/tools-api';
 
 export const RenterDashboardPage = () => {
   const { user, logout } = useAuth();
@@ -23,11 +23,11 @@ export const RenterDashboardPage = () => {
         setError(null);
 
         const hasFilters = Boolean(filters?.keyword || filters?.location);
-        const data = hasFilters
+        const data: Tool[] = hasFilters
           ? await searchTools(filters?.keyword, filters?.location)
-          : await getAllTools();
+          : await getActiveTools();
 
-        setTools(data.filter((tool) => tool.active));
+        setTools(data.filter((tool: Tool) => tool.active));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load tools');
       } finally {
