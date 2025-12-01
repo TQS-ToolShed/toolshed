@@ -56,6 +56,11 @@ public class ToolServiceImpl implements ToolService {
     }
 
     @Override
+    public List<Tool> getActive() {
+        return toolRepo.findByActiveTrue();
+    }
+
+    @Override
     @Transactional
     public String createTool(CreateToolInput input) {
         User supplier = userRepo.findById(input.getSupplierId())
@@ -94,14 +99,30 @@ public class ToolServiceImpl implements ToolService {
         Tool tool = toolRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tool not found"));
 
-        tool.setTitle(input.getTitle());
-        tool.setDescription(input.getDescription());
-        tool.setPricePerDay(input.getPricePerDay());
-        tool.setLocation(input.getLocation());
-        tool.setActive(input.getActive());
-        tool.setAvailabilityCalendar(input.getAvailabilityCalendar());
-        tool.setOverallRating(input.getOverallRating());
-        tool.setNumRatings(input.getNumRatings());
+        if (input.getTitle() != null) {
+            tool.setTitle(input.getTitle());
+        }
+        if (input.getDescription() != null) {
+            tool.setDescription(input.getDescription());
+        }
+        if (input.getPricePerDay() != null) {
+            tool.setPricePerDay(input.getPricePerDay());
+        }
+        if (input.getLocation() != null) {
+            tool.setLocation(input.getLocation());
+        }
+        if (input.getActive() != null) {
+            tool.setActive(input.getActive());
+        }
+        if (input.getAvailabilityCalendar() != null) {
+            tool.setAvailabilityCalendar(input.getAvailabilityCalendar());
+        }
+        if (input.getOverallRating() != null) {
+            tool.setOverallRating(input.getOverallRating());
+        }
+        if (input.getNumRatings() != null) {
+            tool.setNumRatings(input.getNumRatings());
+        }
 
         if (input.getOwnerId() != null) {
             User supplier = userRepo.findById(input.getOwnerId())

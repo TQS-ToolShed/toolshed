@@ -5,10 +5,11 @@ import type { Tool } from '../api/tools-api';
 interface ToolCardProps {
   tool: Tool;
   onEdit: (tool: Tool) => void;
+  onToggleActive: (tool: Tool) => void;
   onDelete: (toolId: string) => void;
 }
 
-export const ToolCard = ({ tool, onEdit, onDelete }: ToolCardProps) => {
+export const ToolCard = ({ tool, onEdit, onToggleActive, onDelete }: ToolCardProps) => {
   return (
     <Card className="w-full">
       <CardHeader>
@@ -37,6 +38,14 @@ export const ToolCard = ({ tool, onEdit, onDelete }: ToolCardProps) => {
         </div>
       </CardContent>
       <CardFooter className="flex gap-2">
+        <Button
+          variant={tool.active ? 'secondary' : 'default'}
+          size="sm"
+          onClick={() => onToggleActive(tool)}
+          className="flex-1"
+        >
+          {tool.active ? 'Set Inactive' : 'Set Active'}
+        </Button>
         <Button variant="outline" size="sm" onClick={() => onEdit(tool)} className="flex-1">
           Edit
         </Button>

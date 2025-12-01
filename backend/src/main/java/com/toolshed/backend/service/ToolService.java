@@ -12,6 +12,7 @@ public interface ToolService {
     List<Tool> searchTools(String keyword, String location);
     Optional<Tool> getById(UUID id);
     List<Tool> getAll();
+    List<Tool> getActive();
     String createTool(CreateToolInput input);
     void deleteTool(String toolId);
     void updateTool(String toolId, UpdateToolInput input);

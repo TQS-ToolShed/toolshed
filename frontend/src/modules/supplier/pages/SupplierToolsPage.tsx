@@ -82,6 +82,19 @@ export const SupplierToolsPage = () => {
     }
   };
 
+  const handleToggleActive = async (tool: Tool) => {
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await updateTool(tool.id, { active: !tool.active });
+      await loadTools();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update tool status');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleEdit = (tool: Tool) => {
     setEditingTool(tool);
     setShowForm(true);
@@ -145,6 +158,7 @@ export const SupplierToolsPage = () => {
                   key={tool.id}
                   tool={tool}
                   onEdit={handleEdit}
+                  onToggleActive={handleToggleActive}
                   onDelete={handleDeleteTool}
                 />
               ))}
