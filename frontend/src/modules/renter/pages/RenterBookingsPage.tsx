@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
 import { getToolDetails, type ToolDetails } from '@/modules/supplier/api/tools-api';
+import { createBooking, type BookingResponse } from '@/modules/renter/api/bookings-api';
 
 export const RenterBookingsPage = () => {
   const { toolId } = useParams<{ toolId: string }>();
@@ -13,7 +16,12 @@ export const RenterBookingsPage = () => {
 
   const [tool, setTool] = useState<ToolDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [bookingResponse, setBookingResponse] = useState<BookingResponse | null>(null);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const fetchTool = useCallback(async () => {
     if (!toolId) {
@@ -42,6 +50,49 @@ export const RenterBookingsPage = () => {
     return `${tool.overallRating.toFixed(1)} (${tool.numRatings} reviews)`;
   }, [tool]);
 
+  const rentalDays = useMemo(() => {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return diff > 0 ? diff : 0;
+  }, [startDate, endDate]);
+
+  const totalPrice = useMemo(() => {
+    if (!tool) return 0;
+    return rentalDays * tool.pricePerDay;
+  }, [rentalDays, tool]);
+
+  const datesInvalid = useMemo(() => {
+    if (!startDate || !endDate) return true;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    return start > end;
+  }, [startDate, endDate]);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!tool || !user || !toolId || datesInvalid || rentalDays === 0) return;
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      setSuccess(null);
+      const response = await createBooking({
+        toolId,
+        renterId: user.id,
+        startDate,
+        endDate,
+      });
+      setBookingResponse(response);
+      setSuccess('Booking request sent to the owner. We will notify you once it is confirmed.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to submit booking');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -62,6 +113,8 @@ export const RenterBookingsPage = () => {
       </div>
     );
   }
+
+  const todayISO = new Date().toISOString().split('T')[0];
 
   return (
     <div className="min-h-screen bg-background">
@@ -142,20 +195,86 @@ export const RenterBookingsPage = () => {
                 <CardTitle>Request booking</CardTitle>
                 <CardDescription>Confirm dates and send a request</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 text-sm text-muted-foreground">
-                <p>Booking flow coming soon. Share the tool with a friend or contact the owner below.</p>
-                <p>
-                  Day rate: <span className="font-semibold text-foreground">€{tool.pricePerDay.toFixed(2)}</span>
-                </p>
+              <CardContent className="space-y-3">
+                {success && (
+                  <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-2 rounded-md text-sm">
+                    {success}
+                  </div>
+                )}
+                {error && (
+                  <div className="bg-destructive/10 text-destructive border border-destructive px-3 py-2 rounded-md text-sm">
+                    {error}
+                  </div>
+                )}
+
+                <form className="space-y-4" onSubmit={handleSubmit}>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center justify-between">
+                      <span>Day rate</span>
+                      <span className="text-foreground font-semibold">€{tool.pricePerDay.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span>Days</span>
+                      <span className="text-foreground font-semibold">{rentalDays || '-'}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-foreground font-semibold text-lg">
+                      <span>Total</span>
+                      <span>€{totalPrice.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground" htmlFor="startDate">
+                        Start date
+                      </label>
+                      <Input
+                        id="startDate"
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        min={todayISO}
+                        disabled={isSubmitting || !tool.active}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground" htmlFor="endDate">
+                        End date
+                      </label>
+                      <Input
+                        id="endDate"
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate || todayISO}
+                        disabled={isSubmitting || !tool.active}
+                      />
+                    </div>
+                    {datesInvalid && (startDate || endDate) && (
+                      <p className="text-xs text-destructive">End date must be after start date.</p>
+                    )}
+                  </div>
+
+                  {bookingResponse && (
+                    <div className="text-xs text-muted-foreground">
+                      Booking reference: <span className="font-semibold text-foreground">{bookingResponse.id}</span>
+                    </div>
+                  )}
+
+                  <CardFooter className="flex gap-2 px-0">
+                    <Button
+                      className="flex-1"
+                      type="submit"
+                      disabled={isSubmitting || !tool.active || datesInvalid || rentalDays === 0}
+                    >
+                      {tool.active ? (isSubmitting ? 'Sending...' : 'Request booking') : 'Unavailable'}
+                    </Button>
+                    <Button variant="outline" className="flex-1" type="button" onClick={() => navigate(-1)}>
+                      Cancel
+                    </Button>
+                  </CardFooter>
+                </form>
               </CardContent>
-              <CardFooter className="flex gap-2">
-                <Button className="flex-1" disabled>
-                  Request booking
-                </Button>
-                <Button variant="outline" className="flex-1" onClick={() => navigate(-1)}>
-                  Cancel
-                </Button>
-              </CardFooter>
             </Card>
 
             <Card>

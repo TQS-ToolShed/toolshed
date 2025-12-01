@@ -60,7 +60,6 @@ class ToolRepositoryTest {
         defaultOwner.setRegisteredDate(LocalDateTime.now().minusMonths(6));
         defaultOwner = userRepo.save(defaultOwner); // Use managed entity
 
-        
         // 1. Direct title match
         Tool drill = baseTool("Power Drill", "Cordless 18V battery powered", "Downtown Garage", 4.5, true);
         drill.setAvailabilityCalendar("{\"mon\": true, \"tue\": true, \"wed\": false}");
