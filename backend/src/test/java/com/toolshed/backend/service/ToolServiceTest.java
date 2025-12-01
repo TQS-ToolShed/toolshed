@@ -6,10 +6,12 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
@@ -21,8 +23,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
+import com.toolshed.backend.dto.CreateToolInput;
 import com.toolshed.backend.dto.UpdateToolInput;
 import com.toolshed.backend.repository.entities.Tool;
+import com.toolshed.backend.repository.entities.User;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @ExtendWith(MockitoExtension.class) // Initializes mocks
 class ToolServiceTest {
@@ -37,6 +43,7 @@ class ToolServiceTest {
     private ToolServiceImpl toolService;
 
     private Tool sampleTool;
+    private User supplier;
 
     @BeforeEach
     void setUp() {
@@ -50,6 +57,9 @@ class ToolServiceTest {
         sampleTool.setNumRatings(2);
         sampleTool.setOverallRating(4.0);
         sampleTool.setActive(true);
+
+        supplier = new User();
+        supplier.setId(UUID.randomUUID());
     }
 
     @Test
@@ -178,5 +188,128 @@ class ToolServiceTest {
 
         assertThat(result).containsExactly(sampleTool);
         verify(toolRepo).findByActiveTrue();
+    }
+
+    @Test
+    @DisplayName("Should create tool with defaults and link to supplier")
+    void testCreateTool() {
+        when(userRepo.findById(supplier.getId())).thenReturn(Optional.of(supplier));
+        when(toolRepo.save(any(Tool.class))).thenAnswer(invocation -> {
+            Tool t = invocation.getArgument(0);
+            t.setId(UUID.randomUUID());
+            return t;
+        });
+
+        CreateToolInput input = CreateToolInput.builder()
+                .title("Saw")
+                .description("Sharp saw")
+                .pricePerDay(12.0)
+                .location("Lisbon")
+                .supplierId(supplier.getId())
+                .build();
+
+        String newId = toolService.createTool(input);
+
+        assertThat(newId).isNotBlank();
+        ArgumentCaptor<Tool> captor = ArgumentCaptor.forClass(Tool.class);
+        verify(toolRepo).save(captor.capture());
+        Tool saved = captor.getValue();
+        assertThat(saved.getOwner()).isEqualTo(supplier);
+        assertThat(saved.isActive()).isTrue();
+        assertThat(saved.getOverallRating()).isZero();
+        assertThat(saved.getNumRatings()).isZero();
+    }
+
+    @Test
+    @DisplayName("Should throw when supplier not found during create")
+    void testCreateToolSupplierMissing() {
+        UUID missingId = UUID.randomUUID();
+        CreateToolInput input = CreateToolInput.builder()
+                .title("Saw")
+                .description("Sharp saw")
+                .pricePerDay(12.0)
+                .location("Lisbon")
+                .supplierId(missingId)
+                .build();
+
+        assertThatThrownBy(() -> toolService.createTool(input))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("Should delete tool when it exists")
+    void testDeleteTool() {
+        when(toolRepo.existsById(sampleTool.getId())).thenReturn(true);
+
+        toolService.deleteTool(sampleTool.getId().toString());
+
+        verify(toolRepo).deleteById(sampleTool.getId());
+    }
+
+    @Test
+    @DisplayName("Should throw when deleting missing tool")
+    void testDeleteToolMissing() {
+        UUID missing = UUID.randomUUID();
+        when(toolRepo.existsById(missing)).thenReturn(false);
+
+        assertThatThrownBy(() -> toolService.deleteTool(missing.toString()))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("Should update fields and owner when provided")
+    void testUpdateToolWithOwner() {
+        UUID newOwnerId = UUID.randomUUID();
+        User newOwner = new User();
+        newOwner.setId(newOwnerId);
+
+        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
+        when(userRepo.findById(newOwnerId)).thenReturn(Optional.of(newOwner));
+
+        UpdateToolInput input = UpdateToolInput.builder()
+                .title("Updated title")
+                .pricePerDay(20.0)
+                .ownerId(newOwnerId)
+                .active(false)
+                .build();
+
+        toolService.updateTool(sampleTool.getId().toString(), input);
+
+        assertThat(sampleTool.getTitle()).isEqualTo("Updated title");
+        assertThat(sampleTool.getPricePerDay()).isEqualTo(20.0);
+        assertThat(sampleTool.isActive()).isFalse();
+        assertThat(sampleTool.getOwner()).isEqualTo(newOwner);
+        // unchanged fields preserved
+        assertThat(sampleTool.getDescription()).isEqualTo("Desc");
+    }
+
+    @Test
+    @DisplayName("Should throw when updating missing tool")
+    void testUpdateToolMissing() {
+        UUID missing = UUID.randomUUID();
+        when(toolRepo.findById(missing)).thenReturn(Optional.empty());
+
+        UpdateToolInput input = UpdateToolInput.builder().active(false).build();
+
+        assertThatThrownBy(() -> toolService.updateTool(missing.toString(), input))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("Should delegate getAll and getById to repository")
+    void testGetAllAndGetById() {
+        when(toolRepo.findAll()).thenReturn(List.of(sampleTool));
+        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
+
+        assertThat(toolService.getAll()).containsExactly(sampleTool);
+        assertThat(toolService.getById(sampleTool.getId())).contains(sampleTool);
+        verify(toolRepo).findAll();
+        verify(toolRepo).findById(sampleTool.getId());
     }
 }
