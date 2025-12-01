@@ -289,6 +289,41 @@ class ToolServiceTest {
     }
 
     @Test
+    @DisplayName("Should update all editable fields when present")
+    void testUpdateToolAllFields() {
+        UUID newOwnerId = UUID.randomUUID();
+        User newOwner = new User();
+        newOwner.setId(newOwnerId);
+
+        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
+        when(userRepo.findById(newOwnerId)).thenReturn(Optional.of(newOwner));
+
+        UpdateToolInput input = UpdateToolInput.builder()
+                .title("New Title")
+                .description("New Desc")
+                .pricePerDay(25.0)
+                .location("Porto")
+                .active(true)
+                .availabilityCalendar("cal-json")
+                .overallRating(4.9)
+                .numRatings(12)
+                .ownerId(newOwnerId)
+                .build();
+
+        toolService.updateTool(sampleTool.getId().toString(), input);
+
+        assertThat(sampleTool.getTitle()).isEqualTo("New Title");
+        assertThat(sampleTool.getDescription()).isEqualTo("New Desc");
+        assertThat(sampleTool.getPricePerDay()).isEqualTo(25.0);
+        assertThat(sampleTool.getLocation()).isEqualTo("Porto");
+        assertThat(sampleTool.isActive()).isTrue();
+        assertThat(sampleTool.getAvailabilityCalendar()).isEqualTo("cal-json");
+        assertThat(sampleTool.getOverallRating()).isEqualTo(4.9);
+        assertThat(sampleTool.getNumRatings()).isEqualTo(12);
+        assertThat(sampleTool.getOwner()).isEqualTo(newOwner);
+    }
+
+    @Test
     @DisplayName("Should throw when updating missing tool")
     void testUpdateToolMissing() {
         UUID missing = UUID.randomUUID();
