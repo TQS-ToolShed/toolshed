@@ -3,10 +3,10 @@ package com.toolshed.backend.boundary;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import com.toolshed.backend.dto.CreateToolInput;
+import com.toolshed.backend.dto.ToolDetailsResponse;
 import com.toolshed.backend.dto.UpdateToolInput;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -62,12 +62,16 @@ public class ToolController {
     public ResponseEntity<List<Tool>> getAllTools() {
         return ResponseEntity.ok(toolService.getAll());
     }
+
     @GetMapping("/{toolId}")
-    public ResponseEntity<Tool> getToolById(@PathVariable String toolId) {
+    public ResponseEntity<ToolDetailsResponse> getToolById(@PathVariable String toolId) {
         UUID id = UUID.fromString(toolId);
-        Optional<Tool> request = toolService.getById(id);
-        return request.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+        return toolService.getById(id)
+                .map(this::mapToToolDetails)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
+
     @GetMapping("/search")
     public ResponseEntity<List<Tool>> searchTools(
             @Parameter(description = "Keyword to search for (e.g., 'drill').")
@@ -99,5 +103,28 @@ public class ToolController {
 
         toolService.deleteTool(toolId);
         return ResponseEntity.noContent().build();
+    }
+
+    private ToolDetailsResponse mapToToolDetails(Tool tool) {
+        return ToolDetailsResponse.builder()
+                .id(tool.getId())
+                .title(tool.getTitle())
+                .description(tool.getDescription())
+                .pricePerDay(tool.getPricePerDay())
+                .location(tool.getLocation())
+                .active(tool.isActive())
+                .availabilityCalendar(tool.getAvailabilityCalendar())
+                .overallRating(tool.getOverallRating())
+                .numRatings(tool.getNumRatings())
+                .owner(
+                        ToolDetailsResponse.OwnerSummary.builder()
+                                .id(tool.getOwner().getId())
+                                .firstName(tool.getOwner().getFirstName())
+                                .lastName(tool.getOwner().getLastName())
+                                .email(tool.getOwner().getEmail())
+                                .reputationScore(tool.getOwner().getReputationScore())
+                                .build()
+                )
+                .build();
     }
 }
