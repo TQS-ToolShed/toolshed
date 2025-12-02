@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_URL = 'http://localhost:8080/api/tools';
+const API_URL = `${API_BASE_URL}/api/tools`;
 
 // Tool type definition
 export interface Tool {
