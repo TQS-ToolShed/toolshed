@@ -270,7 +270,9 @@ class ToolServiceTest {
         UUID missing = UUID.randomUUID();
         when(toolRepo.existsById(missing)).thenReturn(false);
 
-        assertThatThrownBy(() -> toolService.deleteTool(missing.toString()))
+        String missingId = missing.toString();
+
+        assertThatThrownBy(() -> toolService.deleteTool(missingId))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.NOT_FOUND);
@@ -346,7 +348,9 @@ class ToolServiceTest {
 
         UpdateToolInput input = UpdateToolInput.builder().active(false).build();
 
-        assertThatThrownBy(() -> toolService.updateTool(missing.toString(), input))
+        String missingId = missing.toString();
+
+        assertThatThrownBy(() -> toolService.updateTool(missingId, input))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.NOT_FOUND);

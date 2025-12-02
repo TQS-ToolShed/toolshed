@@ -7,7 +7,9 @@ import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -18,9 +20,8 @@ public class AuthService {
     private final UserRepository userRepository;
 
     public User register(RegisterRequest request) {
-        // Check if email already exists
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already in use");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already in use");
         }
 
         var user = User.builder()
@@ -38,15 +39,15 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
 
         // In a real app, use passwordEncoder.matches(request.getPassword(), user.getPassword())
         if (!user.getPassword().equals(request.getPassword())) {
-            throw new RuntimeException("Invalid email or password");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new RuntimeException("Account is not active");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is not active");
         }
 
         // Generate a mock token (UUID) for now since we don't have JWT set up
