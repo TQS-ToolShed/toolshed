@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api';
 
-const API_URL = 'http://localhost:8080/api/bookings';
+const API_URL = `${API_BASE_URL}/api/bookings`;
 
 export interface CreateBookingInput {
   toolId: string;

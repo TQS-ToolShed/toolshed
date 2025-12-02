@@ -1,8 +1,9 @@
 import axios from 'axios';
+import { API_BASE_URL } from '@/lib/api';
 import type { RegisterRequest } from '../dto/RegisterRequest';
 import type { LoginRequest } from '../dto/LoginRequest';
 
-const API_URL = 'http://localhost:8080/api/auth'; // Assuming backend runs on 8080
+const API_URL = `${API_BASE_URL}/api/auth`;
 
 // Function to register a new user
 export const registerUser = async (userData: RegisterRequest) => {
