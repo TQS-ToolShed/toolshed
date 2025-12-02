@@ -1,0 +1,23 @@
+name: CD - Deploy to VM
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Rebuild and redeploy stack
+        env:
+          DOCKER_BUILDKIT: 1
+        run: |
+          sudo docker compose down --remove-orphans
+          sudo docker compose up -d --build
