@@ -1,0 +1,64 @@
+package com.toolshed.backend.service;
+
+import com.toolshed.backend.dto.LoginRequest;
+import com.toolshed.backend.dto.LoginResponse;
+import com.toolshed.backend.dto.RegisterRequest;
+import com.toolshed.backend.repository.UserRepository;
+import com.toolshed.backend.repository.entities.User;
+import com.toolshed.backend.repository.enums.UserStatus;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.util.UUID;
+
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepository userRepository;
+
+    public User register(RegisterRequest request) {
+        // Check if email already exists
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already in use");
+        }
+
+        var user = User.builder()
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .email(request.getEmail())
+                .password(request.getPassword()) // In real app, encode this!
+                .role(request.getRole())
+                .status(UserStatus.ACTIVE) // Default status
+                .reputationScore(0.0)
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    public LoginResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password"));
+
+        // In a real app, use passwordEncoder.matches(request.getPassword(), user.getPassword())
+        if (!user.getPassword().equals(request.getPassword())) {
+            throw new RuntimeException("Invalid email or password");
+        }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new RuntimeException("Account is not active");
+        }
+
+        // Generate a mock token (UUID) for now since we don't have JWT set up
+        String token = UUID.randomUUID().toString();
+
+        return LoginResponse.builder()
+                .token(token)
+                .user(user)
+                .build();
+    }
+
+    public boolean isEmailTaken(String email) {
+        return userRepository.existsByEmail(email);
+    }
+}
