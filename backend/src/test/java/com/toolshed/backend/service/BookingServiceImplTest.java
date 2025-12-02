@@ -28,7 +28,6 @@ import org.springframework.web.server.ResponseStatusException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -70,7 +69,7 @@ class BookingServiceImplTest {
         LocalDate end = start.plusDays(2);
         when(toolRepository.findById(tool.getId())).thenReturn(Optional.of(tool));
         when(userRepository.findById(renter.getId())).thenReturn(Optional.of(renter));
-        when(bookingRepository.findOverlappingBookings(eq(tool.getId()), eq(start), eq(end)))
+        when(bookingRepository.findOverlappingBookings(tool.getId(), start, end))
                 .thenReturn(Collections.emptyList());
 
         Booking saved = new Booking();
@@ -110,12 +109,14 @@ class BookingServiceImplTest {
     @DisplayName("Should reject past start date")
     void createBookingPastDate() {
         LocalDate start = LocalDate.now().minusDays(1);
-        assertThatThrownBy(() -> bookingService.createBooking(CreateBookingRequest.builder()
+        CreateBookingRequest request = CreateBookingRequest.builder()
                 .toolId(tool.getId())
                 .renterId(renter.getId())
                 .startDate(start)
                 .endDate(LocalDate.now().plusDays(1))
-                .build()))
+                .build();
+
+        assertThatThrownBy(() -> bookingService.createBooking(request))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Dates cannot be in the past")
                 .extracting("statusCode")
@@ -127,12 +128,14 @@ class BookingServiceImplTest {
     void createBookingEndBeforeStart() {
         LocalDate start = LocalDate.now().plusDays(3);
         LocalDate end = LocalDate.now().plusDays(1);
-        assertThatThrownBy(() -> bookingService.createBooking(CreateBookingRequest.builder()
+        CreateBookingRequest request = CreateBookingRequest.builder()
                 .toolId(tool.getId())
                 .renterId(renter.getId())
                 .startDate(start)
                 .endDate(end)
-                .build()))
+                .build();
+
+        assertThatThrownBy(() -> bookingService.createBooking(request))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("End date must be on or after start date");
     }
@@ -144,15 +147,17 @@ class BookingServiceImplTest {
         LocalDate end = start.plusDays(1);
         when(toolRepository.findById(tool.getId())).thenReturn(Optional.of(tool));
         when(userRepository.findById(renter.getId())).thenReturn(Optional.of(renter));
-        when(bookingRepository.findOverlappingBookings(eq(tool.getId()), eq(start), eq(end)))
+        when(bookingRepository.findOverlappingBookings(tool.getId(), start, end))
                 .thenReturn(java.util.List.of(new Booking()));
 
-        assertThatThrownBy(() -> bookingService.createBooking(CreateBookingRequest.builder()
+        CreateBookingRequest request = CreateBookingRequest.builder()
                 .toolId(tool.getId())
                 .renterId(renter.getId())
                 .startDate(start)
                 .endDate(end)
-                .build()))
+                .build();
+
+        assertThatThrownBy(() -> bookingService.createBooking(request))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
