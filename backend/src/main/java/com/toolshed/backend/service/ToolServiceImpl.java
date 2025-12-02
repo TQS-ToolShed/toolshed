@@ -5,17 +5,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import com.toolshed.backend.dto.CreateToolInput;
-import com.toolshed.backend.dto.UpdateToolInput;
-import com.toolshed.backend.repository.UserRepository;
-import com.toolshed.backend.repository.entities.User;
-import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-
-import com.toolshed.backend.repository.ToolRepository;
-import com.toolshed.backend.repository.entities.Tool;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.toolshed.backend.dto.CreateToolInput;
+import com.toolshed.backend.dto.UpdateToolInput;
+import com.toolshed.backend.repository.ToolRepository;
+import com.toolshed.backend.repository.UserRepository;
+import com.toolshed.backend.repository.entities.Tool;
+import com.toolshed.backend.repository.entities.User;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class ToolServiceImpl implements ToolService {
@@ -35,13 +36,15 @@ public class ToolServiceImpl implements ToolService {
      */
     @Override
     public List<Tool> searchTools(String keyword, String location) {
+        String trimmedKeyword = keyword == null ? null : keyword.trim();
+        String trimmedLocation = location == null ? null : location.trim();
 
-        if (keyword == null) {
+        // If both are empty/null, return empty list (no search criteria)
+        if ((trimmedKeyword == null || trimmedKeyword.isEmpty()) 
+            && (trimmedLocation == null || trimmedLocation.isEmpty())) {
             return Collections.emptyList();
         }
 
-        String trimmedKeyword = keyword.trim();
-        String trimmedLocation = location == null ? null : location.trim();
         return toolRepo.searchTools(trimmedKeyword, trimmedLocation);
     }
 

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
@@ -19,17 +20,16 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.any;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.toolshed.backend.repository.ToolRepository;
-import com.toolshed.backend.repository.UserRepository;
-import com.toolshed.backend.dto.CreateToolInput;
-import com.toolshed.backend.dto.UpdateToolInput;
-import com.toolshed.backend.repository.entities.Tool;
-import com.toolshed.backend.repository.entities.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+
+import com.toolshed.backend.dto.CreateToolInput;
+import com.toolshed.backend.dto.UpdateToolInput;
+import com.toolshed.backend.repository.ToolRepository;
+import com.toolshed.backend.repository.UserRepository;
+import com.toolshed.backend.repository.entities.Tool;
+import com.toolshed.backend.repository.entities.User;
 
 @ExtendWith(MockitoExtension.class) // Initializes mocks
 class ToolServiceTest {
@@ -100,8 +100,8 @@ class ToolServiceTest {
     }
 
     @Test
-    @DisplayName("Should return empty list immediately if keyword is null (Defensive Coding)")
-    void testSearchToolsWithNullKeyword() {
+    @DisplayName("Should return empty list immediately if both keyword and location are null (Defensive Coding)")
+    void testSearchToolsWithNullKeywordAndLocation() {
         // Act
         List<Tool> result = toolService.searchTools(null, null);
 
@@ -110,6 +110,21 @@ class ToolServiceTest {
         
         // Verify we NEVER bothered the database with a null query
         verifyNoInteractions(toolRepo);
+    }
+
+    @Test
+    @DisplayName("Should search with location only when keyword is null")
+    void testSearchToolsWithLocationOnly() {
+        // Arrange
+        String location = "Aveiro";
+        when(toolRepo.searchTools(null, location)).thenReturn(List.of(sampleTool));
+
+        // Act
+        List<Tool> result = toolService.searchTools(null, location);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(toolRepo, times(1)).searchTools(null, location);
     }
 
     @Test
