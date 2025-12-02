@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { ToolSearchBar } from '@/modules/shared/components/ToolSearchBar';
 import { AvailableToolCard } from '../components/AvailableToolCard';
 import { getActiveTools, searchTools, type Tool } from '@/modules/supplier/api/tools-api';
 
@@ -134,38 +134,15 @@ export const RenterDashboardPage = () => {
             <CardDescription>Search by keyword or narrow down to a location</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSearch} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="md:col-span-2">
-                <Input
-                  placeholder="Search by name or category"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  disabled={isSearching || isLoading}
-                />
-              </div>
-              <div className="md:col-span-1">
-                <Input
-                  placeholder="Location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  disabled={isSearching || isLoading}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1" disabled={isSearching || isLoading}>
-                  {isSearching ? 'Searching...' : 'Search'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={handleResetFilters}
-                  disabled={isSearching || isLoading}
-                >
-                  Reset
-                </Button>
-              </div>
-            </form>
+            <ToolSearchBar
+              keyword={keyword}
+              location={location}
+              onKeywordChange={setKeyword}
+              onLocationChange={setLocation}
+              onSearch={handleSearch}
+              onReset={handleResetFilters}
+              isLoading={isSearching || isLoading}
+            />
           </CardContent>
         </Card>
 
