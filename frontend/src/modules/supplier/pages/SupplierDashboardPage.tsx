@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ToolBookingRequests } from '../components/ToolBookingRequests';
+import { ActiveRentals } from '../components/ActiveRentals';
 
 export const SupplierDashboardPage = () => {
   const { user, logout } = useAuth();
@@ -60,17 +62,11 @@ export const SupplierDashboardPage = () => {
           </Card>
 
           {/* Rentals Card - Placeholder */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Rentals</CardTitle>
-              <CardDescription>
-                View and manage your current tool rentals
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">Coming soon...</p>
-            </CardContent>
-          </Card>
+          <ActiveRentals />
+        </div>
+
+        <div className="mt-10">
+          <ToolBookingRequests />
         </div>
       </main>
     </div>

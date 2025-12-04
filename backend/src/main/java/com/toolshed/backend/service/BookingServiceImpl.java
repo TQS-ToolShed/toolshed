@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import com.toolshed.backend.dto.BookingResponse;
 import com.toolshed.backend.dto.CreateBookingRequest;
+import com.toolshed.backend.dto.OwnerBookingResponse;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
@@ -17,6 +18,7 @@ import com.toolshed.backend.repository.enums.BookingStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 @Service
@@ -76,16 +78,101 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
 
+        return toBookingResponse(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<OwnerBookingResponse> getBookingsForOwner(UUID ownerId) {
+        List<Booking> bookings = bookingRepository.findByOwnerId(ownerId);
+        return bookings.stream()
+                .map(this::toOwnerBookingResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getBookingsForTool(UUID toolId) {
+        List<Booking> bookings = bookingRepository.findByToolId(toolId);
+        return bookings.stream()
+                .map(this::toBookingResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse updateBookingStatus(UUID bookingId, BookingStatus status) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        if (status != BookingStatus.APPROVED && status != BookingStatus.REJECTED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only approval or rejection is supported");
+        }
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Booking decision is already final");
+        }
+
+        booking.setStatus(status);
+
+        // If approved, only mark the tool unavailable during the booking window
+        if (status == BookingStatus.APPROVED) {
+            List<Booking> overlaps = bookingRepository.findOverlappingBookings(
+                    booking.getTool().getId(),
+                    booking.getStartDate(),
+                    booking.getEndDate());
+
+            boolean hasApprovedOverlap = overlaps.stream()
+                    .anyMatch(b -> !b.getId().equals(bookingId) && b.getStatus() == BookingStatus.APPROVED);
+            if (hasApprovedOverlap) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Booking window already approved for this tool");
+            }
+
+            Tool tool = booking.getTool();
+            if (tool != null) {
+                LocalDate today = LocalDate.now();
+                boolean withinWindow = !today.isBefore(booking.getStartDate()) && !today.isAfter(booking.getEndDate());
+                tool.setActive(!withinWindow);
+                toolRepository.save(tool);
+            }
+        }
+
+        Booking saved = bookingRepository.save(booking);
+
+        return toBookingResponse(saved);
+    }
+
+    private OwnerBookingResponse toOwnerBookingResponse(Booking booking) {
+        Tool tool = booking.getTool();
+        User renter = booking.getRenter();
+        String renterName = renter != null
+                ? (renter.getFirstName() + " " + renter.getLastName()).trim()
+                : null;
+
+        return OwnerBookingResponse.builder()
+                .id(booking.getId())
+                .toolId(tool != null ? tool.getId() : null)
+                .toolTitle(tool != null ? tool.getTitle() : null)
+                .renterId(renter != null ? renter.getId() : null)
+                .renterName(renterName)
+                .startDate(booking.getStartDate())
+                .endDate(booking.getEndDate())
+                .status(booking.getStatus())
+                .totalPrice(booking.getTotalPrice())
+                .build();
+    }
+
+    private BookingResponse toBookingResponse(Booking booking) {
         return BookingResponse.builder()
-                .id(saved.getId())
-                .toolId(saved.getTool().getId())
-                .renterId(saved.getRenter().getId())
-                .ownerId(saved.getOwner().getId())
-                .startDate(saved.getStartDate())
-                .endDate(saved.getEndDate())
-                .status(saved.getStatus())
-                .paymentStatus(saved.getPaymentStatus())
-                .totalPrice(saved.getTotalPrice())
+                .id(booking.getId())
+                .toolId(booking.getTool().getId())
+                .renterId(booking.getRenter().getId())
+                .ownerId(booking.getOwner().getId())
+                .startDate(booking.getStartDate())
+                .endDate(booking.getEndDate())
+                .status(booking.getStatus())
+                .paymentStatus(booking.getPaymentStatus())
+                .totalPrice(booking.getTotalPrice())
                 .build();
     }
 }

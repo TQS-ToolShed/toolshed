@@ -1,6 +1,7 @@
 package com.toolshed.backend.service;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -161,5 +163,151 @@ class BookingServiceImplTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    @DisplayName("Should list bookings for tool")
+    void getBookingsForTool() {
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTool(tool);
+        booking.setRenter(renter);
+        booking.setOwner(tool.getOwner());
+        booking.setStartDate(LocalDate.now());
+        booking.setEndDate(LocalDate.now().plusDays(1));
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setPaymentStatus(PaymentStatus.PENDING);
+        booking.setTotalPrice(10.0);
+
+        when(bookingRepository.findByToolId(tool.getId())).thenReturn(List.of(booking));
+
+        var result = bookingService.getBookingsForTool(tool.getId());
+
+        assertThat(result).hasSize(1);
+        assertThat(result.getFirst().getId()).isEqualTo(booking.getId());
+        assertThat(result.getFirst().getToolId()).isEqualTo(tool.getId());
+    }
+
+    @Test
+    @DisplayName("Should update booking status from PENDING to APPROVED")
+    void updateBookingStatusFromPending() {
+        UUID bookingId = UUID.randomUUID();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setTool(tool);
+        tool.setActive(true);
+        booking.setRenter(renter);
+        booking.setOwner(tool.getOwner());
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setPaymentStatus(PaymentStatus.PENDING);
+        booking.setStartDate(LocalDate.now());
+        booking.setEndDate(LocalDate.now().plusDays(1));
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(toolRepository.save(any(Tool.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = bookingService.updateBookingStatus(bookingId, BookingStatus.APPROVED);
+
+        assertThat(response.getStatus()).isEqualTo(BookingStatus.APPROVED);
+        verify(bookingRepository).save(any(Booking.class));
+        verify(toolRepository).save(eq(tool));
+        assertThat(tool.isActive()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should keep tool available if approval is outside booking window")
+    void updateBookingStatusFutureWindowKeepsToolActive() {
+        UUID bookingId = UUID.randomUUID();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setTool(tool);
+        tool.setActive(true);
+        booking.setRenter(renter);
+        booking.setOwner(tool.getOwner());
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setPaymentStatus(PaymentStatus.PENDING);
+        booking.setStartDate(LocalDate.now().plusDays(5));
+        booking.setEndDate(LocalDate.now().plusDays(7));
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(toolRepository.save(any(Tool.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = bookingService.updateBookingStatus(bookingId, BookingStatus.APPROVED);
+
+        assertThat(response.getStatus()).isEqualTo(BookingStatus.APPROVED);
+        assertThat(tool.isActive()).isTrue();
+        verify(toolRepository).save(eq(tool));
+    }
+
+    @Test
+    @DisplayName("Should not approve if another booking is already approved in the same window")
+    void updateBookingStatusConflictingApproved() {
+        UUID bookingId = UUID.randomUUID();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setTool(tool);
+        tool.setActive(true);
+        booking.setRenter(renter);
+        booking.setOwner(tool.getOwner());
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setPaymentStatus(PaymentStatus.PENDING);
+        booking.setStartDate(LocalDate.now());
+        booking.setEndDate(LocalDate.now().plusDays(2));
+
+        Booking existingApproved = new Booking();
+        existingApproved.setId(UUID.randomUUID());
+        existingApproved.setTool(tool);
+        existingApproved.setStatus(BookingStatus.APPROVED);
+        existingApproved.setStartDate(LocalDate.now());
+        existingApproved.setEndDate(LocalDate.now().plusDays(1));
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findOverlappingBookings(eq(tool.getId()), any(LocalDate.class), any(LocalDate.class)))
+                .thenReturn(List.of(booking, existingApproved));
+
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(bookingId, BookingStatus.APPROVED))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    @DisplayName("Should not allow status change once approved or rejected")
+    void updateBookingStatusAlreadyFinal() {
+        UUID bookingId = UUID.randomUUID();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setTool(tool);
+        booking.setRenter(renter);
+        booking.setOwner(tool.getOwner());
+        booking.setStatus(BookingStatus.APPROVED);
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(bookingId, BookingStatus.REJECTED))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    @DisplayName("Should reject unsupported status transitions")
+    void updateBookingStatusUnsupported() {
+        UUID bookingId = UUID.randomUUID();
+        Booking booking = new Booking();
+        booking.setId(bookingId);
+        booking.setTool(tool);
+        booking.setRenter(renter);
+        booking.setOwner(tool.getOwner());
+        booking.setStatus(BookingStatus.PENDING);
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> bookingService.updateBookingStatus(bookingId, BookingStatus.CANCELLED))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.BAD_REQUEST);
     }
 }
