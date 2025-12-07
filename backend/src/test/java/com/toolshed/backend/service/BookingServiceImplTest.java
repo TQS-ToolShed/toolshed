@@ -310,4 +310,38 @@ class BookingServiceImplTest {
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
     }
+
+    @Test
+    @DisplayName("Should map bookings for owner with tool and renter details")
+    void getBookingsForOwnerMapsFields() {
+        UUID ownerId = tool.getOwner().getId();
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTool(tool);
+        tool.setTitle("Cordless Drill");
+        booking.setRenter(renter);
+        renter.setFirstName("Ada");
+        renter.setLastName("Lovelace");
+        booking.setOwner(tool.getOwner());
+        booking.setStartDate(LocalDate.of(2024, 1, 10));
+        booking.setEndDate(LocalDate.of(2024, 1, 12));
+        booking.setStatus(BookingStatus.APPROVED);
+        booking.setTotalPrice(42.0);
+
+        when(bookingRepository.findByOwnerId(ownerId)).thenReturn(List.of(booking));
+
+        List<com.toolshed.backend.dto.OwnerBookingResponse> responses = bookingService.getBookingsForOwner(ownerId);
+
+        assertThat(responses).hasSize(1);
+        com.toolshed.backend.dto.OwnerBookingResponse response = responses.getFirst();
+        assertThat(response.getId()).isEqualTo(booking.getId());
+        assertThat(response.getToolId()).isEqualTo(tool.getId());
+        assertThat(response.getToolTitle()).isEqualTo("Cordless Drill");
+        assertThat(response.getRenterId()).isEqualTo(renter.getId());
+        assertThat(response.getRenterName()).isEqualTo("Ada Lovelace");
+        assertThat(response.getStartDate()).isEqualTo(booking.getStartDate());
+        assertThat(response.getEndDate()).isEqualTo(booking.getEndDate());
+        assertThat(response.getStatus()).isEqualTo(BookingStatus.APPROVED);
+        assertThat(response.getTotalPrice()).isEqualTo(42.0);
+    }
 }
