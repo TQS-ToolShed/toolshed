@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.toolshed.backend.dto.CreateBookingRequest;
+import com.toolshed.backend.dto.BookingResponse;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
@@ -343,5 +344,59 @@ class BookingServiceImplTest {
         assertThat(response.getEndDate()).isEqualTo(booking.getEndDate());
         assertThat(response.getStatus()).isEqualTo(BookingStatus.APPROVED);
         assertThat(response.getTotalPrice()).isEqualTo(42.0);
+    }
+
+    @Test
+    @DisplayName("Should list bookings for renter and map fields")
+    void getBookingsForRenter() {
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTool(tool);
+        booking.setRenter(renter);
+        booking.setOwner(tool.getOwner());
+        booking.setStartDate(LocalDate.now());
+        booking.setEndDate(LocalDate.now().plusDays(1));
+        booking.setStatus(BookingStatus.PENDING);
+        booking.setPaymentStatus(PaymentStatus.PENDING);
+        booking.setTotalPrice(10.0);
+        tool.setTitle("Impact Driver");
+
+        when(bookingRepository.findByRenterId(renter.getId())).thenReturn(List.of(booking));
+
+        List<BookingResponse> responses = bookingService.getBookingsForRenter(renter.getId());
+
+        assertThat(responses).hasSize(1);
+        BookingResponse response = responses.getFirst();
+        assertThat(response.getRenterId()).isEqualTo(renter.getId());
+        assertThat(response.getToolId()).isEqualTo(tool.getId());
+        assertThat(response.getOwnerId()).isEqualTo(tool.getOwner().getId());
+        assertThat(response.getStatus()).isEqualTo(BookingStatus.PENDING);
+        assertThat(response.getToolTitle()).isEqualTo("Impact Driver");
+        assertThat(response.getTotalPrice()).isEqualTo(10.0);
+    }
+
+    @Test
+    @DisplayName("Should list bookings for a tool and include tool title")
+    void getBookingsForTool() {
+        Booking booking = new Booking();
+        booking.setId(UUID.randomUUID());
+        booking.setTool(tool);
+        booking.setRenter(renter);
+        booking.setOwner(tool.getOwner());
+        booking.setStartDate(LocalDate.now().plusDays(2));
+        booking.setEndDate(LocalDate.now().plusDays(3));
+        booking.setStatus(BookingStatus.APPROVED);
+        booking.setPaymentStatus(PaymentStatus.PENDING);
+        tool.setTitle("Power Saw");
+
+        when(bookingRepository.findByToolId(tool.getId())).thenReturn(List.of(booking));
+
+        List<BookingResponse> responses = bookingService.getBookingsForTool(tool.getId());
+
+        assertThat(responses).hasSize(1);
+        BookingResponse response = responses.getFirst();
+        assertThat(response.getToolTitle()).isEqualTo("Power Saw");
+        assertThat(response.getToolId()).isEqualTo(tool.getId());
+        assertThat(response.getStatus()).isEqualTo(BookingStatus.APPROVED);
     }
 }

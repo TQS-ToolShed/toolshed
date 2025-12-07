@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ToolSearchBar } from '@/modules/shared/components/ToolSearchBar';
 import { AvailableToolCard } from '../components/AvailableToolCard';
 import { getActiveTools, searchTools, type Tool } from '@/modules/supplier/api/tools-api';
+import { RenterNavbar } from '../components/RenterNavbar';
 
 export const RenterDashboardPage = () => {
-  const { user, logout } = useAuth();
   const [tools, setTools] = useState<Tool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
@@ -70,20 +69,8 @@ export const RenterDashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">ToolShed - Renter</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground">
-              Welcome, {user?.firstName} {user?.lastName}
-            </span>
-            <Button variant="outline" onClick={logout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+
+      <RenterNavbar />
 
       {/* Main Content */}
       <main className="container mx-auto py-8 px-4">

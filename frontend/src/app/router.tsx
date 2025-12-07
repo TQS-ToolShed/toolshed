@@ -3,6 +3,7 @@ import { LoginPage } from "@/modules/auth/pages/LoginPage";
 import { RegisterPage } from "@/modules/auth/pages/RegisterPage";
 import { RenterDashboardPage } from "@/modules/renter/pages/RenterDashboardPage";
 import { RenterBookingsPage } from "@/modules/renter/pages/RenterBookingsPage";
+import { RenterProfilePage } from "@/modules/renter/pages/RenterProfilePage";
 import { SupplierDashboardPage } from "@/modules/supplier/pages/SupplierDashboardPage";
 import { SupplierToolsPage } from "@/modules/supplier/pages/SupplierToolsPage";
 import { SupplierRentalsPage } from "@/modules/supplier/pages/SupplierRentalsPage";
@@ -35,6 +36,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={["RENTER"]}>
         <RenterBookingsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/renter/profile",
+    element: (
+      <ProtectedRoute allowedRoles={["RENTER"]}>
+        <RenterProfilePage />
       </ProtectedRoute>
     ),
   },

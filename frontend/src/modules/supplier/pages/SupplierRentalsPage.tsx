@@ -148,24 +148,26 @@ export const SupplierRentalsPage = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <Card className="h-fit">
-            <CardHeader>
-              <CardTitle>Active rentals today</CardTitle>
-              <CardDescription>Approved bookings overlapping today</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {isLoading ? (
-                <p className="text-sm text-muted-foreground">Loading active rentals...</p>
-              ) : activeRentals.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No rentals are active today.</p>
-              ) : (
-                <div className="space-y-3">
-                  {activeRentals.map((booking) => renderBookingCard(booking, 'active'))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start min-h-[60vh]">
+          <div className="flex flex-col h-full">
+            <Card className="h-full flex flex-col">
+              <CardHeader>
+                <CardTitle>Active rentals today</CardTitle>
+                <CardDescription>Approved bookings overlapping today</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3 flex-1">
+                {isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading active rentals...</p>
+                ) : activeRentals.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No rentals are active today.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {activeRentals.map((booking) => renderBookingCard(booking, 'active'))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           <Card className="h-fit">
             <CardHeader>

@@ -8,6 +8,9 @@ import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
 import { getToolDetails, type ToolDetails } from '@/modules/supplier/api/tools-api';
 import { createBooking, type BookingResponse } from '@/modules/renter/api/bookings-api';
+import { ToolAvailabilityCard } from '../components/ToolAvailabilityCard';
+import { BackToDashboardButton } from '../components/BackToDashboardButton';
+import { RenterNavbar } from '../components/RenterNavbar';
 
 export const RenterBookingsPage = () => {
   const { toolId } = useParams<{ toolId: string }>();
@@ -119,19 +122,7 @@ export const RenterBookingsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">ToolShed - Renter</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground">
-              Welcome, {user?.firstName} {user?.lastName}
-            </span>
-            <Button variant="outline" onClick={logout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+      <RenterNavbar />
 
       {/* Main Content */}
       <main className="container mx-auto py-8 px-4">
@@ -141,9 +132,7 @@ export const RenterBookingsPage = () => {
             <h2 className="text-3xl font-bold">{tool.title}</h2>
             <p className="text-muted-foreground">{tool.location}</p>
           </div>
-          <Button variant="outline" onClick={() => navigate('/renter')}>
-            Back to tools
-          </Button>
+          <BackToDashboardButton />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -171,21 +160,7 @@ export const RenterBookingsPage = () => {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Availability</CardTitle>
-                <CardDescription>Plan your rental window</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {tool.availabilityCalendar ? (
-                  <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                    {tool.availabilityCalendar}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No detailed availability shared. Contact the owner for dates.</p>
-                )}
-              </CardContent>
-            </Card>
+            {toolId && <ToolAvailabilityCard toolId={toolId} />}
           </div>
 
           {/* Booking + owner card */}

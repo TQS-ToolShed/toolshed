@@ -12,5 +12,6 @@ public interface BookingService {
     BookingResponse createBooking(CreateBookingRequest request);
     List<OwnerBookingResponse> getBookingsForOwner(UUID ownerId);
     List<BookingResponse> getBookingsForTool(UUID toolId);
+    List<BookingResponse> getBookingsForRenter(UUID renterId);
     BookingResponse updateBookingStatus(UUID bookingId, BookingStatus status);
 }
