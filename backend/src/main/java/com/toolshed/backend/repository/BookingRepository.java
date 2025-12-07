@@ -17,4 +17,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     @Query("SELECT b FROM Booking b WHERE b.tool.id = :toolId AND b.status NOT IN ('CANCELLED', 'REJECTED') AND ((b.startDate <= :endDate) AND (b.endDate >= :startDate))")
     List<Booking> findOverlappingBookings(UUID toolId, LocalDate startDate, LocalDate endDate);
+
+    @Query("SELECT COUNT(b) FROM Booking b WHERE b.tool.id = :toolId AND b.status = 'APPROVED' AND b.startDate <= :date AND b.endDate >= :date")
+    long countActiveApprovedBookingsForToolOnDate(UUID toolId, LocalDate date);
 }

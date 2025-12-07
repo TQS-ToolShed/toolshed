@@ -5,6 +5,7 @@ import { RenterDashboardPage } from "@/modules/renter/pages/RenterDashboardPage"
 import { RenterBookingsPage } from "@/modules/renter/pages/RenterBookingsPage";
 import { SupplierDashboardPage } from "@/modules/supplier/pages/SupplierDashboardPage";
 import { SupplierToolsPage } from "@/modules/supplier/pages/SupplierToolsPage";
+import { SupplierRentalsPage } from "@/modules/supplier/pages/SupplierRentalsPage";
 import { AdminDashboardPage } from "@/modules/admin/pages/AdminDashboardPage";
 import { ProtectedRoute } from "@/modules/shared/components/ProtectedRoute";
 
@@ -50,6 +51,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={["SUPPLIER"]}>
         <SupplierToolsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/supplier/rentals",
+    element: (
+      <ProtectedRoute allowedRoles={["SUPPLIER"]}>
+        <SupplierRentalsPage />
       </ProtectedRoute>
     ),
   },

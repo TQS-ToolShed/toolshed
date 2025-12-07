@@ -5,6 +5,7 @@ import { ToolCard } from '../components/ToolCard';
 import { ToolForm } from '../components/ToolForm';
 import { getAllTools, createTool, updateTool, deleteTool } from '../api/tools-api';
 import type { Tool, CreateToolInput, UpdateToolInput } from '../api/tools-api';
+import { SupplierNavbar } from '../components/SupplierNavbar';
 
 export const SupplierToolsPage = () => {
   const { user } = useAuth();
@@ -119,6 +120,8 @@ export const SupplierToolsPage = () => {
   }
 
   return (
+    <div className="min-h-screen bg-background">
+    <SupplierNavbar />
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -166,6 +169,7 @@ export const SupplierToolsPage = () => {
           )}
         </>
       )}
+    </div>
     </div>
   );
 };
