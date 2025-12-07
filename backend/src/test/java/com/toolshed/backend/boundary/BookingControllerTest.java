@@ -139,7 +139,7 @@ class BookingControllerTest {
                 .totalPrice(30.0)
                 .build();
 
-        when(bookingService.updateBookingStatus(eq(bookingId), eq(BookingStatus.APPROVED))).thenReturn(response);
+        when(bookingService.updateBookingStatus(bookingId, BookingStatus.APPROVED)).thenReturn(response);
 
         mockMvc.perform(put("/api/bookings/{bookingId}/status", bookingId)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -153,7 +153,7 @@ class BookingControllerTest {
     @DisplayName("Should return bad request when service rejects status change")
     void updateBookingStatusBadRequest() throws Exception {
         UUID bookingId = UUID.randomUUID();
-        when(bookingService.updateBookingStatus(eq(bookingId), eq(BookingStatus.REJECTED)))
+        when(bookingService.updateBookingStatus(bookingId, BookingStatus.REJECTED))
                 .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Booking decision is already final"));
 
         mockMvc.perform(put("/api/bookings/{bookingId}/status", bookingId)
