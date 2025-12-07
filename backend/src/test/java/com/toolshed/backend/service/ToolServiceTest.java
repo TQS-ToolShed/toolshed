@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
@@ -315,7 +317,7 @@ class ToolServiceTest {
     void testUpdateToolActiveBlockedByRental() {
         sampleTool.setActive(false);
         when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
-        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(sampleTool.getId(), any(LocalDate.class))).thenReturn(2L);
+        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class))).thenReturn(2L);
 
         UpdateToolInput input = UpdateToolInput.builder()
                 .active(true)
@@ -336,7 +338,7 @@ class ToolServiceTest {
     void testUpdateToolActiveWhenNoRentals() {
         sampleTool.setActive(false);
         when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
-        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(sampleTool.getId(), any(LocalDate.class))).thenReturn(0L);
+        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class))).thenReturn(0L);
 
         UpdateToolInput input = UpdateToolInput.builder()
                 .active(true)
