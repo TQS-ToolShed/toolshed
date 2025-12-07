@@ -323,7 +323,9 @@ class ToolServiceTest {
                 .active(true)
                 .build();
 
-        assertThatThrownBy(() -> toolService.updateTool(sampleTool.getId().toString(), input))
+        String toolId = sampleTool.getId().toString();
+
+        assertThatThrownBy(() -> toolService.updateTool(toolId, input))
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);

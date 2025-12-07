@@ -238,7 +238,7 @@ class BookingServiceImplTest {
 
         assertThat(response.getStatus()).isEqualTo(BookingStatus.APPROVED);
         assertThat(tool.isActive()).isTrue();
-        verify(toolRepository).save(eq(tool));
+        verify(toolRepository).save(tool);
     }
 
     @Test
