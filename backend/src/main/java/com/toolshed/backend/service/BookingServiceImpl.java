@@ -83,9 +83,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     /**
-     * Nightly task to mark finished bookings as completed and free tools if they are no longer rented.
+     * task to mark finished bookings as completed and free tools if they are no longer rented.
      */
-    @Scheduled(cron = "0 0 2 * * *")
+    @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void completeExpiredBookings() {
         LocalDate today = LocalDate.now();
