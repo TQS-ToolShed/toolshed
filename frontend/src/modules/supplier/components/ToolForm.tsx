@@ -116,21 +116,8 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
               required
             />
           </div>
-
-          {isEditing && (
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="active"
-                checked={active}
-                onChange={(e) => setActive(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <Label htmlFor="active">Active (visible to renters)</Label>
-            </div>
-          )}
         </CardContent>
-        <CardFooter className="flex gap-2">
+        <CardFooter className="flex gap-2 p-4">
           <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
             Cancel
           </Button>

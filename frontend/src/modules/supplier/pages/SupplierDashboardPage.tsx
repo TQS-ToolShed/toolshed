@@ -1,30 +1,16 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ToolBookingRequests } from '../components/ToolBookingRequests';
 import { ActiveRentals } from '../components/ActiveRentals';
+import { SupplierNavbar } from '../components/SupplierNavbar';
 
 export const SupplierDashboardPage = () => {
-  const { user, logout } = useAuth();
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">ToolShed - Supplier</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground">
-              Welcome, {user?.firstName} {user?.lastName}
-            </span>
-            <Button variant="outline" onClick={logout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
 
+      <SupplierNavbar />
       {/* Main Content */}
       <main className="container mx-auto py-8 px-4">
         <div className="mb-8">

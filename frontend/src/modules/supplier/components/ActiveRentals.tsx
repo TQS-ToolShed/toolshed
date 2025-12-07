@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { getBookingsForOwner, type SupplierBookingRequest } from '../api/booking-requests-api';
 
 const formatDate = (date: string) => new Date(date).toLocaleDateString();
@@ -13,9 +15,39 @@ export const ActiveRentals = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const activeBookings = useMemo(
-    () => bookings.filter((booking) => booking.status === 'APPROVED'),
-    [bookings]
+  const today = useMemo(() => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    return date;
+  }, []);
+
+  const activeToday = useMemo(
+    () =>
+      bookings.filter((booking) => {
+        if (booking.status !== 'APPROVED') return false;
+        const start = new Date(booking.startDate);
+        const end = new Date(booking.endDate);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        return start.getTime() <= today.getTime() && end.getTime() >= today.getTime();
+      }),
+    [bookings, today]
+  );
+
+  const futureBookings = useMemo(
+    () =>
+      bookings.filter((booking) => {
+        if (booking.status !== 'APPROVED') return false;
+        const start = new Date(booking.startDate);
+        start.setHours(0, 0, 0, 0);
+        return start.getTime() > today.getTime();
+      }),
+    [bookings, today]
+  );
+
+  const previewBookings = useMemo(
+    () => [...activeToday, ...futureBookings].slice(0, 3),
+    [activeToday, futureBookings]
   );
 
   const load = useCallback(async () => {
@@ -44,10 +76,10 @@ export const ActiveRentals = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Active rentals</CardTitle>
-        <CardDescription>Approved bookings currently out</CardDescription>
+        <CardTitle>Active &amp; Future rentals</CardTitle>
+        <CardDescription>Approved bookings happening today or coming up</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         {error && (
           <div className="bg-destructive/10 border border-destructive text-destructive px-3 py-2 rounded-md text-sm">
             {error}
@@ -55,35 +87,23 @@ export const ActiveRentals = () => {
         )}
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading active rentals...</p>
-        ) : activeBookings.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No active rentals right now.</p>
         ) : (
-          <div className="space-y-2">
-            {activeBookings.map((booking) => (
-              <div
-                key={booking.id}
-                className="border border-border rounded-lg p-3 flex items-center justify-between gap-3"
-              >
-                <div className="space-y-1">
-                  <p className="font-semibold text-foreground">
-                    {booking.toolTitle || 'Tool rental'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {'Rented by '} {booking.renterName || 'Renter'} • {formatDate(booking.startDate)} -{' '}
-                    {formatDate(booking.endDate)}
-                  </p>
-                  {booking.totalPrice && (
-                    <p className="text-xs text-muted-foreground">
-                      Total: <span className="text-foreground font-semibold">€{booking.totalPrice.toFixed(2)}</span>
-                    </p>
-                  )}
-                </div>
-                <span className="px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                  APPROVED
-                </span>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-sm text-muted-foreground">Active today</p>
+                <p className="text-2xl font-semibold text-foreground">{activeToday.length}</p>
               </div>
-            ))}
-          </div>
+              <div className="rounded-lg border border-border bg-muted/40 p-3">
+                <p className="text-sm text-muted-foreground">Upcoming</p>
+                <p className="text-2xl font-semibold text-foreground">{futureBookings.length}</p>
+              </div>
+            </div>
+
+            <Link to="/supplier/rentals">
+              <Button className="w-full">Open rentals page</Button>
+            </Link>
+          </>
         )}
       </CardContent>
     </Card>
