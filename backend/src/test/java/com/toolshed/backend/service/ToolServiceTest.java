@@ -1,5 +1,6 @@
 package com.toolshed.backend.service;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -314,7 +315,7 @@ class ToolServiceTest {
     void testUpdateToolActiveBlockedByRental() {
         sampleTool.setActive(false);
         when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
-        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class))).thenReturn(2L);
+        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(sampleTool.getId(), any(LocalDate.class))).thenReturn(2L);
 
         UpdateToolInput input = UpdateToolInput.builder()
                 .active(true)
@@ -335,7 +336,7 @@ class ToolServiceTest {
     void testUpdateToolActiveWhenNoRentals() {
         sampleTool.setActive(false);
         when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
-        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class))).thenReturn(0L);
+        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(sampleTool.getId(), any(LocalDate.class))).thenReturn(0L);
 
         UpdateToolInput input = UpdateToolInput.builder()
                 .active(true)
