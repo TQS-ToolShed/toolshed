@@ -17,6 +17,7 @@ import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -79,6 +80,28 @@ public class BookingServiceImpl implements BookingService {
         Booking saved = bookingRepository.save(booking);
 
         return toBookingResponse(saved);
+    }
+
+    /**
+     * Nightly task to mark finished bookings as completed and free tools if they are no longer rented.
+     */
+    @Scheduled(cron = "0 0 2 * * *")
+    @Transactional
+    public void completeExpiredBookings() {
+        LocalDate today = LocalDate.now();
+        List<Booking> expired = bookingRepository.findByStatusAndEndDateBefore(BookingStatus.APPROVED, today);
+
+        for (Booking booking : expired) {
+            booking.setStatus(BookingStatus.COMPLETED);
+            bookingRepository.save(booking);
+
+            Tool tool = booking.getTool();
+            if (tool != null) {
+                long activeCount = bookingRepository.countActiveApprovedBookingsForToolOnDate(tool.getId(), today);
+                tool.setActive(activeCount == 0);
+                toolRepository.save(tool);
+            }
+        }
     }
 
     @Override
