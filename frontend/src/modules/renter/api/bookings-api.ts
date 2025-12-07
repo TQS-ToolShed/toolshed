@@ -25,7 +25,7 @@ export interface BookingResponse {
 
 export const getBookingsForRenter = async (renterId: string): Promise<BookingResponse[]> => {
   try {
-    const response = await axios.get<BookingResponse[]>(`${API_URL}/renter/${renterId}`);
+    const response = await axios.get<BookingResponse[]>(API_URL, { params: { renterId } });
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {

@@ -46,13 +46,6 @@ public class BookingController {
         List<BookingResponse> responses = bookingService.getBookingsForRenter(renterId);
         return ResponseEntity.ok(responses);
     }
-    
-    @Operation(summary = "Get bookings for renter (path)", description = "Lists booking records for a specific renter")
-    @GetMapping("/renter/{renterId}")
-    public ResponseEntity<List<BookingResponse>> getBookingsForRenterPath(@PathVariable UUID renterId) {
-        List<BookingResponse> responses = bookingService.getBookingsForRenter(renterId);
-        return ResponseEntity.ok(responses);
-    }
 
     @Operation(summary = "Get bookings for tool", description = "Lists bookings for a specific tool")
     @GetMapping(params = "toolId")

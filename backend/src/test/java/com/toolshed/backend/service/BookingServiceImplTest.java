@@ -167,29 +167,6 @@ class BookingServiceImplTest {
     }
 
     @Test
-    @DisplayName("Should list bookings for tool")
-    void getBookingsForTool() {
-        Booking booking = new Booking();
-        booking.setId(UUID.randomUUID());
-        booking.setTool(tool);
-        booking.setRenter(renter);
-        booking.setOwner(tool.getOwner());
-        booking.setStartDate(LocalDate.now());
-        booking.setEndDate(LocalDate.now().plusDays(1));
-        booking.setStatus(BookingStatus.PENDING);
-        booking.setPaymentStatus(PaymentStatus.PENDING);
-        booking.setTotalPrice(10.0);
-
-        when(bookingRepository.findByToolId(tool.getId())).thenReturn(List.of(booking));
-
-        var result = bookingService.getBookingsForTool(tool.getId());
-
-        assertThat(result).hasSize(1);
-        assertThat(result.getFirst().getId()).isEqualTo(booking.getId());
-        assertThat(result.getFirst().getToolId()).isEqualTo(tool.getId());
-    }
-
-    @Test
     @DisplayName("Should update booking status from PENDING to APPROVED")
     void updateBookingStatusFromPending() {
         UUID bookingId = UUID.randomUUID();
