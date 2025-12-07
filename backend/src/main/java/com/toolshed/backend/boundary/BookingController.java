@@ -40,6 +40,20 @@ public class BookingController {
         return ResponseEntity.ok(responses);
     }
 
+    @Operation(summary = "Get bookings for renter", description = "Lists booking records for a specific renter")
+    @GetMapping(params = "renterId")
+    public ResponseEntity<List<BookingResponse>> getBookingsForRenter(@RequestParam UUID renterId) {
+        List<BookingResponse> responses = bookingService.getBookingsForRenter(renterId);
+        return ResponseEntity.ok(responses);
+    }
+
+    @Operation(summary = "Get bookings for tool", description = "Lists bookings for a specific tool")
+    @GetMapping(params = "toolId")
+    public ResponseEntity<List<BookingResponse>> getBookingsForTool(@RequestParam UUID toolId) {
+        List<BookingResponse> responses = bookingService.getBookingsForTool(toolId);
+        return ResponseEntity.ok(responses);
+    }
+
     @Operation(summary = "Update booking status", description = "Approve or reject a booking request")
     @PutMapping("/{bookingId}/status")
     public ResponseEntity<BookingResponse> updateBookingStatus(

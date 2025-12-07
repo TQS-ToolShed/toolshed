@@ -19,6 +19,7 @@ public class BookingResponse {
     private UUID toolId;
     private UUID renterId;
     private UUID ownerId;
+    private String toolTitle;
     private LocalDate startDate;
     private LocalDate endDate;
     private BookingStatus status;

@@ -100,6 +100,15 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<BookingResponse> getBookingsForRenter(UUID renterId) {
+        List<Booking> bookings = bookingRepository.findByRenterId(renterId);
+        return bookings.stream()
+                .map(this::toBookingResponse)
+                .toList();
+    }
+
+    @Override
     @Transactional
     public BookingResponse updateBookingStatus(UUID bookingId, BookingStatus status) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -168,6 +177,7 @@ public class BookingServiceImpl implements BookingService {
                 .toolId(booking.getTool().getId())
                 .renterId(booking.getRenter().getId())
                 .ownerId(booking.getOwner().getId())
+                .toolTitle(booking.getTool().getTitle() != null ? booking.getTool().getTitle() : null)
                 .startDate(booking.getStartDate())
                 .endDate(booking.getEndDate())
                 .status(booking.getStatus())

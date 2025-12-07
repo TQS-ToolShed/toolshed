@@ -123,6 +123,56 @@ class BookingControllerTest {
     }
 
     @Test
+    @DisplayName("Should list bookings for a renter")
+    void listRenterBookings() throws Exception {
+        UUID renterId = UUID.randomUUID();
+        BookingResponse booking = BookingResponse.builder()
+                .id(UUID.randomUUID())
+                .toolId(UUID.randomUUID())
+                .renterId(renterId)
+                .ownerId(UUID.randomUUID())
+                .toolTitle("Angle Grinder")
+                .startDate(LocalDate.now().plusDays(5))
+                .endDate(LocalDate.now().plusDays(6))
+                .status(BookingStatus.APPROVED)
+                .paymentStatus(PaymentStatus.PENDING)
+                .totalPrice(25.0)
+                .build();
+
+        when(bookingService.getBookingsForRenter(renterId)).thenReturn(List.of(booking));
+
+        mockMvc.perform(get("/api/bookings").param("renterId", renterId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].toolTitle", is("Angle Grinder")));
+    }
+
+    @Test
+    @DisplayName("Should list bookings for a tool")
+    void listToolBookings() throws Exception {
+        UUID toolId = UUID.randomUUID();
+        BookingResponse booking = BookingResponse.builder()
+                .id(UUID.randomUUID())
+                .toolId(toolId)
+                .renterId(UUID.randomUUID())
+                .ownerId(UUID.randomUUID())
+                .toolTitle("Hammer Drill")
+                .startDate(LocalDate.now().plusDays(7))
+                .endDate(LocalDate.now().plusDays(8))
+                .status(BookingStatus.APPROVED)
+                .paymentStatus(PaymentStatus.PENDING)
+                .totalPrice(30.0)
+                .build();
+
+        when(bookingService.getBookingsForTool(toolId)).thenReturn(List.of(booking));
+
+        mockMvc.perform(get("/api/bookings").param("toolId", toolId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].toolTitle", is("Hammer Drill")));
+    }
+
+    @Test
     @DisplayName("Should update booking status for approve/reject")
     void updateBookingStatus() throws Exception {
         UUID bookingId = UUID.randomUUID();
