@@ -376,4 +376,38 @@ class BookingServiceImplTest {
         assertThat(response.getToolId()).isEqualTo(tool.getId());
         assertThat(response.getStatus()).isEqualTo(BookingStatus.APPROVED);
     }
+
+    @Test
+    @DisplayName("Should mark expired approved bookings as completed and free tools")
+    void completeExpiredBookings() {
+        Tool rentedTool = new Tool();
+        rentedTool.setId(UUID.randomUUID());
+        rentedTool.setActive(false);
+        User owner = new User();
+        owner.setId(UUID.randomUUID());
+        User renterUser = new User();
+        renterUser.setId(UUID.randomUUID());
+
+        Booking expired = new Booking();
+        expired.setId(UUID.randomUUID());
+        expired.setTool(rentedTool);
+        expired.setOwner(owner);
+        expired.setRenter(renterUser);
+        expired.setStartDate(LocalDate.now().minusDays(5));
+        expired.setEndDate(LocalDate.now().minusDays(1));
+        expired.setStatus(BookingStatus.APPROVED);
+        expired.setPaymentStatus(PaymentStatus.PENDING);
+
+        when(bookingRepository.findByStatusAndEndDateBefore(eq(BookingStatus.APPROVED), any(LocalDate.class)))
+                .thenReturn(List.of(expired));
+        when(bookingRepository.countActiveApprovedBookingsForToolOnDate(eq(rentedTool.getId()), any(LocalDate.class)))
+                .thenReturn(0L);
+
+        bookingService.completeExpiredBookings();
+
+        assertThat(expired.getStatus()).isEqualTo(BookingStatus.COMPLETED);
+        verify(bookingRepository).save(expired);
+        assertThat(rentedTool.isActive()).isTrue();
+        verify(toolRepository).save(rentedTool);
+    }
 }

@@ -4,6 +4,7 @@ import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { SupplierRentalHistoryModal } from '../components/SupplierRentalHistoryModal';
 import { getBookingsForOwner, type SupplierBookingRequest } from '../api/booking-requests-api';
 import { SupplierNavbar } from '../components/SupplierNavbar';
 
@@ -28,6 +29,7 @@ export const SupplierRentalsPage = () => {
   const [bookings, setBookings] = useState<SupplierBookingRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   const today = useMemo(() => {
     const date = new Date();
@@ -126,17 +128,14 @@ export const SupplierRentalsPage = () => {
       <main className="container mx-auto py-8 px-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
           <div>
-            <p className="text-sm text-muted-foreground mb-1">Rentals overview</p>
             <h2 className="text-3xl font-bold">Active &amp; Future Rentals</h2>
             <p className="text-muted-foreground">
               Track everything that is currently out and what is booked next.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Button variant="outline" asChild>
-              <Link to="/supplier">Back to dashboard</Link>
-            </Button>
-            <Button variant="secondary" onClick={load} disabled={isLoading}>
+            <Button onClick={() => setShowHistory(true)}>Rental history</Button>
+            <Button onClick={load} disabled={isLoading}>
               {isLoading ? 'Refreshing...' : 'Refresh'}
             </Button>
           </div>
@@ -152,8 +151,12 @@ export const SupplierRentalsPage = () => {
           <div className="flex flex-col h-full">
             <Card className="h-full flex flex-col">
               <CardHeader>
-                <CardTitle>Active rentals today</CardTitle>
-                <CardDescription>Approved bookings overlapping today</CardDescription>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle>Active rentals today</CardTitle>
+                    <CardDescription>Approved bookings overlapping today</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-3 flex-1">
                 {isLoading ? (
@@ -170,9 +173,11 @@ export const SupplierRentalsPage = () => {
           </div>
 
           <Card className="h-fit">
-            <CardHeader>
-              <CardTitle>Future rentals</CardTitle>
-              <CardDescription>Upcoming approved bookings</CardDescription>
+            <CardHeader className="flex items-start justify-between gap-3">
+              <div>
+                <CardTitle>Future rentals</CardTitle>
+                <CardDescription>Upcoming approved bookings</CardDescription>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {isLoading ? (
@@ -187,6 +192,8 @@ export const SupplierRentalsPage = () => {
             </CardContent>
           </Card>
         </div>
+
+        <SupplierRentalHistoryModal open={showHistory} onClose={() => setShowHistory(false)} />
       </main>
     </div>
   );

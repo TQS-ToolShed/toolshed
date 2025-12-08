@@ -4,6 +4,7 @@ import { RegisterPage } from "@/modules/auth/pages/RegisterPage";
 import { RenterDashboardPage } from "@/modules/renter/pages/RenterDashboardPage";
 import { RenterBookingsPage } from "@/modules/renter/pages/RenterBookingsPage";
 import { RenterProfilePage } from "@/modules/renter/pages/RenterProfilePage";
+import { RenterMyBookingsPage } from "@/modules/renter/pages/RenterMyBookingsPage";
 import { SupplierDashboardPage } from "@/modules/supplier/pages/SupplierDashboardPage";
 import { SupplierToolsPage } from "@/modules/supplier/pages/SupplierToolsPage";
 import { SupplierRentalsPage } from "@/modules/supplier/pages/SupplierRentalsPage";
@@ -36,6 +37,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute allowedRoles={["RENTER"]}>
         <RenterBookingsPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/renter/my-bookings",
+    element: (
+      <ProtectedRoute allowedRoles={["RENTER"]}>
+        <RenterMyBookingsPage />
       </ProtectedRoute>
     ),
   },

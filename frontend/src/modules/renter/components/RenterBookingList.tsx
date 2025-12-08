@@ -25,7 +25,7 @@ export const RenterBookingList = ({
   className,
   maxHeight,
 }: RenterBookingListProps) => (
-  <Card className={`lg:col-span-2 ${className ?? ''}`}>
+  <Card className={className}>
     <CardHeader>
       <CardTitle>{title}</CardTitle>
       <CardDescription>{description}</CardDescription>
