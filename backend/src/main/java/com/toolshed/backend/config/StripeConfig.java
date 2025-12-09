@@ -25,8 +25,11 @@ import jakarta.annotation.PostConstruct;
 @Profile("!test")  // Skip this configuration during tests
 public class StripeConfig {
 
-    @Value("${stripe.secret-key}")
-    private String stripeSecretKey;
+    private final String stripeSecretKey;
+
+    public StripeConfig(@Value("${stripe.secret-key}") String stripeSecretKey) {
+        this.stripeSecretKey = stripeSecretKey;
+    }
 
     /**
      * Initialize Stripe API key at application startup.
@@ -36,7 +39,15 @@ public class StripeConfig {
     public void init() {
         // Only initialize if we have a real key (not the placeholder)
         if (stripeSecretKey != null && !stripeSecretKey.contains("your_secret_key_here")) {
-            Stripe.apiKey = stripeSecretKey;
+            setStripeApiKey(stripeSecretKey);
         }
+    }
+
+    /**
+     * Sets the Stripe API key. Extracted to a static method to satisfy SonarCloud rule
+     * about modifying static fields from instance methods.
+     */
+    private static void setStripeApiKey(String apiKey) {
+        Stripe.apiKey = apiKey;
     }
 }

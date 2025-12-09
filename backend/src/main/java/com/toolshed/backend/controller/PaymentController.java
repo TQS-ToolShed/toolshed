@@ -35,6 +35,9 @@ import jakarta.validation.Valid;
 @Profile("!test")
 public class PaymentController {
 
+    private static final String BOOKING_ID_KEY = "bookingId";
+    private static final String BOOKING_NOT_FOUND_MSG = "Booking not found: ";
+
     private final BookingRepository bookingRepository;
 
     @Value("${stripe.success-url}")
@@ -66,7 +69,7 @@ public class PaymentController {
         // Verify the booking exists (optional but recommended)
         Booking booking = bookingRepository.findById(request.getBookingId())
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Booking not found: " + request.getBookingId()));
+                        HttpStatus.NOT_FOUND, BOOKING_NOT_FOUND_MSG + request.getBookingId()));
 
         // Check if booking is already paid
         if (booking.getPaymentStatus() == PaymentStatus.COMPLETED) {
@@ -103,7 +106,7 @@ public class PaymentController {
                                                     .build())
                                     .build())
                     // Store booking ID in metadata for webhook processing
-                    .putMetadata("bookingId", request.getBookingId().toString())
+                    .putMetadata(BOOKING_ID_KEY, request.getBookingId().toString())
                     .build();
 
             // Create the session with Stripe
@@ -140,7 +143,7 @@ public class PaymentController {
     public ResponseEntity<Map<String, String>> markBookingAsPaid(@PathVariable UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Booking not found: " + bookingId));
+                        HttpStatus.NOT_FOUND, BOOKING_NOT_FOUND_MSG + bookingId));
 
         // Update payment status
         booking.setPaymentStatus(PaymentStatus.COMPLETED);
@@ -148,7 +151,7 @@ public class PaymentController {
 
         return ResponseEntity.ok(Map.of(
                 "message", "Booking marked as paid",
-                "bookingId", bookingId.toString()
+                BOOKING_ID_KEY, bookingId.toString()
         ));
     }
 
@@ -162,10 +165,10 @@ public class PaymentController {
     public ResponseEntity<Map<String, Object>> getPaymentStatus(@PathVariable UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND, "Booking not found: " + bookingId));
+                        HttpStatus.NOT_FOUND, BOOKING_NOT_FOUND_MSG + bookingId));
 
         return ResponseEntity.ok(Map.of(
-                "bookingId", bookingId.toString(),
+                BOOKING_ID_KEY, bookingId.toString(),
                 "paymentStatus", booking.getPaymentStatus().name(),
                 "totalPrice", booking.getTotalPrice()
         ));
