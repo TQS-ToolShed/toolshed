@@ -1,5 +1,6 @@
 package com.toolshed.backend.service;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -13,6 +14,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
@@ -26,6 +29,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.toolshed.backend.dto.CreateToolInput;
 import com.toolshed.backend.dto.UpdateToolInput;
+import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Tool;
@@ -39,6 +43,9 @@ class ToolServiceTest {
 
     @Mock
     private UserRepository userRepo;
+
+    @Mock
+    private BookingRepository bookingRepo;
 
     @InjectMocks
     private ToolServiceImpl toolService;
@@ -303,6 +310,46 @@ class ToolServiceTest {
         assertThat(sampleTool.getOwner()).isEqualTo(newOwner);
         // unchanged fields preserved
         assertThat(sampleTool.getDescription()).isEqualTo("Desc");
+    }
+
+    @Test
+    @DisplayName("Should reject activating tool when it is currently rented")
+    void testUpdateToolActiveBlockedByRental() {
+        sampleTool.setActive(false);
+        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
+        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class))).thenReturn(2L);
+
+        UpdateToolInput input = UpdateToolInput.builder()
+                .active(true)
+                .build();
+
+        String toolId = sampleTool.getId().toString();
+
+        assertThatThrownBy(() -> toolService.updateTool(toolId, input))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.CONFLICT);
+
+        // ensure active flag unchanged and no save performed
+        assertThat(sampleTool.isActive()).isFalse();
+        verify(toolRepo, never()).save(any(Tool.class));
+    }
+
+    @Test
+    @DisplayName("Should activate tool when there are no active rentals")
+    void testUpdateToolActiveWhenNoRentals() {
+        sampleTool.setActive(false);
+        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
+        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class))).thenReturn(0L);
+
+        UpdateToolInput input = UpdateToolInput.builder()
+                .active(true)
+                .build();
+
+        toolService.updateTool(sampleTool.getId().toString(), input);
+
+        assertThat(sampleTool.isActive()).isTrue();
+        verify(toolRepo).save(sampleTool);
     }
 
     @Test

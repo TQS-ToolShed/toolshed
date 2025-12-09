@@ -15,12 +15,39 @@ export interface BookingResponse {
   toolId: string;
   renterId: string;
   ownerId: string;
+  toolTitle?: string;
   startDate: string;
   endDate: string;
   status: string;
   paymentStatus: string;
   totalPrice: number;
 }
+
+export const getBookingsForRenter = async (renterId: string): Promise<BookingResponse[]> => {
+  try {
+    const response = await axios.get<BookingResponse[]>(API_URL, { params: { renterId } });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to load bookings');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+
+export const getBookingsForTool = async (toolId: string): Promise<BookingResponse[]> => {
+  try {
+    const response = await axios.get<BookingResponse[]>(API_URL, { params: { toolId } });
+    return response.data.sort(
+      (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+    );
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to load bookings');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
 
 export const createBooking = async (input: CreateBookingInput): Promise<BookingResponse> => {
   try {

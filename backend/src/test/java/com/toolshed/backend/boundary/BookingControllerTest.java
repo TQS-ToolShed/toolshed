@@ -3,6 +3,7 @@ package com.toolshed.backend.boundary;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toolshed.backend.dto.BookingResponse;
 import com.toolshed.backend.dto.CreateBookingRequest;
+import com.toolshed.backend.dto.OwnerBookingResponse;
 import com.toolshed.backend.repository.enums.BookingStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
 import com.toolshed.backend.service.BookingService;
@@ -11,16 +12,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -85,6 +91,123 @@ class BookingControllerTest {
         mockMvc.perform(post("/api/bookings")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should list bookings for an owner")
+    void listOwnerBookings() throws Exception {
+        UUID ownerId = UUID.randomUUID();
+        UUID bookingId = UUID.randomUUID();
+        LocalDate start = LocalDate.now().plusDays(2);
+        LocalDate end = start.plusDays(1);
+
+        OwnerBookingResponse booking = OwnerBookingResponse.builder()
+                .id(bookingId)
+                .toolId(UUID.randomUUID())
+                .toolTitle("Cordless Drill")
+                .renterId(UUID.randomUUID())
+                .renterName("Jamie Renter")
+                .startDate(start)
+                .endDate(end)
+                .status(BookingStatus.PENDING)
+                .totalPrice(45.0)
+                .build();
+
+        when(bookingService.getBookingsForOwner(ownerId)).thenReturn(List.of(booking));
+
+        mockMvc.perform(get("/api/bookings").param("ownerId", ownerId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(bookingId.toString())));
+    }
+
+    @Test
+    @DisplayName("Should list bookings for a renter")
+    void listRenterBookings() throws Exception {
+        UUID renterId = UUID.randomUUID();
+        BookingResponse booking = BookingResponse.builder()
+                .id(UUID.randomUUID())
+                .toolId(UUID.randomUUID())
+                .renterId(renterId)
+                .ownerId(UUID.randomUUID())
+                .toolTitle("Angle Grinder")
+                .startDate(LocalDate.now().plusDays(5))
+                .endDate(LocalDate.now().plusDays(6))
+                .status(BookingStatus.APPROVED)
+                .paymentStatus(PaymentStatus.PENDING)
+                .totalPrice(25.0)
+                .build();
+
+        when(bookingService.getBookingsForRenter(renterId)).thenReturn(List.of(booking));
+
+        mockMvc.perform(get("/api/bookings").param("renterId", renterId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].toolTitle", is("Angle Grinder")));
+    }
+
+    @Test
+    @DisplayName("Should list bookings for a tool")
+    void listToolBookings() throws Exception {
+        UUID toolId = UUID.randomUUID();
+        BookingResponse booking = BookingResponse.builder()
+                .id(UUID.randomUUID())
+                .toolId(toolId)
+                .renterId(UUID.randomUUID())
+                .ownerId(UUID.randomUUID())
+                .toolTitle("Hammer Drill")
+                .startDate(LocalDate.now().plusDays(7))
+                .endDate(LocalDate.now().plusDays(8))
+                .status(BookingStatus.APPROVED)
+                .paymentStatus(PaymentStatus.PENDING)
+                .totalPrice(30.0)
+                .build();
+
+        when(bookingService.getBookingsForTool(toolId)).thenReturn(List.of(booking));
+
+        mockMvc.perform(get("/api/bookings").param("toolId", toolId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].toolTitle", is("Hammer Drill")));
+    }
+
+    @Test
+    @DisplayName("Should update booking status for approve/reject")
+    void updateBookingStatus() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        BookingResponse response = BookingResponse.builder()
+                .id(bookingId)
+                .toolId(UUID.randomUUID())
+                .renterId(UUID.randomUUID())
+                .ownerId(UUID.randomUUID())
+                .startDate(LocalDate.now().plusDays(3))
+                .endDate(LocalDate.now().plusDays(4))
+                .status(BookingStatus.APPROVED)
+                .paymentStatus(PaymentStatus.PENDING)
+                .totalPrice(30.0)
+                .build();
+
+        when(bookingService.updateBookingStatus(bookingId, BookingStatus.APPROVED)).thenReturn(response);
+
+        mockMvc.perform(put("/api/bookings/{bookingId}/status", bookingId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"APPROVED\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(bookingId.toString())))
+                .andExpect(jsonPath("$.status", is("APPROVED")));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when service rejects status change")
+    void updateBookingStatusBadRequest() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        when(bookingService.updateBookingStatus(bookingId, BookingStatus.REJECTED))
+                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Booking decision is already final"));
+
+        mockMvc.perform(put("/api/bookings/{bookingId}/status", bookingId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"status\":\"REJECTED\"}"))
                 .andExpect(status().isBadRequest());
     }
 }

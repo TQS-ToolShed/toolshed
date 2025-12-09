@@ -101,7 +101,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-            
+
             <!-- JaCoCo Maven Plugin -->
             <plugin>
             <groupId>org.jacoco</groupId>
