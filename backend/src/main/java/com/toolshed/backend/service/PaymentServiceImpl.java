@@ -20,6 +20,7 @@ import com.toolshed.backend.repository.enums.PaymentStatus;
 public class PaymentServiceImpl implements PaymentService {
 
     private static final String BOOKING_ID_KEY = "bookingId";
+    private static final String BOOKING_NOT_FOUND_MSG = "Booking not found: ";
 
     private final BookingRepository bookingRepository;
 
@@ -60,13 +61,13 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public Booking getBookingPaymentStatus(UUID bookingId) {
         return bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found: " + bookingId));
+                .orElseThrow(() -> new BookingNotFoundException(BOOKING_NOT_FOUND_MSG + bookingId));
     }
 
     @Override
     public Booking validateBookingForPayment(UUID bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found: " + bookingId));
+                .orElseThrow(() -> new BookingNotFoundException(BOOKING_NOT_FOUND_MSG + bookingId));
 
         if (booking.getPaymentStatus() == PaymentStatus.COMPLETED) {
             throw new PaymentAlreadyCompletedException("Booking is already paid: " + bookingId);
@@ -78,7 +79,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public Booking updatePaymentStatus(UUID bookingId, PaymentStatus status) {
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found: " + bookingId));
+                .orElseThrow(() -> new BookingNotFoundException(BOOKING_NOT_FOUND_MSG + bookingId));
 
         booking.setPaymentStatus(status);
         return bookingRepository.save(booking);
