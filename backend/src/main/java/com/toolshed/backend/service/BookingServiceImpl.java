@@ -195,11 +195,16 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingResponse toBookingResponse(Booking booking) {
+        String ownerName = booking.getOwner() != null
+                ? (booking.getOwner().getFirstName() + " " + booking.getOwner().getLastName()).trim()
+                : null;
+
         return BookingResponse.builder()
                 .id(booking.getId())
                 .toolId(booking.getTool().getId())
                 .renterId(booking.getRenter().getId())
                 .ownerId(booking.getOwner().getId())
+                .ownerName(ownerName)
                 .toolTitle(booking.getTool().getTitle() != null ? booking.getTool().getTitle() : null)
                 .startDate(booking.getStartDate())
                 .endDate(booking.getEndDate())

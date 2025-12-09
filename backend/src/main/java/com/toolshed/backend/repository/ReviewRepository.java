@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface ReviewRepository extends JpaRepository<Review, UUID> {
     List<Review> findByToolId(UUID toolId);
     List<Review> findByOwnerId(UUID ownerId);
+    boolean existsByBookingId(UUID bookingId);
 }
