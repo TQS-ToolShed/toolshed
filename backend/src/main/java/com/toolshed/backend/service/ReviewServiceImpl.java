@@ -1,5 +1,8 @@
 package com.toolshed.backend.service;
 
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.toolshed.backend.dto.CreateReviewRequest;
 import com.toolshed.backend.dto.ReviewResponse;
 import com.toolshed.backend.repository.BookingRepository;
@@ -7,8 +10,6 @@ import com.toolshed.backend.repository.ReviewRepository;
 import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.repository.entities.Review;
 import com.toolshed.backend.repository.enums.BookingStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ReviewServiceImpl implements ReviewService {

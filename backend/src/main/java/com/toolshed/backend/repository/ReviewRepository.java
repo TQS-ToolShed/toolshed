@@ -1,11 +1,12 @@
 package com.toolshed.backend.repository;
 
-import com.toolshed.backend.repository.entities.Review;
+import java.util.List;
+import java.util.UUID;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.UUID;
+import com.toolshed.backend.repository.entities.Review;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, UUID> {
