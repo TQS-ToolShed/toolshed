@@ -10,6 +10,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,11 +20,17 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.toolshed.backend.dto.CreateToolInput;
+import com.toolshed.backend.dto.UpdateToolInput;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.service.ToolService;
@@ -32,6 +40,9 @@ class ToolControllerTest {
     
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockitoBean 
     private ToolService toolService;
@@ -195,5 +206,70 @@ class ToolControllerTest {
                 .andExpect(jsonPath("$[0].title", is("Active Saw")));
 
         verify(toolService).getActive();
+    }
+
+    @Test
+    @DisplayName("Should return all tools")
+    void testGetAllTools() throws Exception {
+        Tool tool = createSampleTool("Any Tool");
+        when(toolService.getAll()).thenReturn(List.of(tool));
+
+        mockMvc.perform(get("/api/tools")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].title", is("Any Tool")));
+
+        verify(toolService).getAll();
+    }
+
+    @Test
+    @DisplayName("Should create tool and return 200")
+    void testCreateTool() throws Exception {
+        CreateToolInput input = CreateToolInput.builder()
+                .title("New Tool")
+                .description("Desc")
+                .pricePerDay(10.0)
+                .location("Loc")
+                .supplierId(UUID.randomUUID())
+                .build();
+
+        when(toolService.createTool(any(CreateToolInput.class))).thenReturn("new-tool-id");
+
+        mockMvc.perform(post("/api/tools")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(input)))
+                .andExpect(status().isCreated());
+
+        verify(toolService).createTool(any(CreateToolInput.class));
+    }
+
+    @Test
+    @DisplayName("Should update tool and return 200")
+    void testUpdateTool() throws Exception {
+        UpdateToolInput input = UpdateToolInput.builder()
+                .title("Updated Tool")
+                .build();
+        
+        String toolId = UUID.randomUUID().toString();
+
+        mockMvc.perform(put("/api/tools/{toolId}", toolId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(input)))
+                .andExpect(status().isNoContent());
+
+        verify(toolService).updateTool(eq(toolId), any(UpdateToolInput.class));
+    }
+
+    @Test
+    @DisplayName("Should delete tool and return 200")
+    void testDeleteTool() throws Exception {
+        String toolId = UUID.randomUUID().toString();
+
+        mockMvc.perform(delete("/api/tools/{toolId}", toolId)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNoContent());
+
+        verify(toolService).deleteTool(toolId);
     }
 }

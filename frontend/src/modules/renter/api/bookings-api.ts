@@ -15,6 +15,7 @@ export interface BookingResponse {
   toolId: string;
   renterId: string;
   ownerId: string;
+  ownerName?: string;
   toolTitle?: string;
   startDate: string;
   endDate: string;

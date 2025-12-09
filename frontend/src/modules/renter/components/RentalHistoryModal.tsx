@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getBookingsForRenter, type BookingResponse } from '../api/bookings-api';
 import { useAuth } from '@/modules/auth/context/AuthContext';
+import { ReviewOwnerModal } from './ReviewOwnerModal';
 
 interface RentalHistoryModalProps {
   open: boolean;
@@ -12,6 +13,8 @@ export const RentalHistoryModal = ({ open, onClose }: RentalHistoryModalProps) =
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<BookingResponse | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -49,70 +52,99 @@ export const RentalHistoryModal = ({ open, onClose }: RentalHistoryModalProps) =
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="bg-background border border-border rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <div>
-            <p className="text-sm text-muted-foreground">Rental history</p>
-            <h2 className="text-xl font-semibold">Past bookings</h2>
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+        <div className="bg-background border border-border rounded-xl shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div>
+              <p className="text-sm text-muted-foreground">Rental history</p>
+              <h2 className="text-xl font-semibold">Past bookings</h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Close
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Close
-          </button>
-        </div>
-        <div className="p-5 flex-1 overflow-y-auto space-y-3">
-          {error && (
-            <div className="bg-destructive/10 border border-destructive text-destructive px-3 py-2 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading history...</p>
-          ) : pastBookings.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No past bookings yet.</p>
-          ) : (
-            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
-              {pastBookings.map((booking) => {
-                const badgeStyle = statusStyles[booking.status] || 'bg-gray-100 text-gray-800';
-                return (
-                  <div
-                    key={booking.id}
-                    className="border border-border rounded-lg p-3 flex items-center justify-between gap-3"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold text-foreground">
-                          {booking.toolTitle || `Tool ${booking.toolId.slice(0, 6)}`}
+          <div className="p-5 flex-1 overflow-y-auto space-y-3">
+            {error && (
+              <div className="bg-destructive/10 border border-destructive text-destructive px-3 py-2 rounded-md text-sm">
+                {error}
+              </div>
+            )}
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading history...</p>
+            ) : pastBookings.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No past bookings yet.</p>
+            ) : (
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                {pastBookings.map((booking) => {
+                  const badgeStyle = statusStyles[booking.status] || 'bg-gray-100 text-gray-800';
+                  return (
+                    <div
+                      key={booking.id}
+                      className="border border-border rounded-lg p-3 flex items-center justify-between gap-3"
+                    >
+                      <div className="space-y-1 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-foreground">
+                            {booking.toolTitle || `Tool ${booking.toolId.slice(0, 6)}`}
+                          </p>
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-semibold ${badgeStyle}`}
+                          >
+                            {booking.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(booking.startDate).toLocaleDateString()} -{' '}
+                          {new Date(booking.endDate).toLocaleDateString()}
                         </p>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold ${badgeStyle}`}
+                        <div className="text-xs text-muted-foreground flex flex-wrap gap-3">
+                          <span className="text-foreground font-semibold">
+                            €{booking.totalPrice.toFixed(2)}
+                          </span>
+                          <span>Payment: {booking.paymentStatus || 'N/A'}</span>
+                          <span>ID: {booking.id.slice(0, 8)}</span>
+                          {booking.ownerName && <span>Owner: {booking.ownerName}</span>}
+                        </div>
+                      </div>
+                      {booking.status === 'COMPLETED' && (
+                        <button
+                          onClick={() => {
+                            setSelectedBooking(booking);
+                            setIsReviewModalOpen(true);
+                          }}
+                          className="px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium whitespace-nowrap"
                         >
-                          {booking.status}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(booking.startDate).toLocaleDateString()} -{' '}
-                        {new Date(booking.endDate).toLocaleDateString()}
-                      </p>
-                      <div className="text-xs text-muted-foreground flex flex-wrap gap-3">
-                        <span className="text-foreground font-semibold">
-                          €{booking.totalPrice.toFixed(2)}
-                        </span>
-                        <span>Payment: {booking.paymentStatus || 'N/A'}</span>
-                        <span>ID: {booking.id.slice(0, 8)}</span>
-                      </div>
+                          Review Owner
+                        </button>
+                      )}
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {selectedBooking && (
+        <ReviewOwnerModal
+          open={isReviewModalOpen}
+          onClose={() => {
+            setIsReviewModalOpen(false);
+            setSelectedBooking(null);
+          }}
+          bookingId={selectedBooking.id}
+          ownerName={selectedBooking.ownerName || 'the owner'}
+          onReviewSubmitted={() => {
+            // Optionally refresh bookings or show success message
+          }}
+        />
+      )}
+    </>
   );
 };
