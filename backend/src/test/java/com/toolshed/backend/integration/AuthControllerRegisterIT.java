@@ -19,6 +19,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.toolshed.backend.dto.RegisterRequest;
+import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.ReviewRepository;
+import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.UserRole;
@@ -38,6 +41,15 @@ class AuthControllerRegisterIT {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private ToolRepository toolRepository;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
+
     private String baseUrl;
     private HttpHeaders headers;
 
@@ -47,7 +59,10 @@ class AuthControllerRegisterIT {
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         
-        // Clear database before each test
+        // Clear database before each test (order matters for foreign key constraints)
+        reviewRepository.deleteAll();
+        bookingRepository.deleteAll();
+        toolRepository.deleteAll();
         userRepository.deleteAll();
     }
 

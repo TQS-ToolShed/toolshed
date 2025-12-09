@@ -13,6 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 
+import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.ReviewRepository;
+import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.UserRole;
@@ -32,13 +35,25 @@ class AuthControllerEmailValidationIT {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private ToolRepository toolRepository;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
+
     private String baseUrl;
 
     @BeforeEach
     void setUp() {
         baseUrl = "http://localhost:" + port + "/api/auth/check-email";
         
-        // Clear database before each test
+        // Clear database before each test (order matters for foreign key constraints)
+        reviewRepository.deleteAll();
+        bookingRepository.deleteAll();
+        toolRepository.deleteAll();
         userRepository.deleteAll();
     }
 
