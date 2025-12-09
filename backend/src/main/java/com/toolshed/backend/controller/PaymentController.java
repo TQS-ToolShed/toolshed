@@ -1,5 +1,20 @@
 package com.toolshed.backend.controller;
 
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
@@ -8,15 +23,8 @@ import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.repository.enums.PaymentStatus;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Map;
-import java.util.UUID;
+import jakarta.validation.Valid;
 
 /**
  * REST Controller for Stripe payment operations.
@@ -24,6 +32,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping("/api/payments")
+@Profile("!test")
 public class PaymentController {
 
     private final BookingRepository bookingRepository;

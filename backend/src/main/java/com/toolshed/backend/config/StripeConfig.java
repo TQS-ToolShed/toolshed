@@ -1,9 +1,12 @@
 package com.toolshed.backend.config;
 
-import com.stripe.Stripe;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+import com.stripe.Stripe;
+
+import jakarta.annotation.PostConstruct;
 
 /**
  * Stripe configuration class.
@@ -14,8 +17,12 @@ import org.springframework.context.annotation.Configuration;
  * - Or application.properties: stripe.secret-key
  * 
  * IMPORTANT: Never commit the secret key to version control!
+ * 
+ * Note: This configuration is disabled for tests (@Profile("!test"))
+ * to avoid Spring context loading issues when STRIPE_SECRET_KEY is not set.
  */
 @Configuration
+@Profile("!test")  // Skip this configuration during tests
 public class StripeConfig {
 
     @Value("${stripe.secret-key}")
@@ -27,6 +34,9 @@ public class StripeConfig {
      */
     @PostConstruct
     public void init() {
-        Stripe.apiKey = stripeSecretKey;
+        // Only initialize if we have a real key (not the placeholder)
+        if (stripeSecretKey != null && !stripeSecretKey.contains("your_secret_key_here")) {
+            Stripe.apiKey = stripeSecretKey;
+        }
     }
 }
