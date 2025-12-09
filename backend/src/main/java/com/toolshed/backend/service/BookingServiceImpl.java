@@ -5,6 +5,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.toolshed.backend.dto.BookingResponse;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
@@ -16,11 +22,6 @@ import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
-import org.springframework.http.HttpStatus;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class BookingServiceImpl implements BookingService {
@@ -195,11 +196,16 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingResponse toBookingResponse(Booking booking) {
+        String ownerName = booking.getOwner() != null
+                ? (booking.getOwner().getFirstName() + " " + booking.getOwner().getLastName()).trim()
+                : null;
+
         return BookingResponse.builder()
                 .id(booking.getId())
                 .toolId(booking.getTool().getId())
                 .renterId(booking.getRenter().getId())
                 .ownerId(booking.getOwner().getId())
+                .ownerName(ownerName)
                 .toolTitle(booking.getTool().getTitle() != null ? booking.getTool().getTitle() : null)
                 .startDate(booking.getStartDate())
                 .endDate(booking.getEndDate())
