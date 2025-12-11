@@ -50,7 +50,8 @@ class ToolRepositoryTest {
         drill.setDescription("Cordless 18V battery powered");
         drill.setPricePerDay(5.0);
         drill.setActive(true);
-        drill.setLocation("Downtown Garage");
+        drill.setDistrict("Aveiro");
+        drill.setMunicipality("Aveiro");
         drill.setOwner(defaultOwner);
         drill.setAvailabilityCalendar("{\"mon\": true, \"tue\": true, \"wed\": false}");
         drill.setOverallRating(4.8);
@@ -61,7 +62,8 @@ class ToolRepositoryTest {
         bitSet.setDescription("Titanium bits for drill and driver");
         bitSet.setPricePerDay(20.0);
         bitSet.setActive(true);
-        bitSet.setLocation("Eastside Workshop");
+        bitSet.setDistrict("Lisboa");
+        bitSet.setMunicipality("Lisboa");
         bitSet.setOwner(defaultOwner);
         bitSet.setAvailabilityCalendar("{\"weekends\": true}");
         bitSet.setOverallRating(4.5);
@@ -72,7 +74,8 @@ class ToolRepositoryTest {
         hammer.setDescription("Standard claw hammer");
         hammer.setPricePerDay(100.0);
         hammer.setActive(true);
-        hammer.setLocation("Westside Storage");
+        hammer.setDistrict("Porto");
+        hammer.setMunicipality("Porto");
         hammer.setOwner(defaultOwner);
         hammer.setAvailabilityCalendar("{\"available\": true}");
         hammer.setOverallRating(3.9);
@@ -83,7 +86,8 @@ class ToolRepositoryTest {
         saw.setDescription("Perfect for cutting wood");
         saw.setPricePerDay(15.0);
         saw.setActive(true);
-        saw.setLocation("Eastside Shed");
+        saw.setDistrict("Lisboa");
+        saw.setMunicipality("Sintra");
         saw.setOwner(defaultOwner);
         saw.setAvailabilityCalendar("{\"available\": true}");
         saw.setOverallRating(5.0);
@@ -94,7 +98,8 @@ class ToolRepositoryTest {
         inactive.setDescription("Broken");
         inactive.setPricePerDay(1.0);
         inactive.setActive(false);
-        inactive.setLocation("Recycling Bin");
+        inactive.setDistrict("Aveiro");
+        inactive.setMunicipality("Aveiro");
         inactive.setOwner(defaultOwner);
         inactive.setAvailabilityCalendar("{\"available\": false}");
         inactive.setOverallRating(1.2);
@@ -159,7 +164,8 @@ class ToolRepositoryTest {
         inactiveTool.setTitle("Super Secret Drill");
         inactiveTool.setDescription("Hidden from public");
         inactiveTool.setPricePerDay(10.0);
-        inactiveTool.setLocation("Secret Base");
+        inactiveTool.setDistrict("Aveiro");
+        inactiveTool.setMunicipality("Aveiro");
         inactiveTool.setActive(false); // Explicitly inactive
         inactiveTool.setOwner(userRepo.findAll().get(0)); // Use existing owner
         inactiveTool.setOverallRating(0.0);
@@ -196,7 +202,8 @@ class ToolRepositoryTest {
         specialTool.setTitle("Drill & Driver Set + Bits");
         specialTool.setDescription("Professional usage");
         specialTool.setPricePerDay(10.0);
-        specialTool.setLocation("Workshop");
+        specialTool.setDistrict("Porto");
+        specialTool.setMunicipality("Porto");
         specialTool.setActive(true);
         specialTool.setOwner(userRepo.findAll().get(0));
         specialTool.setOverallRating(5.0);
@@ -234,7 +241,8 @@ class ToolRepositoryTest {
         activeTool.setTitle("Scratched Saw");
         activeTool.setDescription("Works fine but looks ugly");
         activeTool.setPricePerDay(15.0);
-        activeTool.setLocation("Garage");
+        activeTool.setDistrict("Lisboa");
+        activeTool.setMunicipality("Cascais");
         activeTool.setActive(true); // Active
         activeTool.setOwner(userRepo.findAll().get(0));
         activeTool.setOverallRating(3.5);
@@ -255,7 +263,8 @@ class ToolRepositoryTest {
         nullDescTool.setTitle("Null-Test Key");
         nullDescTool.setDescription(null); 
         nullDescTool.setPricePerDay(5.0);
-        nullDescTool.setLocation("Shed");
+        nullDescTool.setDistrict("Aveiro");
+        nullDescTool.setMunicipality("Aveiro");
         nullDescTool.setActive(true);
         nullDescTool.setOwner(userRepo.findAll().get(0));
         nullDescTool.setOverallRating(2.0);
@@ -279,7 +288,8 @@ class ToolRepositoryTest {
         underscoreTool.setTitle("T-Square_Ruler");
         underscoreTool.setDescription("Used for 90 degree angles");
         underscoreTool.setPricePerDay(8.0);
-        underscoreTool.setLocation("Studio");
+        underscoreTool.setDistrict("Porto");
+        underscoreTool.setMunicipality("Matosinhos");
         underscoreTool.setActive(true);
         underscoreTool.setOwner(userRepo.findAll().get(0));
         underscoreTool.setOverallRating(4.0);
@@ -313,11 +323,11 @@ class ToolRepositoryTest {
     @DisplayName("Should filter by Keyword AND Location simultaneously")
     void testSearchWithKeywordAndLocation() {
         // Scenario (updated after adding explicit location filter semantics): 
-        // 1. "Power Drill" (Downtown Garage) -> Matches Keyword & Location
-        // 2. "Bit Set" (Eastside Workshop) -> Matches Keyword in description but DIFFERENT location
-        // 3. "Circular Saw" (Eastside Shed) -> Does not match keyword "Drill"
+        // 1. "Power Drill" (Aveiro) -> Matches Keyword & District
+        // 2. "Bit Set" (Lisboa) -> Matches Keyword in description but DIFFERENT district
+        // 3. "Circular Saw" (Lisboa, Sintra) -> Does not match keyword "Drill"
         // Result should therefore be ONLY Power Drill.
-        List<Tool> results = toolRepo.searchTools("Drill", "Downtown Garage", null, null);
+        List<Tool> results = toolRepo.searchTools("Drill", "Aveiro", null, null);
         assertThat(results)
                 .hasSize(1)
                 .extracting(Tool::getTitle)
@@ -327,10 +337,10 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should return results matching Location only (when Keyword is null/empty)")
     void testSearchWithLocationOnly() {
-        // Scenario: User just selects "Westside Storage" from a dropdown, no keyword typed.
+        // Scenario: User just searches for "Porto", no keyword typed.
         
         // Act
-        List<Tool> results = toolRepo.searchTools(null, "Westside Storage", null, null);
+        List<Tool> results = toolRepo.searchTools(null, "Porto", null, null);
 
         // Assert
         assertThat(results)
@@ -355,8 +365,8 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should be case-insensitive for Location as well")
     void testSearchLocationCaseInsensitive() {
-        // Act: Search "downtown garage" (lowercase) when DB has "Downtown Garage"
-        List<Tool> results = toolRepo.searchTools("Drill", "downtown garage", null, null);
+        // Act: Search "aveiro" (lowercase) when DB has "Aveiro"
+        List<Tool> results = toolRepo.searchTools("Drill", "aveiro", null, null);
 
         // Assert
         assertThat(results)
@@ -367,10 +377,10 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should return empty list if Keyword matches but Location does not")
     void testSearchNoMatchForLocation() {
-        // Scenario: Searching for "Hammer" (exists in Westside) but filtering for "Downtown"
+        // Scenario: Searching for "Hammer" (exists in Porto) but filtering for "Aveiro"
         
         // Act
-        List<Tool> results = toolRepo.searchTools("Hammer", "Downtown Garage", null, null);
+        List<Tool> results = toolRepo.searchTools("Hammer", "Aveiro", null, null);
 
         // Assert
         assertThat(results).isEmpty();

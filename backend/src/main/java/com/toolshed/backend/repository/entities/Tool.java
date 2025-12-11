@@ -39,7 +39,10 @@ public class Tool {
     private Double pricePerDay;
 
     @Column(nullable = false)
-    private String location;
+    private String district;
+
+    @Column(nullable = false)
+    private String municipality;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
@@ -92,12 +95,20 @@ public class Tool {
         this.pricePerDay = pricePerDay;
     }
 
-    public String getLocation() {
-        return location;
+    public String getDistrict() {
+        return district;
     }
 
-    public void setLocation(String location) {
-        this.location = location;
+    public void setDistrict(String district) {
+        this.district = district;
+    }
+
+    public String getMunicipality() {
+        return municipality;
+    }
+
+    public void setMunicipality(String municipality) {
+        this.municipality = municipality;
     }
 
     public User getOwner() {

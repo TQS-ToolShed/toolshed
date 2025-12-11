@@ -23,7 +23,9 @@ public class UpdateToolInput {
 
     private Double pricePerDay;
 
-    private String location;
+    private String district;
+
+    private String municipality;
 
     private UUID ownerId;
 
@@ -73,12 +75,20 @@ public class UpdateToolInput {
         this.ownerId = ownerId;
     }
 
-    public String getLocation() {
-        return location;
+    public String getDistrict() {
+        return district;
     }
 
-    public void setLocation(String location) {
-        this.location = location;
+    public void setDistrict(String district) {
+        this.district = district;
+    }
+
+    public String getMunicipality() {
+        return municipality;
+    }
+
+    public void setMunicipality(String municipality) {
+        this.municipality = municipality;
     }
 
     public Double getPricePerDay() {
