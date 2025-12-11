@@ -39,17 +39,27 @@ public class ToolServiceImpl implements ToolService {
      * Handles input validation (null/whitespace) before delegating to the repository.
      */
     @Override
-    public List<Tool> searchTools(String keyword, String location) {
+    public List<Tool> searchTools(String keyword, String location, Double minPrice, Double maxPrice) {
         String trimmedKeyword = keyword == null ? null : keyword.trim();
         String trimmedLocation = location == null ? null : location.trim();
+        
+        // Sanitize negative prices
+        if (minPrice != null && minPrice < 0) {
+            minPrice = 0.0;
+        }
+        if (maxPrice != null && maxPrice < 0) {
+            maxPrice = 0.0;
+        }
 
-        // If both are empty/null, return empty list (no search criteria)
+        // If all filters are empty/null, return empty list (no search criteria)
         if ((trimmedKeyword == null || trimmedKeyword.isEmpty()) 
-            && (trimmedLocation == null || trimmedLocation.isEmpty())) {
+            && (trimmedLocation == null || trimmedLocation.isEmpty())
+            && minPrice == null 
+            && maxPrice == null) {
             return Collections.emptyList();
         }
 
-        return toolRepo.searchTools(trimmedKeyword, trimmedLocation);
+        return toolRepo.searchTools(trimmedKeyword, trimmedLocation, minPrice, maxPrice);
     }
 
     @Override
