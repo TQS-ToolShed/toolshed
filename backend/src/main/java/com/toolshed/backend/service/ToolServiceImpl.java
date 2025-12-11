@@ -27,11 +27,13 @@ public class ToolServiceImpl implements ToolService {
     private final ToolRepository toolRepo;
     private final UserRepository userRepo;
     private final BookingRepository bookingRepo;
+    private final IGeoApiService geoApiService;
 
-    public ToolServiceImpl(ToolRepository toolRepo, UserRepository userRepo, BookingRepository bookingRepo) {
+    public ToolServiceImpl(ToolRepository toolRepo, UserRepository userRepo, BookingRepository bookingRepo, IGeoApiService geoApiService) {
         this.toolRepo = toolRepo;
         this.userRepo = userRepo;
         this.bookingRepo = bookingRepo;
+        this.geoApiService = geoApiService;
     }
 
     /**
@@ -59,6 +61,7 @@ public class ToolServiceImpl implements ToolService {
             return Collections.emptyList();
         }
 
+        // Note: location parameter can now match district or municipality
         return toolRepo.searchTools(trimmedKeyword, trimmedLocation, minPrice, maxPrice);
     }
 
@@ -83,11 +86,20 @@ public class ToolServiceImpl implements ToolService {
         User supplier = userRepo.findById(input.getSupplierId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supplier not found"));
 
+        // Validate district and municipality using GeoAPI
+        if (!geoApiService.districtExists(input.getDistrict())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid district: " + input.getDistrict());
+        }
+        if (!geoApiService.municipalityExistsInDistrict(input.getDistrict(), input.getMunicipality())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid municipality for district: " + input.getMunicipality());
+        }
+
         Tool tool = new Tool();
         tool.setTitle(input.getTitle());
         tool.setDescription(input.getDescription());
         tool.setPricePerDay(input.getPricePerDay());
-        tool.setLocation(input.getLocation());
+        tool.setDistrict(input.getDistrict());
+        tool.setMunicipality(input.getMunicipality());
         tool.setOwner(supplier);
         tool.setActive(true);
         tool.setOverallRating(0.0);
@@ -125,9 +137,27 @@ public class ToolServiceImpl implements ToolService {
         if (input.getPricePerDay() != null) {
             tool.setPricePerDay(input.getPricePerDay());
         }
-        if (input.getLocation() != null) {
-            tool.setLocation(input.getLocation());
+        
+        // Validate district and municipality if they are being updated
+        if (input.getDistrict() != null || input.getMunicipality() != null) {
+            String district = input.getDistrict() != null ? input.getDistrict() : tool.getDistrict();
+            String municipality = input.getMunicipality() != null ? input.getMunicipality() : tool.getMunicipality();
+            
+            if (!geoApiService.districtExists(district)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid district: " + district);
+            }
+            if (!geoApiService.municipalityExistsInDistrict(district, municipality)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid municipality for district: " + municipality);
+            }
+            
+            if (input.getDistrict() != null) {
+                tool.setDistrict(input.getDistrict());
+            }
+            if (input.getMunicipality() != null) {
+                tool.setMunicipality(input.getMunicipality());
+            }
         }
+        
         if (input.getActive() != null) {
             boolean requestedActive = input.getActive();
             if (requestedActive && !tool.isActive()) {
