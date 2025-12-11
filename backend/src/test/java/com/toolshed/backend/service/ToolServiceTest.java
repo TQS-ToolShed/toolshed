@@ -75,17 +75,17 @@ class ToolServiceTest {
     void testSearchToolsWithValidKeyword() {
         // Arrange
         String keyword = "Drill";
-        when(toolRepo.searchTools(keyword, null)).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools(keyword, null, null, null)).thenReturn(List.of(sampleTool));
 
         // Act
-        List<Tool> result = toolService.searchTools(keyword, null);
+        List<Tool> result = toolService.searchTools(keyword, null, null, null);
 
         // Assert
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("Mock Drill");
         
         // Verification: Did the service actually call the repo?
-        verify(toolRepo, times(1)).searchTools(keyword, null);
+        verify(toolRepo, times(1)).searchTools(keyword, null, null, null);
     }
 
     @Test
@@ -95,22 +95,22 @@ class ToolServiceTest {
         String dirtyKeyword = "  Drill  ";
         String cleanedKeyword = "Drill";
         
-        when(toolRepo.searchTools(cleanedKeyword, null)).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools(cleanedKeyword, null, null, null)).thenReturn(List.of(sampleTool));
 
         // Act
-        toolService.searchTools(dirtyKeyword, null);
+        toolService.searchTools(dirtyKeyword, null, null, null);
 
         // Assert
         // Verify the repo was called with the TRIMMED version, not the dirty one
-        verify(toolRepo).searchTools(cleanedKeyword, null);
-        verify(toolRepo, never()).searchTools(dirtyKeyword, null);
+        verify(toolRepo).searchTools(cleanedKeyword, null, null, null);
+        verify(toolRepo, never()).searchTools(dirtyKeyword, null, null, null);
     }
 
     @Test
     @DisplayName("Should return empty list immediately if both keyword and location are null (Defensive Coding)")
     void testSearchToolsWithNullKeywordAndLocation() {
         // Act
-        List<Tool> result = toolService.searchTools(null, null);
+        List<Tool> result = toolService.searchTools(null, null, null, null);
 
         // Assert
         assertThat(result).isEmpty();
@@ -124,14 +124,14 @@ class ToolServiceTest {
     void testSearchToolsWithLocationOnly() {
         // Arrange
         String location = "Aveiro";
-        when(toolRepo.searchTools(null, location)).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools(null, location, null, null)).thenReturn(List.of(sampleTool));
 
         // Act
-        List<Tool> result = toolService.searchTools(null, location);
+        List<Tool> result = toolService.searchTools(null, location, null, null);
 
         // Assert
         assertThat(result).hasSize(1);
-        verify(toolRepo, times(1)).searchTools(null, location);
+        verify(toolRepo, times(1)).searchTools(null, location, null, null);
     }
 
     @Test
@@ -139,10 +139,10 @@ class ToolServiceTest {
     void testSearchToolsNoResults() {
         // Arrange
         String keyword = "Unicorn";
-        when(toolRepo.searchTools(keyword, null)).thenReturn(Collections.emptyList());
+        when(toolRepo.searchTools(keyword, null, null, null)).thenReturn(Collections.emptyList());
 
         // Act
-        List<Tool> result = toolService.searchTools(keyword, null);
+        List<Tool> result = toolService.searchTools(keyword, null, null, null);
 
         // Assert
         assertThat(result).isEmpty();
@@ -154,14 +154,14 @@ class ToolServiceTest {
         String keyword = "hammer";
         
         // Arrange
-        when(toolRepo.searchTools(keyword, null)).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools(keyword, null, null, null)).thenReturn(List.of(sampleTool));
 
         // Act
-        toolService.searchTools(keyword, null);
+        toolService.searchTools(keyword, null, null, null);
 
         // Assert
         // Verify that the specific method designed for filtering was called
-        verify(toolRepo, times(1)).searchTools(keyword, null);
+        verify(toolRepo, times(1)).searchTools(keyword, null, null, null);
         
         // Safety check: Verify that a generic, unfiltered method was NOT called
         verify(toolRepo, never()).findAll(); 
@@ -174,14 +174,14 @@ class ToolServiceTest {
         String mixedCaseKeyword = "HaMmEr";
 
         // Act
-        toolService.searchTools(mixedCaseKeyword, null);
+        toolService.searchTools(mixedCaseKeyword, null, null, null);
 
         // Assert
         // Verify the repository was called exactly with the mixed-case string
-        verify(toolRepo).searchTools(mixedCaseKeyword, null);
+        verify(toolRepo).searchTools(mixedCaseKeyword, null, null, null);
         
         // Safety check: Verify the service did NOT try to change the keyword to lowercase itself
-        verify(toolRepo, never()).searchTools(mixedCaseKeyword.toLowerCase(), null);
+        verify(toolRepo, never()).searchTools(mixedCaseKeyword.toLowerCase(), null, null, null);
     }
 
     @Test
@@ -413,5 +413,102 @@ class ToolServiceTest {
         assertThat(toolService.getById(sampleTool.getId())).contains(sampleTool);
         verify(toolRepo).findAll();
         verify(toolRepo).findById(sampleTool.getId());
+    }
+
+    // ==================== PRICE FILTERING TESTS ====================
+
+    @Test
+    @DisplayName("Should pass price range to repository when both min and max are provided")
+    void testSearchWithPriceRange() {
+        // Arrange
+        Double minPrice = 10.0;
+        Double maxPrice = 50.0;
+        when(toolRepo.searchTools(null, null, minPrice, maxPrice)).thenReturn(List.of(sampleTool));
+
+        // Act
+        List<Tool> result = toolService.searchTools(null, null, minPrice, maxPrice);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(toolRepo, times(1)).searchTools(null, null, minPrice, maxPrice);
+    }
+
+    @Test
+    @DisplayName("Should sanitize negative min price to 0.0")
+    void testSearchWithNegativeMinPrice() {
+        // Arrange
+        Double negativeMinPrice = -5.0;
+        when(toolRepo.searchTools(null, null, 0.0, null)).thenReturn(List.of(sampleTool));
+
+        // Act
+        toolService.searchTools(null, null, negativeMinPrice, null);
+
+        // Assert
+        // Verify the repository was called with 0.0 instead of -5.0
+        verify(toolRepo).searchTools(null, null, 0.0, null);
+        verify(toolRepo, never()).searchTools(null, null, negativeMinPrice, null);
+    }
+
+    @Test
+    @DisplayName("Should sanitize negative max price to 0.0")
+    void testSearchWithNegativeMaxPrice() {
+        // Arrange
+        Double negativeMaxPrice = -10.0;
+        when(toolRepo.searchTools(null, null, null, 0.0)).thenReturn(Collections.emptyList());
+
+        // Act
+        toolService.searchTools(null, null, null, negativeMaxPrice);
+
+        // Assert
+        verify(toolRepo).searchTools(null, null, null, 0.0);
+        verify(toolRepo, never()).searchTools(null, null, null, negativeMaxPrice);
+    }
+
+    @Test
+    @DisplayName("Should allow searching with only minPrice")
+    void testSearchWithMinPriceOnly() {
+        // Arrange
+        Double minPrice = 20.0;
+        when(toolRepo.searchTools(null, null, minPrice, null)).thenReturn(List.of(sampleTool));
+
+        // Act
+        List<Tool> result = toolService.searchTools(null, null, minPrice, null);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(toolRepo).searchTools(null, null, minPrice, null);
+    }
+
+    @Test
+    @DisplayName("Should allow searching with only maxPrice")
+    void testSearchWithMaxPriceOnly() {
+        // Arrange
+        Double maxPrice = 100.0;
+        when(toolRepo.searchTools(null, null, null, maxPrice)).thenReturn(List.of(sampleTool));
+
+        // Act
+        List<Tool> result = toolService.searchTools(null, null, null, maxPrice);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(toolRepo).searchTools(null, null, null, maxPrice);
+    }
+
+    @Test
+    @DisplayName("Should combine keyword, location, and price filters")
+    void testSearchWithAllFilters() {
+        // Arrange
+        String keyword = "drill";
+        String location = "Porto";
+        Double minPrice = 10.0;
+        Double maxPrice = 50.0;
+        when(toolRepo.searchTools(keyword, location, minPrice, maxPrice)).thenReturn(List.of(sampleTool));
+
+        // Act
+        List<Tool> result = toolService.searchTools(keyword, location, minPrice, maxPrice);
+
+        // Assert
+        assertThat(result).hasSize(1);
+        verify(toolRepo).searchTools(keyword, location, minPrice, maxPrice);
     }
 }

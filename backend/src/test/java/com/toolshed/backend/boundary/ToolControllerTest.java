@@ -78,7 +78,7 @@ class ToolControllerTest {
         Tool drill = createSampleTool("Downtown Drill");
 
         // Mock the service to expect BOTH arguments
-        when(toolService.searchTools(keyword, location)).thenReturn(List.of(drill));
+        when(toolService.searchTools(keyword, location, null, null)).thenReturn(List.of(drill));
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
@@ -90,7 +90,7 @@ class ToolControllerTest {
                 .andExpect(jsonPath("$[0].title", is("Downtown Drill")));
 
         // Verification: Ensure location was NOT null
-        verify(toolService, times(1)).searchTools(keyword, location);
+        verify(toolService, times(1)).searchTools(keyword, location, null, null);
     }
 
     @Test
@@ -101,7 +101,7 @@ class ToolControllerTest {
         Tool drill = createSampleTool("Power Drill");
 
         // Mock: expect null for location because we don't send the param
-        when(toolService.searchTools(keyword, null)).thenReturn(List.of(drill));
+        when(toolService.searchTools(keyword, null, null, null)).thenReturn(List.of(drill));
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
@@ -112,7 +112,7 @@ class ToolControllerTest {
                 .andExpect(jsonPath("$[0].title", is("Power Drill")));
 
         // Verification
-        verify(toolService, times(1)).searchTools(keyword, null);
+        verify(toolService, times(1)).searchTools(keyword, null, null, null);
     }
 
     @Test
@@ -121,7 +121,7 @@ class ToolControllerTest {
         // Arrange
         String keyword = "unicorn";
 
-        when(toolService.searchTools(keyword, null)).thenReturn(Collections.emptyList());
+        when(toolService.searchTools(keyword, null, null, null)).thenReturn(Collections.emptyList());
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
@@ -131,14 +131,14 @@ class ToolControllerTest {
                 .andExpect(content().json("[]"));
 
         // Verification
-        verify(toolService, times(1)).searchTools(keyword, null);
+        verify(toolService, times(1)).searchTools(keyword, null, null, null);
     }
 
     @Test
     @DisplayName("Should handle missing keyword parameter gracefully")
     void testSearchTools_MissingParameter_ReturnsEmptyArray() throws Exception {
         // Arrange
-        when(toolService.searchTools(null, null)).thenReturn(Collections.emptyList());
+        when(toolService.searchTools(null, null, null, null)).thenReturn(Collections.emptyList());
 
         // Act & Assert
         // Calling endpoint with NO parameters
@@ -148,7 +148,7 @@ class ToolControllerTest {
                 .andExpect(content().json("[]"));
 
         // Verification: Ensure service called with nulls
-        verify(toolService, times(1)).searchTools(null, null);
+        verify(toolService, times(1)).searchTools(null, null, null, null);
     }
 
     @Test
@@ -271,5 +271,100 @@ class ToolControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(toolService).deleteTool(toolId);
+    }
+
+    // ==================== PRICE FILTERING TESTS ====================
+
+    @Test
+    @DisplayName("Should pass minPrice and maxPrice parameters to service")
+    void testSearchWithPriceParams() throws Exception {
+        // Arrange
+        Tool tool = createSampleTool("Budget Drill");
+        tool.setPricePerDay(25.0);
+        
+        when(toolService.searchTools(null, null, 10.0, 50.0)).thenReturn(List.of(tool));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("minPrice", "10.0")
+                .param("maxPrice", "50.0")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].title", is("Budget Drill")))
+                .andExpect(jsonPath("$[0].pricePerDay", is(25.0)));
+
+        verify(toolService, times(1)).searchTools(null, null, 10.0, 50.0);
+    }
+
+    @Test
+    @DisplayName("Should handle invalid price type and return 400 Bad Request")
+    void testSearchInvalidPriceType() throws Exception {
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("minPrice", "abc")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should combine all filters: keyword, location, and price range")
+    void testSearchWithAllFilters() throws Exception {
+        // Arrange
+        Tool tool = createSampleTool("Downtown Drill");
+        tool.setPricePerDay(30.0);
+        
+        when(toolService.searchTools("drill", "Downtown", 10.0, 50.0)).thenReturn(List.of(tool));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("keyword", "drill")
+                .param("location", "Downtown")
+                .param("minPrice", "10.0")
+                .param("maxPrice", "50.0")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].title", is("Downtown Drill")));
+
+        verify(toolService).searchTools("drill", "Downtown", 10.0, 50.0);
+    }
+
+    @Test
+    @DisplayName("Should handle only minPrice parameter")
+    void testSearchWithMinPriceOnly() throws Exception {
+        // Arrange
+        Tool tool = createSampleTool("Premium Hammer");
+        tool.setPricePerDay(100.0);
+        
+        when(toolService.searchTools(null, null, 50.0, null)).thenReturn(List.of(tool));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("minPrice", "50.0")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        verify(toolService).searchTools(null, null, 50.0, null);
+    }
+
+    @Test
+    @DisplayName("Should handle only maxPrice parameter")
+    void testSearchWithMaxPriceOnly() throws Exception {
+        // Arrange
+        Tool tool = createSampleTool("Budget Saw");
+        tool.setPricePerDay(15.0);
+        
+        when(toolService.searchTools(null, null, null, 20.0)).thenReturn(List.of(tool));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("maxPrice", "20.0")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        verify(toolService).searchTools(null, null, null, 20.0);
     }
 }

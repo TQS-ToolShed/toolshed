@@ -14,16 +14,18 @@ export const RenterDashboardPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [keyword, setKeyword] = useState('');
   const [location, setLocation] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
 
   const fetchTools = useCallback(
-    async (filters?: { keyword?: string; location?: string }) => {
+    async (filters?: { keyword?: string; location?: string; minPrice?: number; maxPrice?: number }) => {
       try {
         setIsLoading(true);
         setError(null);
 
-        const hasFilters = Boolean(filters?.keyword || filters?.location);
+        const hasFilters = Boolean(filters?.keyword || filters?.location || filters?.minPrice !== undefined || filters?.maxPrice !== undefined);
         const data: Tool[] = hasFilters
-          ? await searchTools(filters?.keyword, filters?.location)
+          ? await searchTools(filters?.keyword, filters?.location, filters?.minPrice, filters?.maxPrice)
           : await getActiveTools();
 
         setTools(data.filter((tool: Tool) => tool.active));
@@ -44,11 +46,15 @@ export const RenterDashboardPage = () => {
     event?.preventDefault();
     const keywordQuery = keyword.trim();
     const locationQuery = location.trim();
+    const minPriceValue = minPrice.trim() ? parseFloat(minPrice) : undefined;
+    const maxPriceValue = maxPrice.trim() ? parseFloat(maxPrice) : undefined;
 
     setIsSearching(true);
     await fetchTools({
       keyword: keywordQuery || undefined,
       location: locationQuery || undefined,
+      minPrice: minPriceValue,
+      maxPrice: maxPriceValue,
     });
     setIsSearching(false);
   };
@@ -56,6 +62,8 @@ export const RenterDashboardPage = () => {
   const handleResetFilters = async () => {
     setKeyword('');
     setLocation('');
+    setMinPrice('');
+    setMaxPrice('');
     setIsSearching(true);
     await fetchTools();
     setIsSearching(false);
@@ -124,8 +132,12 @@ export const RenterDashboardPage = () => {
             <ToolSearchBar
               keyword={keyword}
               location={location}
+              minPrice={minPrice}
+              maxPrice={maxPrice}
               onKeywordChange={setKeyword}
               onLocationChange={setLocation}
+              onMinPriceChange={setMinPrice}
+              onMaxPriceChange={setMaxPrice}
               onSearch={handleSearch}
               onReset={handleResetFilters}
               isLoading={isSearching || isLoading}

@@ -90,11 +90,18 @@ export const getToolDetails = async (toolId: string): Promise<ToolDetails> => {
 };
 
 // Search tools
-export const searchTools = async (keyword?: string, location?: string): Promise<Tool[]> => {
+export const searchTools = async (
+  keyword?: string, 
+  location?: string,
+  minPrice?: number,
+  maxPrice?: number
+): Promise<Tool[]> => {
   try {
     const params = new URLSearchParams();
     if (keyword) params.append('keyword', keyword);
     if (location) params.append('location', location);
+    if (minPrice !== undefined) params.append('minPrice', minPrice.toString());
+    if (maxPrice !== undefined) params.append('maxPrice', maxPrice.toString());
     
     const response = await axios.get<Tool[]>(`${API_URL}/search`, { params });
     return response.data;
