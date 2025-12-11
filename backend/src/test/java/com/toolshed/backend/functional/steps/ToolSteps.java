@@ -80,7 +80,10 @@ public class ToolSteps {
         toolRequest.setTitle(title);
         toolRequest.setDescription(description);
         toolRequest.setPricePerDay(Double.parseDouble(price));
-        toolRequest.setLocation(location);
+        // Parse location as "District, Municipality" or use defaults
+        String[] parts = location.split(",");
+        toolRequest.setDistrict(parts.length > 0 ? parts[0].trim() : "Aveiro");
+        toolRequest.setMunicipality(parts.length > 1 ? parts[1].trim() : "Aveiro");
         toolRequest.setSupplierId(testUser.getId());
     }
 
@@ -104,7 +107,8 @@ public class ToolSteps {
         tool.setTitle(title);
         tool.setDescription("Seeded tool");
         tool.setPricePerDay(10.0);
-        tool.setLocation("Seed City");
+        tool.setDistrict("Porto");
+        tool.setMunicipality("Porto");
         tool.setOwner(testUser);
         tool.setActive(true);
         tool.setOverallRating(0.0);

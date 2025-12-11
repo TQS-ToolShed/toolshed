@@ -54,7 +54,8 @@ class ToolControllerTest {
         tool.setDescription("A basic tool");
         tool.setActive(true);
         tool.setPricePerDay(5.0);
-        tool.setLocation("Downtown");
+        tool.setDistrict("Lisboa");
+        tool.setMunicipality("Lisboa");
         tool.setOverallRating(4.5);
         tool.setNumRatings(10);
 
@@ -165,7 +166,8 @@ class ToolControllerTest {
                 .andExpect(jsonPath("$.id", is(tool.getId().toString())))
                 .andExpect(jsonPath("$.title", is("Detail Drill")))
                 .andExpect(jsonPath("$.pricePerDay", is(tool.getPricePerDay())))
-                .andExpect(jsonPath("$.location", is(tool.getLocation())))
+                .andExpect(jsonPath("$.district", is(tool.getDistrict())))
+                .andExpect(jsonPath("$.municipality", is(tool.getMunicipality())))
                 .andExpect(jsonPath("$.availabilityCalendar", is(tool.getAvailabilityCalendar())))
                 .andExpect(jsonPath("$.overallRating", is(tool.getOverallRating())))
                 .andExpect(jsonPath("$.numRatings", is(tool.getNumRatings())))
@@ -230,7 +232,8 @@ class ToolControllerTest {
                 .title("New Tool")
                 .description("Desc")
                 .pricePerDay(10.0)
-                .location("Loc")
+                .district("Aveiro")
+                .municipality("Aveiro")
                 .supplierId(UUID.randomUUID())
                 .build();
 

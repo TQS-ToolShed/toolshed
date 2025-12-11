@@ -85,7 +85,8 @@ public class ReviewSteps {
         tool.setTitle("Test Tool");
         tool.setDescription("Description");
         tool.setPricePerDay(10.0);
-        tool.setLocation("Location");
+        tool.setDistrict("Lisboa");
+        tool.setMunicipality("Lisboa");
         tool.setOwner(owner);
         tool.setActive(true);
         tool.setOverallRating(0.0);
