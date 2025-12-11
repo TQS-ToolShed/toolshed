@@ -16,6 +16,8 @@ public class WebConfig {
                 registry.addMapping("/**")
                         .allowedOrigins(
                                 "http://localhost:5173",
+                                "http://localhost",
+                                "http://deti-tqs-09.ua.pt",
                                 "http://deti-tqs-09.ua.pt:5173"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
