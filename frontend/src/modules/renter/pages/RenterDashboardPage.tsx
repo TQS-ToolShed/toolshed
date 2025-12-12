@@ -13,19 +13,32 @@ export const RenterDashboardPage = () => {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [keyword, setKeyword] = useState('');
-  const [location, setLocation] = useState('');
+  const [district, setDistrict] = useState('');
+  const [municipality, setMunicipality] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
   const fetchTools = useCallback(
-    async (filters?: { keyword?: string; location?: string; minPrice?: number; maxPrice?: number }) => {
+    async (filters?: { keyword?: string; district?: string; municipality?: string; minPrice?: number; maxPrice?: number }) => {
       try {
         setIsLoading(true);
         setError(null);
 
-        const hasFilters = Boolean(filters?.keyword || filters?.location || filters?.minPrice !== undefined || filters?.maxPrice !== undefined);
+        const hasFilters = Boolean(
+          filters?.keyword ||
+          filters?.district ||
+          filters?.municipality ||
+          filters?.minPrice !== undefined ||
+          filters?.maxPrice !== undefined
+        );
         const data: Tool[] = hasFilters
-          ? await searchTools(filters?.keyword, filters?.location, filters?.minPrice, filters?.maxPrice)
+          ? await searchTools({
+              keyword: filters?.keyword,
+              district: filters?.district,
+              municipality: filters?.municipality,
+              minPrice: filters?.minPrice,
+              maxPrice: filters?.maxPrice,
+            })
           : await getActiveTools();
 
         setTools(data.filter((tool: Tool) => tool.active));
@@ -45,14 +58,16 @@ export const RenterDashboardPage = () => {
   const handleSearch = async (event?: FormEvent<HTMLFormElement>) => {
     event?.preventDefault();
     const keywordQuery = keyword.trim();
-    const locationQuery = location.trim();
+    const districtQuery = district.trim();
+    const municipalityQuery = municipality.trim();
     const minPriceValue = minPrice.trim() ? parseFloat(minPrice) : undefined;
     const maxPriceValue = maxPrice.trim() ? parseFloat(maxPrice) : undefined;
 
     setIsSearching(true);
     await fetchTools({
       keyword: keywordQuery || undefined,
-      location: locationQuery || undefined,
+      district: districtQuery || undefined,
+      municipality: municipalityQuery || undefined,
       minPrice: minPriceValue,
       maxPrice: maxPriceValue,
     });
@@ -61,7 +76,8 @@ export const RenterDashboardPage = () => {
 
   const handleResetFilters = async () => {
     setKeyword('');
-    setLocation('');
+    setDistrict('');
+    setMunicipality('');
     setMinPrice('');
     setMaxPrice('');
     setIsSearching(true);
@@ -126,16 +142,18 @@ export const RenterDashboardPage = () => {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Find the right tool</CardTitle>
-            <CardDescription>Search by keyword or narrow down to a location</CardDescription>
+            <CardDescription>Search by keyword or narrow down by district and municipality</CardDescription>
           </CardHeader>
           <CardContent>
             <ToolSearchBar
               keyword={keyword}
-              location={location}
+              district={district}
+              municipality={municipality}
               minPrice={minPrice}
               maxPrice={maxPrice}
               onKeywordChange={setKeyword}
-              onLocationChange={setLocation}
+              onDistrictChange={setDistrict}
+              onMunicipalityChange={setMunicipality}
               onMinPriceChange={setMinPrice}
               onMaxPriceChange={setMaxPrice}
               onSearch={handleSearch}

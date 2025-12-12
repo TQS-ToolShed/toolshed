@@ -1,5 +1,7 @@
 package com.toolshed.backend.dto;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import lombok.AllArgsConstructor;
@@ -8,14 +10,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * DTO representing a district from the json.geoapi.pt endpoint.
+ * DTO representing the municipality response from json.geoapi.pt/distrito/{distrito}/municipios
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class DistrictDto {
-    private String distrito; // e.g. "Lisboa"
-    private String codigoine; // not used, but mapped for completeness
+public class MunicipalityListDto {
+    private String distrito;
+    private List<String> municipios;
 }

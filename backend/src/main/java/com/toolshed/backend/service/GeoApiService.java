@@ -1,6 +1,9 @@
 package com.toolshed.backend.service;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -12,7 +15,7 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toolshed.backend.dto.DistrictDto;
-import com.toolshed.backend.dto.MunicipalityDto;
+import com.toolshed.backend.dto.MunicipalityListDto;
 
 /**
  * Service implementation for interacting with the Portuguese GeoAPI.
@@ -21,7 +24,7 @@ import com.toolshed.backend.dto.MunicipalityDto;
 @Service
 public class GeoApiService implements IGeoApiService {
 
-    private static final String GEO_API_BASE_URL = "https://geoapi.pt";
+    private static final String GEO_API_BASE_URL = "https://json.geoapi.pt";
     private static final String DISTRICTS_ENDPOINT = "/distritos";
     private static final String MUNICIPALITIES_ENDPOINT = "/distrito/%s/municipios";
 
@@ -50,12 +53,13 @@ public class GeoApiService implements IGeoApiService {
             String response = httpClient.doHttpGet(url);
             
             List<DistrictDto> districts = objectMapper.readValue(
-                response, 
+                response,
                 new TypeReference<List<DistrictDto>>() {}
             );
-            
+
             cachedDistricts = districts.stream()
-                .map(DistrictDto::getNome)
+                .map(DistrictDto::getDistrito)
+                .filter(name -> name != null && !name.isBlank())
                 .collect(Collectors.toList());
             
             return new ArrayList<>(cachedDistricts);
@@ -72,20 +76,23 @@ public class GeoApiService implements IGeoApiService {
         }
 
         try {
-            String url = GEO_API_BASE_URL + String.format(MUNICIPALITIES_ENDPOINT, district);
+            // URL-encode the district name to handle spaces and special characters
+            String encodedDistrict = URLEncoder.encode(district, StandardCharsets.UTF_8.toString());
+            String url = GEO_API_BASE_URL + String.format(MUNICIPALITIES_ENDPOINT, encodedDistrict);
             String response = httpClient.doHttpGet(url);
-            
-            List<MunicipalityDto> municipalities = objectMapper.readValue(
+
+            MunicipalityListDto municipalityList = objectMapper.readValue(
                 response,
-                new TypeReference<List<MunicipalityDto>>() {}
+                new TypeReference<MunicipalityListDto>() {}
             );
-            
-            List<String> municipalityNames = municipalities.stream()
-                .map(MunicipalityDto::getNome)
-                .collect(Collectors.toList());
-            
+
+            List<String> municipalityNames = municipalityList.getMunicipios();
+            if (municipalityNames == null) {
+                municipalityNames = new ArrayList<>();
+            }
+
             cachedMunicipalities.put(district, municipalityNames);
-            
+
             return new ArrayList<>(municipalityNames);
         } catch (IOException e) {
             // Return empty list on error

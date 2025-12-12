@@ -1,15 +1,19 @@
 import type { FormEvent } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, MapPin, RotateCcw, Euro } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { fetchDistricts, fetchMunicipalities } from '@/modules/shared/api/geo-api';
 
 export interface ToolSearchBarProps {
   keyword: string;
-  location: string;
+  district: string;
+  municipality: string;
   minPrice: string;
   maxPrice: string;
   onKeywordChange: (value: string) => void;
-  onLocationChange: (value: string) => void;
+  onDistrictChange: (value: string) => void;
+  onMunicipalityChange: (value: string) => void;
   onMinPriceChange: (value: string) => void;
   onMaxPriceChange: (value: string) => void;
   onSearch: (event?: FormEvent<HTMLFormElement>) => void;
@@ -20,11 +24,13 @@ export interface ToolSearchBarProps {
 
 export function ToolSearchBar({
   keyword,
-  location,
+  district,
+  municipality,
   minPrice,
   maxPrice,
   onKeywordChange,
-  onLocationChange,
+  onDistrictChange,
+  onMunicipalityChange,
   onMinPriceChange,
   onMaxPriceChange,
   onSearch,
@@ -32,7 +38,70 @@ export function ToolSearchBar({
   isLoading = false,
   className = '',
 }: ToolSearchBarProps) {
-  const hasFilters = keyword.trim() || location.trim() || minPrice.trim() || maxPrice.trim();
+  const [districtOptions, setDistrictOptions] = useState<string[]>([]);
+  const [municipalityOptions, setMunicipalityOptions] = useState<string[]>([]);
+  const [isGeoLoading, setIsGeoLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDistricts = async () => {
+      try {
+        setIsGeoLoading(true);
+        const districts = await fetchDistricts();
+        if (isMounted) {
+          setDistrictOptions(districts);
+        }
+      } finally {
+        if (isMounted) {
+          setIsGeoLoading(false);
+        }
+      }
+    };
+
+    loadDistricts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadMunicipalities = async () => {
+      if (!district) {
+        setMunicipalityOptions([]);
+        onMunicipalityChange('');
+        return;
+      }
+
+      try {
+        setIsGeoLoading(true);
+        const municipalities = await fetchMunicipalities(district);
+        if (!isMounted) return;
+        setMunicipalityOptions(municipalities);
+        if (municipality && !municipalities.includes(municipality)) {
+          onMunicipalityChange('');
+        }
+      } finally {
+        if (isMounted) {
+          setIsGeoLoading(false);
+        }
+      }
+    };
+
+    loadMunicipalities();
+
+    return () => {
+      isMounted = false;
+    };
+    // Only re-run when the selected district changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [district]);
+
+  const effectiveLoading = isLoading || isGeoLoading;
+  const hasFilters = keyword.trim() || district.trim() || municipality.trim() || minPrice.trim() || maxPrice.trim();
 
   return (
     <form
@@ -48,21 +117,41 @@ export function ToolSearchBar({
             placeholder="Search tools by name, category..."
             value={keyword}
             onChange={(e) => onKeywordChange(e.target.value)}
-            disabled={isLoading}
+            disabled={effectiveLoading}
             className="pl-10"
           />
         </div>
 
-        {/* Location Input */}
+        {/* District select */}
         <div className="relative flex-1">
           <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="Location (e.g., Aveiro)"
-            value={location}
-            onChange={(e) => onLocationChange(e.target.value)}
-            disabled={isLoading}
-            className="pl-10"
-          />
+          <select
+            value={district}
+            onChange={(e) => onDistrictChange(e.target.value)}
+            disabled={effectiveLoading}
+            className="pl-10 pr-3 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">All districts</option>
+            {districtOptions.map((d) => (
+              <option key={d} value={d}>{d}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Municipality select */}
+        <div className="relative flex-1">
+          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <select
+            value={municipality}
+            onChange={(e) => onMunicipalityChange(e.target.value)}
+            disabled={effectiveLoading || !district}
+            className="pl-10 pr-3 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <option value="">All municipalities</option>
+            {municipalityOptions.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -76,7 +165,7 @@ export function ToolSearchBar({
             placeholder="Min price (€/day)"
             value={minPrice}
             onChange={(e) => onMinPriceChange(e.target.value)}
-            disabled={isLoading}
+            disabled={effectiveLoading}
             className="pl-10"
             min="0"
             step="0.01"
@@ -91,7 +180,7 @@ export function ToolSearchBar({
             placeholder="Max price (€/day)"
             value={maxPrice}
             onChange={(e) => onMaxPriceChange(e.target.value)}
-            disabled={isLoading}
+            disabled={effectiveLoading}
             className="pl-10"
             min="0"
             step="0.01"
@@ -100,16 +189,16 @@ export function ToolSearchBar({
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          <Button type="submit" disabled={isLoading} className="flex-1 md:flex-none">
+          <Button type="submit" disabled={effectiveLoading} className="flex-1 md:flex-none">
             <Search className="h-4 w-4 mr-2" />
-            {isLoading ? 'Searching...' : 'Search'}
+            {effectiveLoading ? 'Searching...' : 'Search'}
           </Button>
           {hasFilters && (
             <Button
               type="button"
               variant="outline"
               onClick={onReset}
-              disabled={isLoading}
+              disabled={effectiveLoading}
               className="flex-1 md:flex-none"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
