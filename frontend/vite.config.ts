@@ -12,6 +12,6 @@ export default defineConfig({
     },
   },
   server: {
-    allowedHosts: ['deti-tqs-09.ua.pt'],
+    allowedHosts: ['deti-tqs-09.ua.pt', 'frontend', 'localhost'],
   },
 })

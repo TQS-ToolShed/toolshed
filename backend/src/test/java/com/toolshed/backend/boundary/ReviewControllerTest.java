@@ -1,0 +1,181 @@
+package com.toolshed.backend.boundary;
+
+import java.util.UUID;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.toolshed.backend.dto.CreateReviewRequest;
+import com.toolshed.backend.dto.ReviewResponse;
+import com.toolshed.backend.repository.enums.ReviewType;
+import com.toolshed.backend.service.ReviewService;
+
+@WebMvcTest(ReviewController.class)
+class ReviewControllerTest {
+
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Autowired
+        private ObjectMapper objectMapper;
+
+        @MockitoBean
+        private ReviewService reviewService;
+
+        @Test
+        @DisplayName("Should create review and return response body")
+        void createReview() throws Exception {
+                UUID bookingId = UUID.randomUUID();
+                CreateReviewRequest request = CreateReviewRequest.builder()
+                                .bookingId(bookingId)
+                                .rating(5)
+                                .comment("Excellent!")
+                                .type(ReviewType.RENTER_TO_OWNER)
+                                .build();
+
+                ReviewResponse response = ReviewResponse.builder()
+                                .id(UUID.randomUUID())
+                                .bookingId(bookingId)
+                                .rating(5)
+                                .comment("Excellent!")
+                                .build();
+
+                when(reviewService.createReview(any(CreateReviewRequest.class))).thenReturn(response);
+
+                mockMvc.perform(post("/api/reviews")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.rating").value(5))
+                                .andExpect(jsonPath("$.comment").value("Excellent!"));
+        }
+
+        @Test
+        @DisplayName("Should create owner to renter review")
+        void createReview_ownerToRenter() throws Exception {
+                UUID bookingId = UUID.randomUUID();
+                CreateReviewRequest request = CreateReviewRequest.builder()
+                                .bookingId(bookingId)
+                                .rating(4)
+                                .comment("Good renter")
+                                .type(ReviewType.OWNER_TO_RENTER)
+                                .build();
+
+                ReviewResponse response = ReviewResponse.builder()
+                                .id(UUID.randomUUID())
+                                .bookingId(bookingId)
+                                .rating(4)
+                                .comment("Good renter")
+                                .build();
+
+                when(reviewService.createReview(any(CreateReviewRequest.class))).thenReturn(response);
+
+                mockMvc.perform(post("/api/reviews")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.rating").value(4))
+                                .andExpect(jsonPath("$.comment").value("Good renter"));
+        }
+
+        @Test
+        @DisplayName("Should return 400 when input is invalid")
+        void createReview_invalidInput() throws Exception {
+                CreateReviewRequest request = CreateReviewRequest.builder()
+                                // missing bookingId
+                                .rating(6) // invalid rating
+                                .comment("") // blank comment
+                                .build();
+
+                mockMvc.perform(post("/api/reviews")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Should update review and return updated response")
+        void updateReview_success() throws Exception {
+                UUID reviewId = UUID.randomUUID();
+                UUID bookingId = UUID.randomUUID();
+                CreateReviewRequest request = CreateReviewRequest.builder()
+                                .bookingId(bookingId)
+                                .rating(4)
+                                .comment("Updated comment")
+                                .type(ReviewType.RENTER_TO_OWNER)
+                                .build();
+
+                ReviewResponse response = ReviewResponse.builder()
+                                .id(reviewId)
+                                .bookingId(bookingId)
+                                .rating(4)
+                                .comment("Updated comment")
+                                .build();
+
+                when(reviewService.updateReview(any(UUID.class), any(CreateReviewRequest.class))).thenReturn(response);
+
+                mockMvc.perform(put("/api/reviews/{id}", reviewId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.id").value(reviewId.toString()))
+                                .andExpect(jsonPath("$.rating").value(4))
+                                .andExpect(jsonPath("$.comment").value("Updated comment"));
+        }
+
+        @Test
+        @DisplayName("Should return 400 when update input is invalid")
+        void updateReview_invalidInput() throws Exception {
+                UUID reviewId = UUID.randomUUID();
+                CreateReviewRequest request = CreateReviewRequest.builder()
+                                // missing bookingId
+                                .rating(6) // invalid rating > 5
+                                .comment("") // blank comment
+                                .build();
+
+                mockMvc.perform(put("/api/reviews/{id}", reviewId)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("Should create tool review")
+        void createReview_toolReview() throws Exception {
+                UUID bookingId = UUID.randomUUID();
+                CreateReviewRequest request = CreateReviewRequest.builder()
+                                .bookingId(bookingId)
+                                .rating(5)
+                                .comment("Excellent tool, worked perfectly!")
+                                .type(ReviewType.RENTER_TO_TOOL)
+                                .build();
+
+                ReviewResponse response = ReviewResponse.builder()
+                                .id(UUID.randomUUID())
+                                .bookingId(bookingId)
+                                .rating(5)
+                                .comment("Excellent tool, worked perfectly!")
+                                .build();
+
+                when(reviewService.createReview(any(CreateReviewRequest.class))).thenReturn(response);
+
+                mockMvc.perform(post("/api/reviews")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.rating").value(5))
+                                .andExpect(jsonPath("$.comment").value("Excellent tool, worked perfectly!"));
+        }
+}

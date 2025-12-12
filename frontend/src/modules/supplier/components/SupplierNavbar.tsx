@@ -1,12 +1,6 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
-
-const navLinks = [
-  { to: '/supplier', label: 'Dashboard' },
-  { to: '/supplier/tools', label: 'My Tools' },
-  { to: '/supplier/rentals', label: 'Rentals' },
-];
 
 export const SupplierNavbar = () => {
   const { logout } = useAuth();

@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import com.toolshed.backend.repository.enums.BookingStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,10 +20,14 @@ public class BookingResponse {
     private UUID toolId;
     private UUID renterId;
     private UUID ownerId;
+    private String ownerName;
     private String toolTitle;
     private LocalDate startDate;
     private LocalDate endDate;
     private BookingStatus status;
     private PaymentStatus paymentStatus;
     private Double totalPrice;
+    private ReviewResponse review;
+    private ReviewResponse ownerReview;
+    private ReviewResponse toolReview;
 }

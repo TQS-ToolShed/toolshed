@@ -1,6 +1,7 @@
 package com.toolshed.backend.repository.entities;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import com.toolshed.backend.repository.enums.BookingStatus;
@@ -45,6 +46,9 @@ public class Booking {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
+
+    @jakarta.persistence.OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
+    private List<Review> reviews;
 
     private LocalDate startDate;
     private LocalDate endDate;
