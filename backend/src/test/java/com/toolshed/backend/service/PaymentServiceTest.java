@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,11 +15,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.stripe.exception.StripeException;
+import com.stripe.exception.ApiException;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
+
+import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.entities.Booking;
@@ -30,6 +39,7 @@ import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 import com.toolshed.backend.service.PaymentServiceImpl.BookingNotFoundException;
 import com.toolshed.backend.service.PaymentServiceImpl.PaymentAlreadyCompletedException;
+import com.toolshed.backend.service.PaymentServiceImpl.PaymentProcessingException;
 
 /**
  * Unit tests for PaymentServiceImpl.
@@ -567,6 +577,259 @@ class PaymentServiceTest {
             assertThatThrownBy(() -> paymentService.validateBookingForPayment(bookingId))
                     .isInstanceOf(PaymentAlreadyCompletedException.class)
                     .hasMessageContaining(bookingId.toString());
+        }
+    }
+
+    @Nested
+    @DisplayName("Create Checkout Session Tests")
+    class CreateCheckoutSessionTests {
+
+        private static final String SUCCESS_URL = "http://localhost:5173/payment-success";
+        private static final String CANCEL_URL = "http://localhost:5173/payment-cancelled";
+
+        @Test
+        @DisplayName("Should create checkout session successfully")
+        void shouldCreateCheckoutSessionSuccessfully() {
+            // Arrange
+            CreateCheckoutSessionRequest request = CreateCheckoutSessionRequest.builder()
+                    .bookingId(bookingId)
+                    .amountInCents(7500L)
+                    .description("Tool rental payment")
+                    .build();
+
+            booking.setPaymentStatus(PaymentStatus.PENDING);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Mock the Stripe Session static method
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_test_session123");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_test_session123");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenReturn(mockSession);
+
+                // Act
+                CheckoutSessionResponse response = paymentService.createCheckoutSession(request, SUCCESS_URL,
+                        CANCEL_URL);
+
+                // Assert
+                assertThat(response).isNotNull();
+                assertThat(response.getSessionId()).isEqualTo("cs_test_session123");
+                assertThat(response.getCheckoutUrl()).isEqualTo("https://checkout.stripe.com/pay/cs_test_session123");
+
+                verify(bookingRepository).findById(bookingId);
+                mockedSession.verify(() -> Session.create(any(SessionCreateParams.class)));
+            }
+        }
+
+        @Test
+        @DisplayName("Should throw BookingNotFoundException when booking does not exist")
+        void shouldThrowBookingNotFoundExceptionWhenBookingDoesNotExist() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            CreateCheckoutSessionRequest request = CreateCheckoutSessionRequest.builder()
+                    .bookingId(nonExistentId)
+                    .amountInCents(7500L)
+                    .description("Tool rental payment")
+                    .build();
+
+            when(bookingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.createCheckoutSession(request, SUCCESS_URL, CANCEL_URL))
+                    .isInstanceOf(BookingNotFoundException.class)
+                    .hasMessageContaining("Booking not found");
+        }
+
+        @Test
+        @DisplayName("Should throw PaymentAlreadyCompletedException when booking is already paid")
+        void shouldThrowPaymentAlreadyCompletedExceptionWhenBookingIsAlreadyPaid() {
+            // Arrange
+            CreateCheckoutSessionRequest request = CreateCheckoutSessionRequest.builder()
+                    .bookingId(bookingId)
+                    .amountInCents(7500L)
+                    .description("Tool rental payment")
+                    .build();
+
+            booking.setPaymentStatus(PaymentStatus.COMPLETED);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.createCheckoutSession(request, SUCCESS_URL, CANCEL_URL))
+                    .isInstanceOf(PaymentAlreadyCompletedException.class)
+                    .hasMessageContaining("Booking is already paid");
+        }
+
+        @Test
+        @DisplayName("Should throw PaymentProcessingException when Stripe fails")
+        void shouldThrowPaymentProcessingExceptionWhenStripeFails() {
+            // Arrange
+            CreateCheckoutSessionRequest request = CreateCheckoutSessionRequest.builder()
+                    .bookingId(bookingId)
+                    .amountInCents(7500L)
+                    .description("Tool rental payment")
+                    .build();
+
+            booking.setPaymentStatus(PaymentStatus.PENDING);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Mock the Stripe Session to throw an exception
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenThrow(new ApiException("Stripe API error", "req_123", "card_error", 400, null));
+
+                // Act & Assert
+                assertThatThrownBy(() -> paymentService.createCheckoutSession(request, SUCCESS_URL, CANCEL_URL))
+                        .isInstanceOf(PaymentProcessingException.class)
+                        .hasMessageContaining("Failed to create checkout session");
+            }
+        }
+
+        @Test
+        @DisplayName("Should include correct URLs with booking ID in session params")
+        void shouldIncludeCorrectUrlsWithBookingIdInSessionParams() {
+            // Arrange
+            CreateCheckoutSessionRequest request = CreateCheckoutSessionRequest.builder()
+                    .bookingId(bookingId)
+                    .amountInCents(5000L)
+                    .description("Hammer rental - 2 days")
+                    .build();
+
+            booking.setPaymentStatus(PaymentStatus.PENDING);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Mock the Stripe Session
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_test_xyz");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_test_xyz");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenAnswer(invocation -> {
+                            SessionCreateParams params = invocation.getArgument(0);
+                            // Verify the URLs contain the booking ID
+                            assertThat(params.getSuccessUrl()).contains(bookingId.toString());
+                            assertThat(params.getCancelUrl()).contains(bookingId.toString());
+                            assertThat(params.getMode()).isEqualTo(SessionCreateParams.Mode.PAYMENT);
+                            return mockSession;
+                        });
+
+                // Act
+                CheckoutSessionResponse response = paymentService.createCheckoutSession(request, SUCCESS_URL,
+                        CANCEL_URL);
+
+                // Assert
+                assertThat(response).isNotNull();
+                assertThat(response.getSessionId()).isEqualTo("cs_test_xyz");
+            }
+        }
+
+        @Test
+        @DisplayName("Should allow retry payment for FAILED status")
+        void shouldAllowRetryPaymentForFailedStatus() {
+            // Arrange
+            CreateCheckoutSessionRequest request = CreateCheckoutSessionRequest.builder()
+                    .bookingId(bookingId)
+                    .amountInCents(3000L)
+                    .description("Retry payment for failed booking")
+                    .build();
+
+            booking.setPaymentStatus(PaymentStatus.FAILED);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_retry_123");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_retry_123");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenReturn(mockSession);
+
+                // Act
+                CheckoutSessionResponse response = paymentService.createCheckoutSession(request, SUCCESS_URL,
+                        CANCEL_URL);
+
+                // Assert - should succeed since FAILED status allows retry
+                assertThat(response).isNotNull();
+                assertThat(response.getSessionId()).isEqualTo("cs_retry_123");
+            }
+        }
+
+        @Test
+        @DisplayName("Should set correct amount in cents")
+        void shouldSetCorrectAmountInCents() {
+            // Arrange
+            Long expectedAmountInCents = 15000L; // 150.00 EUR
+            CreateCheckoutSessionRequest request = CreateCheckoutSessionRequest.builder()
+                    .bookingId(bookingId)
+                    .amountInCents(expectedAmountInCents)
+                    .description("Power drill rental - 5 days")
+                    .build();
+
+            booking.setPaymentStatus(PaymentStatus.PENDING);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_amount_test");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_amount_test");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenAnswer(invocation -> {
+                            SessionCreateParams params = invocation.getArgument(0);
+                            // Verify the line item contains the correct amount
+                            assertThat(params.getLineItems()).hasSize(1);
+                            SessionCreateParams.LineItem lineItem = params.getLineItems().get(0);
+                            assertThat(lineItem.getPriceData().getUnitAmount()).isEqualTo(expectedAmountInCents);
+                            assertThat(lineItem.getPriceData().getCurrency()).isEqualTo("eur");
+                            return mockSession;
+                        });
+
+                // Act
+                CheckoutSessionResponse response = paymentService.createCheckoutSession(request, SUCCESS_URL,
+                        CANCEL_URL);
+
+                // Assert
+                assertThat(response).isNotNull();
+            }
+        }
+
+        @Test
+        @DisplayName("Should include booking metadata in session")
+        void shouldIncludeBookingMetadataInSession() {
+            // Arrange
+            CreateCheckoutSessionRequest request = CreateCheckoutSessionRequest.builder()
+                    .bookingId(bookingId)
+                    .amountInCents(8000L)
+                    .description("Saw rental")
+                    .build();
+
+            booking.setPaymentStatus(PaymentStatus.PENDING);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_metadata_test");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_metadata_test");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenAnswer(invocation -> {
+                            SessionCreateParams params = invocation.getArgument(0);
+                            // Verify metadata contains booking ID
+                            assertThat(params.getMetadata()).containsKey("bookingId");
+                            assertThat(params.getMetadata().get("bookingId")).isEqualTo(bookingId.toString());
+                            return mockSession;
+                        });
+
+                // Act
+                CheckoutSessionResponse response = paymentService.createCheckoutSession(request, SUCCESS_URL,
+                        CANCEL_URL);
+
+                // Assert
+                assertThat(response).isNotNull();
+                assertThat(response.getSessionId()).isEqualTo("cs_metadata_test");
+            }
         }
     }
 }
