@@ -107,6 +107,7 @@ export const RenterMyBookingsPage = () => {
             emptyLabel="No active bookings today."
             maxHeight="18rem"
             className="h-full lg:col-span-1"
+            showPayButton={true}
           />
 
           <RenterBookingList
@@ -118,6 +119,7 @@ export const RenterMyBookingsPage = () => {
             emptyLabel="No upcoming bookings."
             maxHeight="18rem"
             className="h-full lg:col-span-1"
+            showPayButton={true}
           />
         </div>
 
