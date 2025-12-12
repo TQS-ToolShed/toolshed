@@ -4,7 +4,7 @@ export interface CreateReviewRequest {
   bookingId: string;
   rating: number;
   comment: string;
-  type?: 'RENTER_TO_OWNER' | 'OWNER_TO_RENTER';
+  type?: 'RENTER_TO_OWNER' | 'OWNER_TO_RENTER' | 'RENTER_TO_TOOL';
 }
 
 export interface ReviewResponse {

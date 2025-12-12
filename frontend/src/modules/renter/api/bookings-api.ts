@@ -25,6 +25,7 @@ export interface BookingResponse {
   totalPrice: number;
   review?: ReviewResponse;
   ownerReview?: ReviewResponse;
+  toolReview?: ReviewResponse;
 }
 
 export const getBookingsForRenter = async (renterId: string): Promise<BookingResponse[]> => {

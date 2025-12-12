@@ -150,4 +150,32 @@ class ReviewControllerTest {
                                 .content(objectMapper.writeValueAsString(request)))
                                 .andExpect(status().isBadRequest());
         }
+
+        @Test
+        @DisplayName("Should create tool review")
+        void createReview_toolReview() throws Exception {
+                UUID bookingId = UUID.randomUUID();
+                CreateReviewRequest request = CreateReviewRequest.builder()
+                                .bookingId(bookingId)
+                                .rating(5)
+                                .comment("Excellent tool, worked perfectly!")
+                                .type(ReviewType.RENTER_TO_TOOL)
+                                .build();
+
+                ReviewResponse response = ReviewResponse.builder()
+                                .id(UUID.randomUUID())
+                                .bookingId(bookingId)
+                                .rating(5)
+                                .comment("Excellent tool, worked perfectly!")
+                                .build();
+
+                when(reviewService.createReview(any(CreateReviewRequest.class))).thenReturn(response);
+
+                mockMvc.perform(post("/api/reviews")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request)))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.rating").value(5))
+                                .andExpect(jsonPath("$.comment").value("Excellent tool, worked perfectly!"));
+        }
 }

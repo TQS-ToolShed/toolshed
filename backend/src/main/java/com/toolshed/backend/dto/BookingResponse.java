@@ -29,4 +29,5 @@ public class BookingResponse {
     private Double totalPrice;
     private ReviewResponse review;
     private ReviewResponse ownerReview;
+    private ReviewResponse toolReview;
 }

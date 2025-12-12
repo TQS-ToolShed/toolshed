@@ -34,8 +34,8 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
 
     public BookingServiceImpl(BookingRepository bookingRepository,
-                              ToolRepository toolRepository,
-                              UserRepository userRepository) {
+            ToolRepository toolRepository,
+            UserRepository userRepository) {
         this.bookingRepository = bookingRepository;
         this.toolRepository = toolRepository;
         this.userRepository = userRepository;
@@ -87,7 +87,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     /**
-     * task to mark finished bookings as completed and free tools if they are no longer rented.
+     * task to mark finished bookings as completed and free tools if they are no
+     * longer rented.
      */
     @Scheduled(cron = "0 * * * * *")
     @Transactional
@@ -179,7 +180,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private ReviewResponse toReviewResponse(Review review) {
-        if (review == null) return null;
+        if (review == null)
+            return null;
         String reviewerName = review.getReviewer() != null
                 ? (review.getReviewer().getFirstName() + " " + review.getReviewer().getLastName()).trim()
                 : null;
@@ -198,7 +200,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private Review getReviewByType(List<Review> reviews, ReviewType type) {
-        if (reviews == null) return null;
+        if (reviews == null)
+            return null;
         return reviews.stream()
                 .filter(r -> r.getType() == type || (type == ReviewType.RENTER_TO_OWNER && r.getType() == null))
                 .findFirst()
@@ -237,6 +240,7 @@ public class BookingServiceImpl implements BookingService {
 
         Review renterReview = getReviewByType(booking.getReviews(), ReviewType.RENTER_TO_OWNER);
         Review ownerReview = getReviewByType(booking.getReviews(), ReviewType.OWNER_TO_RENTER);
+        Review toolReview = getReviewByType(booking.getReviews(), ReviewType.RENTER_TO_TOOL);
 
         return BookingResponse.builder()
                 .id(booking.getId())
@@ -252,6 +256,7 @@ public class BookingServiceImpl implements BookingService {
                 .totalPrice(booking.getTotalPrice())
                 .review(toReviewResponse(renterReview))
                 .ownerReview(toReviewResponse(ownerReview))
+                .toolReview(toReviewResponse(toolReview))
                 .build();
     }
 }

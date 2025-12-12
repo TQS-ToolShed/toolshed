@@ -12,10 +12,12 @@ import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
+import com.toolshed.backend.repository.entities.Review;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
+import com.toolshed.backend.repository.enums.ReviewType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -659,6 +661,44 @@ class BookingServiceImplTest {
                 assertThat(response.getReview().getOwnerId()).isNull();
                 assertThat(response.getReview().getToolId()).isNull();
                 assertThat(response.getReview().getRating()).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("Should include tool review in booking response")
+        void getBookingsWithToolReview() {
+                Booking booking = new Booking();
+                booking.setId(UUID.randomUUID());
+                booking.setTool(tool);
+                tool.setTitle("Sander");
+                booking.setRenter(renter);
+                booking.setOwner(tool.getOwner());
+                booking.setStartDate(LocalDate.now());
+                booking.setEndDate(LocalDate.now().plusDays(1));
+                booking.setStatus(BookingStatus.COMPLETED);
+                booking.setPaymentStatus(PaymentStatus.COMPLETED);
+                booking.setTotalPrice(20.0);
+
+                Review toolReview = Review.builder()
+                                .id(UUID.randomUUID())
+                                .booking(booking)
+                                .reviewer(renter)
+                                .tool(tool)
+                                .rating(5)
+                                .comment("Excellent tool")
+                                .type(ReviewType.RENTER_TO_TOOL)
+                                .build();
+
+                booking.setReviews(List.of(toolReview));
+
+                when(bookingRepository.findByRenterId(renter.getId())).thenReturn(List.of(booking));
+
+                List<BookingResponse> responses = bookingService.getBookingsForRenter(renter.getId());
+
+                assertThat(responses).hasSize(1);
+                BookingResponse response = responses.getFirst();
+                assertThat(response.getToolReview()).isNotNull();
+                assertThat(response.getToolReview().getRating()).isEqualTo(5);
+                assertThat(response.getToolReview().getComment()).isEqualTo("Excellent tool");
         }
 
         @Test
