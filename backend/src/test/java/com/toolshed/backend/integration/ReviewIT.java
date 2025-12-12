@@ -21,6 +21,7 @@ import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
+import com.toolshed.backend.repository.enums.ReviewType;
 import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 
@@ -116,6 +117,29 @@ class ReviewIT {
         assertThat(body.getComment()).isEqualTo("Excellent experience!");
         assertThat(body.getReviewerId()).isEqualTo(renter.getId());
         assertThat(body.getOwnerId()).isEqualTo(owner.getId());
+    }
+
+    @Test
+    void createReview_ownerToRenter_validRequest_returnsCreatedReview() {
+        CreateReviewRequest request = new CreateReviewRequest();
+        request.setBookingId(booking.getId());
+        request.setRating(4);
+        request.setComment("Good renter, returned on time.");
+        request.setType(ReviewType.OWNER_TO_RENTER);
+
+        ResponseEntity<ReviewResponse> response = restTemplate.postForEntity(
+                "/api/reviews",
+                request,
+                ReviewResponse.class
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ReviewResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getRating()).isEqualTo(4);
+        assertThat(body.getComment()).isEqualTo("Good renter, returned on time.");
+        assertThat(body.getReviewerId()).isEqualTo(owner.getId());
+        assertThat(body.getOwnerId()).isEqualTo(renter.getId());
     }
 
     @Test

@@ -1,23 +1,23 @@
 import { useState, useEffect } from 'react';
-import { createReview, updateReview, type ReviewResponse } from '../api/reviews-api';
+import { createReview, updateReview, type ReviewResponse } from '../../renter/api/reviews-api';
 
-interface ReviewOwnerModalProps {
+interface ReviewRenterModalProps {
   open: boolean;
   onClose: () => void;
   bookingId: string;
-  ownerName: string;
+  renterName: string;
   existingReview?: ReviewResponse;
   onReviewSubmitted: () => void;
 }
 
-export const ReviewOwnerModal = ({
+export const ReviewRenterModal = ({
   open,
   onClose,
   bookingId,
-  ownerName,
+  renterName,
   existingReview,
   onReviewSubmitted,
-}: ReviewOwnerModalProps) => {
+}: ReviewRenterModalProps) => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,9 +46,9 @@ export const ReviewOwnerModal = ({
       setIsSubmitting(true);
       setError(null);
       if (existingReview) {
-        await updateReview(existingReview.id, { bookingId, rating, comment, type: 'RENTER_TO_OWNER' });
+        await updateReview(existingReview.id, { bookingId, rating, comment, type: 'OWNER_TO_RENTER' });
       } else {
-        await createReview({ bookingId, rating, comment, type: 'RENTER_TO_OWNER' });
+        await createReview({ bookingId, rating, comment, type: 'OWNER_TO_RENTER' });
       }
       onReviewSubmitted();
       onClose();
@@ -62,10 +62,10 @@ export const ReviewOwnerModal = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="bg-background border border-border rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="text-xl font-semibold">{existingReview ? 'Edit Review' : 'Review Owner'}</h2>
+          <h2 className="text-xl font-semibold">{existingReview ? 'Edit Review' : 'Review Renter'}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -82,7 +82,7 @@ export const ReviewOwnerModal = ({
           )}
           
           <p className="text-sm text-muted-foreground">
-            How was your experience with <strong>{ownerName}</strong>?
+            How was your experience with <strong>{renterName}</strong>?
           </p>
 
           <div className="space-y-2">
@@ -109,10 +109,9 @@ export const ReviewOwnerModal = ({
             </label>
             <textarea
               id="comment"
-              rows={4}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Share your experience..."
               required
             />
@@ -122,14 +121,14 @@ export const ReviewOwnerModal = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground text-sm font-medium"
+              className="px-4 py-2 text-sm font-medium text-foreground bg-background border border-input rounded-md hover:bg-accent hover:text-accent-foreground"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 text-sm font-medium disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 disabled:opacity-50"
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Review'}

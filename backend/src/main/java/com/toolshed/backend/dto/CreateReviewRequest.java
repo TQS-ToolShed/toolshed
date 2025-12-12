@@ -2,6 +2,8 @@ package com.toolshed.backend.dto;
 
 import java.util.UUID;
 
+import com.toolshed.backend.repository.enums.ReviewType;
+
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -18,6 +20,8 @@ import lombok.NoArgsConstructor;
 public class CreateReviewRequest {
     @NotNull
     private UUID bookingId;
+
+    private ReviewType type;
 
     @NotNull
     @Min(1)

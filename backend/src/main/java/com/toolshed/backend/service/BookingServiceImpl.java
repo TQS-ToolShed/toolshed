@@ -14,14 +14,17 @@ import org.springframework.web.server.ResponseStatusException;
 import com.toolshed.backend.dto.BookingResponse;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
+import com.toolshed.backend.dto.ReviewResponse;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
+import com.toolshed.backend.repository.entities.Review;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
+import com.toolshed.backend.repository.enums.ReviewType;
 
 @Service
 public class BookingServiceImpl implements BookingService {
@@ -175,12 +178,42 @@ public class BookingServiceImpl implements BookingService {
         return toBookingResponse(saved);
     }
 
+    private ReviewResponse toReviewResponse(Review review) {
+        if (review == null) return null;
+        String reviewerName = review.getReviewer() != null
+                ? (review.getReviewer().getFirstName() + " " + review.getReviewer().getLastName()).trim()
+                : null;
+
+        return ReviewResponse.builder()
+                .id(review.getId())
+                .bookingId(review.getBooking().getId())
+                .reviewerId(review.getReviewer() != null ? review.getReviewer().getId() : null)
+                .reviewerName(reviewerName)
+                .ownerId(review.getOwner() != null ? review.getOwner().getId() : null)
+                .toolId(review.getTool() != null ? review.getTool().getId() : null)
+                .rating(review.getRating())
+                .comment(review.getComment())
+                .date(review.getDate())
+                .build();
+    }
+
+    private Review getReviewByType(List<Review> reviews, ReviewType type) {
+        if (reviews == null) return null;
+        return reviews.stream()
+                .filter(r -> r.getType() == type || (type == ReviewType.RENTER_TO_OWNER && r.getType() == null))
+                .findFirst()
+                .orElse(null);
+    }
+
     private OwnerBookingResponse toOwnerBookingResponse(Booking booking) {
         Tool tool = booking.getTool();
         User renter = booking.getRenter();
         String renterName = renter != null
                 ? (renter.getFirstName() + " " + renter.getLastName()).trim()
                 : null;
+
+        Review renterReview = getReviewByType(booking.getReviews(), ReviewType.RENTER_TO_OWNER);
+        Review ownerReview = getReviewByType(booking.getReviews(), ReviewType.OWNER_TO_RENTER);
 
         return OwnerBookingResponse.builder()
                 .id(booking.getId())
@@ -192,6 +225,8 @@ public class BookingServiceImpl implements BookingService {
                 .endDate(booking.getEndDate())
                 .status(booking.getStatus())
                 .totalPrice(booking.getTotalPrice())
+                .review(toReviewResponse(renterReview))
+                .ownerReview(toReviewResponse(ownerReview))
                 .build();
     }
 
@@ -199,6 +234,9 @@ public class BookingServiceImpl implements BookingService {
         String ownerName = booking.getOwner() != null
                 ? (booking.getOwner().getFirstName() + " " + booking.getOwner().getLastName()).trim()
                 : null;
+
+        Review renterReview = getReviewByType(booking.getReviews(), ReviewType.RENTER_TO_OWNER);
+        Review ownerReview = getReviewByType(booking.getReviews(), ReviewType.OWNER_TO_RENTER);
 
         return BookingResponse.builder()
                 .id(booking.getId())
@@ -212,6 +250,8 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getStatus())
                 .paymentStatus(booking.getPaymentStatus())
                 .totalPrice(booking.getTotalPrice())
+                .review(toReviewResponse(renterReview))
+                .ownerReview(toReviewResponse(ownerReview))
                 .build();
     }
 }

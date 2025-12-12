@@ -20,6 +20,7 @@ import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
+import com.toolshed.backend.repository.enums.ReviewType;
 import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 
@@ -112,6 +113,20 @@ public class ReviewSteps {
         request.setBookingId(booking.getId());
         request.setRating(rating);
         request.setComment(comment);
+        request.setType(ReviewType.RENTER_TO_OWNER);
+
+        resultActions = mockMvc.perform(post("/api/reviews")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)));
+    }
+
+    @When("the owner submits a review for the renter with rating {int} and comment {string}")
+    public void the_owner_submits_a_review_for_the_renter_with_rating_and_comment(Integer rating, String comment) throws Exception {
+        CreateReviewRequest request = new CreateReviewRequest();
+        request.setBookingId(booking.getId());
+        request.setRating(rating);
+        request.setComment(comment);
+        request.setType(ReviewType.OWNER_TO_RENTER);
 
         resultActions = mockMvc.perform(post("/api/reviews")
                 .contentType(MediaType.APPLICATION_JSON)

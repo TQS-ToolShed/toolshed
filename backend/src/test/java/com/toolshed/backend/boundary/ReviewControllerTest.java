@@ -18,6 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toolshed.backend.dto.CreateReviewRequest;
 import com.toolshed.backend.dto.ReviewResponse;
+import com.toolshed.backend.repository.enums.ReviewType;
 import com.toolshed.backend.service.ReviewService;
 
 @WebMvcTest(ReviewController.class)
@@ -40,6 +41,7 @@ class ReviewControllerTest {
                 .bookingId(bookingId)
                 .rating(5)
                 .comment("Excellent!")
+                .type(ReviewType.RENTER_TO_OWNER)
                 .build();
 
         ReviewResponse response = ReviewResponse.builder()
@@ -57,6 +59,34 @@ class ReviewControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.rating").value(5))
                 .andExpect(jsonPath("$.comment").value("Excellent!"));
+    }
+
+    @Test
+    @DisplayName("Should create owner to renter review")
+    void createReview_ownerToRenter() throws Exception {
+        UUID bookingId = UUID.randomUUID();
+        CreateReviewRequest request = CreateReviewRequest.builder()
+                .bookingId(bookingId)
+                .rating(4)
+                .comment("Good renter")
+                .type(ReviewType.OWNER_TO_RENTER)
+                .build();
+
+        ReviewResponse response = ReviewResponse.builder()
+                .id(UUID.randomUUID())
+                .bookingId(bookingId)
+                .rating(4)
+                .comment("Good renter")
+                .build();
+
+        when(reviewService.createReview(any(CreateReviewRequest.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/reviews")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rating").value(4))
+                .andExpect(jsonPath("$.comment").value("Good renter"));
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.toolshed.backend.service;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,6 +25,7 @@ import com.toolshed.backend.repository.entities.Review;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
+import com.toolshed.backend.repository.enums.ReviewType;
 
 @ExtendWith(MockitoExtension.class)
 class ReviewServiceTest {
@@ -59,10 +61,9 @@ class ReviewServiceTest {
 
     @Test
     void createReview_validRequest_returnsResponse() {
-        CreateReviewRequest request = new CreateReviewRequest(booking.getId(), 5, "Great!");
+        CreateReviewRequest request = new CreateReviewRequest(booking.getId(), ReviewType.RENTER_TO_OWNER, 5, "Great!");
 
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
-        when(reviewRepository.existsByBookingId(booking.getId())).thenReturn(false);
         
         Review savedReview = Review.builder()
                 .id(UUID.randomUUID())
@@ -87,7 +88,7 @@ class ReviewServiceTest {
     @Test
     void createReview_bookingNotCompleted_throwsException() {
         booking.setStatus(BookingStatus.APPROVED);
-        CreateReviewRequest request = new CreateReviewRequest(booking.getId(), 5, "Great!");
+        CreateReviewRequest request = new CreateReviewRequest(booking.getId(), ReviewType.RENTER_TO_OWNER, 5, "Great!");
 
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
 
@@ -98,13 +99,15 @@ class ReviewServiceTest {
 
     @Test
     void createReview_reviewAlreadyExists_throwsException() {
-        CreateReviewRequest request = new CreateReviewRequest(booking.getId(), 5, "Great!");
+        CreateReviewRequest request = new CreateReviewRequest(booking.getId(), ReviewType.RENTER_TO_OWNER, 5, "Great!");
+
+        Review existingReview = Review.builder().type(ReviewType.RENTER_TO_OWNER).build();
+        booking.setReviews(List.of(existingReview));
 
         when(bookingRepository.findById(booking.getId())).thenReturn(Optional.of(booking));
-        when(reviewRepository.existsByBookingId(booking.getId())).thenReturn(true);
 
         assertThatThrownBy(() -> reviewService.createReview(request))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("Review already exists for this booking");
+                .hasMessage("Review of this type already exists for this booking");
     }
 }
