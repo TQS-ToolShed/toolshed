@@ -107,8 +107,7 @@ class ReviewIT {
         ResponseEntity<ReviewResponse> response = restTemplate.postForEntity(
                 "/api/reviews",
                 request,
-                ReviewResponse.class
-        );
+                ReviewResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         ReviewResponse body = response.getBody();
@@ -130,8 +129,7 @@ class ReviewIT {
         ResponseEntity<ReviewResponse> response = restTemplate.postForEntity(
                 "/api/reviews",
                 request,
-                ReviewResponse.class
-        );
+                ReviewResponse.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         ReviewResponse body = response.getBody();
@@ -155,9 +153,31 @@ class ReviewIT {
         ResponseEntity<String> response = restTemplate.postForEntity(
                 "/api/reviews",
                 request,
-                String.class
-        );
+                String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @Test
+    void createReview_toolReview_validRequest_returnsCreatedReview() {
+        CreateReviewRequest request = new CreateReviewRequest();
+        request.setBookingId(booking.getId());
+        request.setRating(5);
+        request.setComment("Excellent tool, worked perfectly!");
+        request.setType(ReviewType.RENTER_TO_TOOL);
+
+        ResponseEntity<ReviewResponse> response = restTemplate.postForEntity(
+                "/api/reviews",
+                request,
+                ReviewResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        ReviewResponse body = response.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getRating()).isEqualTo(5);
+        assertThat(body.getComment()).isEqualTo("Excellent tool, worked perfectly!");
+        assertThat(body.getReviewerId()).isEqualTo(renter.getId());
+        assertThat(body.getToolId()).isEqualTo(tool.getId());
+        assertThat(body.getOwnerId()).isNull();
     }
 }

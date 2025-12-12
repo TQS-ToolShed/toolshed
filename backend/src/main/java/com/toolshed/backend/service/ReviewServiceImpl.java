@@ -51,6 +51,9 @@ public class ReviewServiceImpl implements ReviewService {
         if (type == ReviewType.OWNER_TO_RENTER) {
             reviewer = booking.getOwner();
             target = booking.getRenter();
+        } else if (type == ReviewType.RENTER_TO_TOOL) {
+            reviewer = booking.getRenter();
+            target = null; // No user target for tool reviews
         } else {
             reviewer = booking.getRenter();
             target = booking.getOwner();
@@ -73,7 +76,7 @@ public class ReviewServiceImpl implements ReviewService {
                 .bookingId(savedReview.getBooking().getId())
                 .reviewerId(savedReview.getReviewer().getId())
                 .reviewerName(savedReview.getReviewer().getFirstName() + " " + savedReview.getReviewer().getLastName())
-                .ownerId(savedReview.getOwner().getId())
+                .ownerId(savedReview.getOwner() != null ? savedReview.getOwner().getId() : null)
                 .toolId(savedReview.getTool().getId())
                 .rating(savedReview.getRating())
                 .comment(savedReview.getComment())
@@ -97,7 +100,7 @@ public class ReviewServiceImpl implements ReviewService {
                 .bookingId(savedReview.getBooking().getId())
                 .reviewerId(savedReview.getReviewer().getId())
                 .reviewerName(savedReview.getReviewer().getFirstName() + " " + savedReview.getReviewer().getLastName())
-                .ownerId(savedReview.getOwner().getId())
+                .ownerId(savedReview.getOwner() != null ? savedReview.getOwner().getId() : null)
                 .toolId(savedReview.getTool().getId())
                 .rating(savedReview.getRating())
                 .comment(savedReview.getComment())
