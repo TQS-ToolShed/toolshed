@@ -25,7 +25,6 @@ class ToolRepositoryTest {
     private UserRepository userRepo;
 
     @BeforeEach
-    @SuppressWarnings("unused")
     void setUp() {
         
         // clean up

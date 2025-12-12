@@ -5,8 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { getBookingsForOwner, type SupplierBookingRequest } from '../api/booking-requests-api';
 
-const formatDate = (date: string) => new Date(date).toLocaleDateString();
-
 export const ActiveRentals = () => {
   const { user } = useAuth();
   const ownerId = user?.id;
@@ -43,11 +41,6 @@ export const ActiveRentals = () => {
         return start.getTime() > today.getTime();
       }),
     [bookings, today]
-  );
-
-  const previewBookings = useMemo(
-    () => [...activeToday, ...futureBookings].slice(0, 3),
-    [activeToday, futureBookings]
   );
 
   const load = useCallback(async () => {

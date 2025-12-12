@@ -1,4 +1,4 @@
-package com.toolshed.backend.controller;
+package com.toolshed.backend.boundary;
 
 import com.toolshed.backend.dto.LoginRequest;
 import com.toolshed.backend.dto.RegisterRequest;

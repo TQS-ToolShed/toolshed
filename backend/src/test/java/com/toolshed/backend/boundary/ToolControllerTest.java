@@ -94,25 +94,24 @@ class ToolControllerTest {
     }
 
     @Test
-    @DisplayName("Should return 200 OK and matching tools for a valid search (Location is null)")
-    void testSearchTools_ValidKeyword_ReturnsResults() throws Exception {
+    @DisplayName("Should return 200 OK and tools for a specific supplier")
+    void testGetToolsBySupplier() throws Exception {
         // Arrange
-        String keyword = "drill";
-        Tool drill = createSampleTool("Power Drill");
-
-        // Mock: expect null for location because we don't send the param
-        when(toolService.searchTools(keyword, null)).thenReturn(List.of(drill));
+        UUID supplierId = UUID.randomUUID();
+        Tool tool1 = createSampleTool("Tool 1");
+        Tool tool2 = createSampleTool("Tool 2");
+        
+        when(toolService.getByOwner(supplierId)).thenReturn(List.of(tool1, tool2));
 
         // Act & Assert
-        mockMvc.perform(get("/api/tools/search")
-                .param("keyword", keyword)
+        mockMvc.perform(get("/api/tools/supplier/{supplierId}", supplierId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title", is("Power Drill")));
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].title", is("Tool 1")))
+                .andExpect(jsonPath("$[1].title", is("Tool 2")));
 
-        // Verification
-        verify(toolService, times(1)).searchTools(keyword, null);
+        verify(toolService, times(1)).getByOwner(supplierId);
     }
 
     @Test

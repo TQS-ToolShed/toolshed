@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_BASE_URL } from '@/lib/api';
+import type { ReviewResponse } from './reviews-api';
 
 const API_URL = `${API_BASE_URL}/api/bookings`;
 
@@ -22,6 +23,8 @@ export interface BookingResponse {
   status: string;
   paymentStatus: string;
   totalPrice: number;
+  review?: ReviewResponse;
+  ownerReview?: ReviewResponse;
 }
 
 export const getBookingsForRenter = async (renterId: string): Promise<BookingResponse[]> => {

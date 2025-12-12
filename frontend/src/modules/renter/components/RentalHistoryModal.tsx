@@ -16,21 +16,24 @@ export const RentalHistoryModal = ({ open, onClose }: RentalHistoryModalProps) =
   const [selectedBooking, setSelectedBooking] = useState<BookingResponse | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
+  const loadBookings = async () => {
+    if (!user?.id) return;
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await getBookingsForRenter(user.id);
+      setBookings(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load history');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      if (!open || !user?.id) return;
-      try {
-        setIsLoading(true);
-        setError(null);
-        const data = await getBookingsForRenter(user.id);
-        setBookings(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load history');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
+    if (open) {
+      loadBookings();
+    }
   }, [open, user?.id]);
 
   const pastBookings = useMemo(
@@ -110,17 +113,53 @@ export const RentalHistoryModal = ({ open, onClose }: RentalHistoryModalProps) =
                           <span>ID: {booking.id.slice(0, 8)}</span>
                           {booking.ownerName && <span>Owner: {booking.ownerName}</span>}
                         </div>
+                        
+                        {booking.review && (
+                          <div className="mt-2 p-2 bg-muted/50 rounded-md text-sm">
+                            <div className="flex items-center gap-1 mb-1">
+                              <span className="font-medium text-xs uppercase tracking-wider text-muted-foreground">Your Review:</span>
+                              <span className="text-yellow-500 text-xs">
+                                {'★'.repeat(booking.review.rating)}
+                                <span className="text-gray-300">
+                                  {'★'.repeat(5 - booking.review.rating)}
+                                </span>
+                              </span>
+                            </div>
+                            <p className="text-muted-foreground italic text-xs">"{booking.review.comment}"</p>
+                          </div>
+                        )}
+
+                        {booking.ownerReview && (
+                          <div className="mt-2 p-2 bg-blue-50/50 rounded-md text-sm border border-blue-100">
+                            <div className="flex items-center gap-1 mb-1">
+                              <span className="font-medium text-xs uppercase tracking-wider text-blue-800">Owner Review:</span>
+                              <span className="text-yellow-500 text-xs">
+                                {'★'.repeat(booking.ownerReview.rating)}
+                                <span className="text-gray-300">
+                                  {'★'.repeat(5 - booking.ownerReview.rating)}
+                                </span>
+                              </span>
+                            </div>
+                            <p className="text-blue-900/80 italic text-xs">"{booking.ownerReview.comment}"</p>
+                          </div>
+                        )}
                       </div>
                       {booking.status === 'COMPLETED' && (
-                        <button
-                          onClick={() => {
-                            setSelectedBooking(booking);
-                            setIsReviewModalOpen(true);
-                          }}
-                          className="px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium whitespace-nowrap"
-                        >
-                          Review Owner
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => {
+                              setSelectedBooking(booking);
+                              setIsReviewModalOpen(true);
+                            }}
+                            className={`px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors ${
+                              booking.review
+                                ? 'border border-input bg-background hover:bg-accent text-foreground'
+                                : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                            }`}
+                          >
+                            {booking.review ? 'Edit Review' : 'Review Owner'}
+                          </button>
+                        </div>
                       )}
                     </div>
                   );
@@ -140,8 +179,9 @@ export const RentalHistoryModal = ({ open, onClose }: RentalHistoryModalProps) =
           }}
           bookingId={selectedBooking.id}
           ownerName={selectedBooking.ownerName || 'the owner'}
+          existingReview={selectedBooking.review}
           onReviewSubmitted={() => {
-            // Optionally refresh bookings or show success message
+            loadBookings();
           }}
         />
       )}

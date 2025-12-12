@@ -38,7 +38,7 @@ import com.toolshed.backend.repository.entities.User;
 @ExtendWith(MockitoExtension.class) // Initializes mocks
 class ToolServiceTest {
 
-    @Mock 
+    @Mock
     private ToolRepository toolRepo;
 
     @Mock
@@ -83,7 +83,7 @@ class ToolServiceTest {
         // Assert
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getTitle()).isEqualTo("Mock Drill");
-        
+
         // Verification: Did the service actually call the repo?
         verify(toolRepo, times(1)).searchTools(keyword, null);
     }
@@ -91,10 +91,10 @@ class ToolServiceTest {
     @Test
     @DisplayName("Should trim whitespace from keyword before calling repository")
     void testSearchToolsTrimsWhitespace() {
-        // Arrange: User enters "  Drill  "
+        // Arrange: User enters " Drill "
         String dirtyKeyword = "  Drill  ";
         String cleanedKeyword = "Drill";
-        
+
         when(toolRepo.searchTools(cleanedKeyword, null)).thenReturn(List.of(sampleTool));
 
         // Act
@@ -114,7 +114,7 @@ class ToolServiceTest {
 
         // Assert
         assertThat(result).isEmpty();
-        
+
         // Verify we NEVER bothered the database with a null query
         verifyNoInteractions(toolRepo);
     }
@@ -152,7 +152,7 @@ class ToolServiceTest {
     @DisplayName("Should ensure search calls specific query and not generic findAll()")
     void testSearchCallsSpecificMethod() {
         String keyword = "hammer";
-        
+
         // Arrange
         when(toolRepo.searchTools(keyword, null)).thenReturn(List.of(sampleTool));
 
@@ -162,9 +162,9 @@ class ToolServiceTest {
         // Assert
         // Verify that the specific method designed for filtering was called
         verify(toolRepo, times(1)).searchTools(keyword, null);
-        
+
         // Safety check: Verify that a generic, unfiltered method was NOT called
-        verify(toolRepo, never()).findAll(); 
+        verify(toolRepo, never()).findAll();
     }
 
     @Test
@@ -179,8 +179,9 @@ class ToolServiceTest {
         // Assert
         // Verify the repository was called exactly with the mixed-case string
         verify(toolRepo).searchTools(mixedCaseKeyword, null);
-        
-        // Safety check: Verify the service did NOT try to change the keyword to lowercase itself
+
+        // Safety check: Verify the service did NOT try to change the keyword to
+        // lowercase itself
         verify(toolRepo, never()).searchTools(mixedCaseKeyword.toLowerCase(), null);
     }
 
@@ -317,7 +318,8 @@ class ToolServiceTest {
     void testUpdateToolActiveBlockedByRental() {
         sampleTool.setActive(false);
         when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
-        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class))).thenReturn(2L);
+        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class)))
+                .thenReturn(2L);
 
         UpdateToolInput input = UpdateToolInput.builder()
                 .active(true)
@@ -340,7 +342,8 @@ class ToolServiceTest {
     void testUpdateToolActiveWhenNoRentals() {
         sampleTool.setActive(false);
         when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
-        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class))).thenReturn(0L);
+        when(bookingRepo.countActiveApprovedBookingsForToolOnDate(eq(sampleTool.getId()), any(LocalDate.class)))
+                .thenReturn(0L);
 
         UpdateToolInput input = UpdateToolInput.builder()
                 .active(true)
@@ -413,5 +416,68 @@ class ToolServiceTest {
         assertThat(toolService.getById(sampleTool.getId())).contains(sampleTool);
         verify(toolRepo).findAll();
         verify(toolRepo).findById(sampleTool.getId());
+    }
+
+    @Test
+    @DisplayName("Should return empty list when keyword is empty string")
+    void testSearchToolsWithEmptyKeyword() {
+        List<Tool> result = toolService.searchTools("   ", "   ");
+
+        assertThat(result).isEmpty();
+        verifyNoInteractions(toolRepo);
+    }
+
+    @Test
+    @DisplayName("Should search with valid keyword and empty location")
+    void testSearchToolsWithKeywordAndEmptyLocation() {
+        String keyword = "Drill";
+        when(toolRepo.searchTools(keyword, "")).thenReturn(List.of(sampleTool));
+
+        List<Tool> result = toolService.searchTools(keyword, "   ");
+
+        assertThat(result).hasSize(1);
+        verify(toolRepo).searchTools(keyword, "");
+    }
+
+    @Test
+    @DisplayName("Should search with valid location and empty keyword")
+    void testSearchToolsWithLocationAndEmptyKeyword() {
+        String location = "Aveiro";
+        when(toolRepo.searchTools("", location)).thenReturn(List.of(sampleTool));
+
+        List<Tool> result = toolService.searchTools("   ", location);
+
+        assertThat(result).hasSize(1);
+        verify(toolRepo).searchTools("", location);
+    }
+
+    @Test
+    @DisplayName("Should allow setting active to true when tool is already active")
+    void testUpdateToolActiveWhenAlreadyActive() {
+        sampleTool.setActive(true);
+        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
+
+        UpdateToolInput input = UpdateToolInput.builder()
+                .active(true)
+                .build();
+
+        toolService.updateTool(sampleTool.getId().toString(), input);
+
+        assertThat(sampleTool.isActive()).isTrue();
+        verify(toolRepo).save(sampleTool);
+        // Should not check rental count when tool is already active
+        verify(bookingRepo, never()).countActiveApprovedBookingsForToolOnDate(any(UUID.class), any(LocalDate.class));
+    }
+
+    @Test
+    @DisplayName("Should get tools by owner id")
+    void testGetByOwner() {
+        sampleTool.setOwner(supplier);
+        when(toolRepo.findByOwnerId(supplier.getId())).thenReturn(List.of(sampleTool));
+
+        List<Tool> result = toolService.getByOwner(supplier.getId());
+
+        assertThat(result).containsExactly(sampleTool);
+        verify(toolRepo).findByOwnerId(supplier.getId());
     }
 }

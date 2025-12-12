@@ -27,4 +27,6 @@ public class BookingResponse {
     private BookingStatus status;
     private PaymentStatus paymentStatus;
     private Double totalPrice;
+    private ReviewResponse review;
+    private ReviewResponse ownerReview;
 }
