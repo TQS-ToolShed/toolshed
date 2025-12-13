@@ -150,10 +150,4 @@ public class ToolServiceImpl implements ToolService {
         toolRepo.save(tool);
 
     }
-
-    @Override
-    public List<Tool> getByOwner(UUID ownerId) {
-        return toolRepo.findByOwnerId(ownerId);
-    }
-
 }

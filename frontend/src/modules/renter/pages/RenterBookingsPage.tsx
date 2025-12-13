@@ -14,7 +14,7 @@ import { RenterNavbar } from '../components/RenterNavbar';
 
 export const RenterBookingsPage = () => {
   const { toolId } = useParams<{ toolId: string }>();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   const [tool, setTool] = useState<ToolDetails | null>(null);

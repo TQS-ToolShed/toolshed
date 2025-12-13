@@ -16,6 +16,5 @@ public interface ToolService {
     String createTool(CreateToolInput input);
     void deleteTool(String toolId);
     void updateTool(String toolId, UpdateToolInput input);
-    List<Tool> getByOwner(UUID ownerId);
 
 }

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { RenterNavbar } from '../components/RenterNavbar';
 import { BackToDashboardButton } from '../components/BackToDashboardButton';
 import { RenterBookingList } from '../components/RenterBookingList';
-import { RentalHistorySection } from '../components/RentalHistorySection';
+import { RentalHistoryModal } from '../components/RentalHistoryModal';
 import { getBookingsForRenter, type BookingResponse } from '../api/bookings-api';
 import { useAuth } from '@/modules/auth/context/AuthContext';
 
@@ -11,6 +11,7 @@ export const RenterMyBookingsPage = () => {
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -84,7 +85,16 @@ export const RenterMyBookingsPage = () => {
             <h1 className="text-3xl font-bold">My bookings</h1>
             <p className="text-sm text-muted-foreground">Rentals overview</p>
           </div>
-          <BackToDashboardButton />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowHistory(true)}
+              className="px-4 py-2 rounded-md border border-primary text-primary hover:bg-primary/10 text-sm font-medium"
+            >
+              Rental history
+            </button>
+            <BackToDashboardButton />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -97,7 +107,6 @@ export const RenterMyBookingsPage = () => {
             emptyLabel="No active bookings today."
             maxHeight="18rem"
             className="h-full lg:col-span-1"
-            showPayButton={true}
           />
 
           <RenterBookingList
@@ -109,7 +118,6 @@ export const RenterMyBookingsPage = () => {
             emptyLabel="No upcoming bookings."
             maxHeight="18rem"
             className="h-full lg:col-span-1"
-            showPayButton={true}
           />
         </div>
 
@@ -124,10 +132,8 @@ export const RenterMyBookingsPage = () => {
           className="lg:col-span-2"
         />
 
-        {/* Rental History Section - inline display of past bookings */}
-        <RentalHistorySection />
+        <RentalHistoryModal open={showHistory} onClose={() => setShowHistory(false)} />
       </main>
     </div>
   );
 };
-
