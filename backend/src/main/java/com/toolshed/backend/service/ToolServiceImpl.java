@@ -1,5 +1,6 @@
 package com.toolshed.backend.service;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -11,6 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.toolshed.backend.dto.CreateToolInput;
 import com.toolshed.backend.dto.UpdateToolInput;
+import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Tool;
@@ -24,10 +26,12 @@ public class ToolServiceImpl implements ToolService {
     // Dependency Injection: Inject the repository bean
     private final ToolRepository toolRepo;
     private final UserRepository userRepo;
+    private final BookingRepository bookingRepo;
 
-    public ToolServiceImpl(ToolRepository toolRepo, UserRepository userRepo) {
+    public ToolServiceImpl(ToolRepository toolRepo, UserRepository userRepo, BookingRepository bookingRepo) {
         this.toolRepo = toolRepo;
         this.userRepo = userRepo;
+        this.bookingRepo = bookingRepo;
     }
 
     /**
@@ -115,7 +119,17 @@ public class ToolServiceImpl implements ToolService {
             tool.setLocation(input.getLocation());
         }
         if (input.getActive() != null) {
-            tool.setActive(input.getActive());
+            boolean requestedActive = input.getActive();
+            if (requestedActive && !tool.isActive()) {
+                long activeRentals = bookingRepo.countActiveApprovedBookingsForToolOnDate(id, LocalDate.now());
+                if (activeRentals > 0) {
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "Tool is currently rented and cannot be marked as available"
+                    );
+                }
+            }
+            tool.setActive(requestedActive);
         }
         if (input.getAvailabilityCalendar() != null) {
             tool.setAvailabilityCalendar(input.getAvailabilityCalendar());
@@ -136,4 +150,10 @@ public class ToolServiceImpl implements ToolService {
         toolRepo.save(tool);
 
     }
+
+    @Override
+    public List<Tool> getByOwner(UUID ownerId) {
+        return toolRepo.findByOwnerId(ownerId);
+    }
+
 }

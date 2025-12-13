@@ -3,8 +3,9 @@ import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { ToolCard } from '../components/ToolCard';
 import { ToolForm } from '../components/ToolForm';
-import { getAllTools, createTool, updateTool, deleteTool } from '../api/tools-api';
+import { createTool, updateTool, deleteTool, getToolsBySupplier } from '../api/tools-api';
 import type { Tool, CreateToolInput, UpdateToolInput } from '../api/tools-api';
+import { SupplierNavbar } from '../components/SupplierNavbar';
 
 export const SupplierToolsPage = () => {
   const { user } = useAuth();
@@ -19,21 +20,18 @@ export const SupplierToolsPage = () => {
   const supplierId = user?.id || '';
 
   const loadTools = useCallback(async () => {
+    if (!supplierId) return;
     try {
       setIsLoading(true);
       setError(null);
-      const allTools = await getAllTools();
-      // Filter to show only tools owned by this supplier
-      // Note: Since the backend doesn't return owner info in the Tool response (JsonBackReference),
-      // we might need a backend endpoint to get tools by owner. For now, showing all tools.
-      // TODO: Add backend endpoint GET /api/tools/supplier/{supplierId}
-      setTools(allTools);
+      const supplierTools = await getToolsBySupplier(supplierId);
+      setTools(supplierTools);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load tools');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [supplierId]);
 
   useEffect(() => {
     loadTools();
@@ -119,6 +117,8 @@ export const SupplierToolsPage = () => {
   }
 
   return (
+    <div className="min-h-screen bg-background">
+    <SupplierNavbar />
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -166,6 +166,7 @@ export const SupplierToolsPage = () => {
           )}
         </>
       )}
+    </div>
     </div>
   );
 };

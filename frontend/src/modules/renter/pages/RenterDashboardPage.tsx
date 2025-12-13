@@ -1,20 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
-import { useAuth } from '@/modules/auth/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ToolSearchBar } from '@/modules/shared/components/ToolSearchBar';
 import { AvailableToolCard } from '../components/AvailableToolCard';
 import { getActiveTools, searchTools, type Tool } from '@/modules/supplier/api/tools-api';
+import { RenterNavbar } from '../components/RenterNavbar';
 
 export const RenterDashboardPage = () => {
-  const { user, logout } = useAuth();
   const [tools, setTools] = useState<Tool[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [keyword, setKeyword] = useState('');
   const [location, setLocation] = useState('');
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   const fetchTools = useCallback(
     async (filters?: { keyword?: string; location?: string }) => {
@@ -39,6 +39,15 @@ export const RenterDashboardPage = () => {
 
   useEffect(() => {
     fetchTools();
+    const stored = localStorage.getItem('renter:favorites');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as string[];
+        setFavoriteIds(new Set(parsed));
+      } catch {
+        // ignore malformed storage
+      }
+    }
   }, [fetchTools]);
 
   const handleSearch = async (event?: FormEvent<HTMLFormElement>) => {
@@ -62,28 +71,39 @@ export const RenterDashboardPage = () => {
     setIsSearching(false);
   };
 
+  const handleToggleFavorite = (toolId: string) => {
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(toolId)) {
+        next.delete(toolId);
+      } else {
+        next.add(toolId);
+      }
+      localStorage.setItem('renter:favorites', JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
   const averagePrice = useMemo(() => {
     if (!tools.length) return 0;
     const total = tools.reduce((sum, tool) => sum + tool.pricePerDay, 0);
     return total / tools.length;
   }, [tools]);
 
+  const sortedTools = useMemo(() => {
+    if (!tools.length) return [];
+    return [...tools].sort((a, b) => {
+      const aFav = favoriteIds.has(a.id);
+      const bFav = favoriteIds.has(b.id);
+      if (aFav === bFav) return 0;
+      return aFav ? -1 : 1;
+    });
+  }, [tools, favoriteIds]);
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">ToolShed - Renter</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground">
-              Welcome, {user?.firstName} {user?.lastName}
-            </span>
-            <Button variant="outline" onClick={logout}>
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+
+      <RenterNavbar />
 
       {/* Main Content */}
       <main className="container mx-auto py-8 px-4">
@@ -167,8 +187,13 @@ export const RenterDashboardPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tools.map((tool) => (
-              <AvailableToolCard key={tool.id} tool={tool} />
+            {sortedTools.map((tool) => (
+              <AvailableToolCard
+                key={tool.id}
+                tool={tool}
+                isFavorite={favoriteIds.has(tool.id)}
+                onToggleFavorite={handleToggleFavorite}
+              />
             ))}
           </div>
         )}

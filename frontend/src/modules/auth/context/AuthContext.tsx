@@ -1,5 +1,11 @@
-import { createContext, useContext, useState, useCallback } from 'react';
-import type { ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
+import type { ReactNode } from "react";
 
 // Define the shape of the user data
 interface User {
@@ -7,17 +13,19 @@ interface User {
   firstName: string;
   lastName: string;
   email: string;
-  role: 'ADMIN' | 'SUPPLIER' | 'RENTER'; // Matching backend enum and frontend expectations
+  role: "ADMIN" | "SUPPLIER" | "RENTER"; // Matching backend enum and frontend expectations
+  reputationScore?: number;
 }
 
 // Define the shape of the AuthContext
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  role: User['role'] | null;
+  role: User["role"] | null;
   login: (userData: User, token: string) => void;
   logout: () => void;
   token: string | null;
+  isLoading: boolean;
 }
 
 // Create the context with default values
@@ -32,7 +40,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [role, setRole] = useState<User['role'] | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [role, setRole] = useState<User["role"] | null>(null);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    const storedToken = localStorage.getItem("authToken");
+    const storedUser = localStorage.getItem("user");
+
+    if (storedToken && storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setToken(storedToken);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+        setRole(parsedUser.role);
+      } catch (error) {
+        console.error("Failed to parse user from local storage", error);
+        localStorage.removeItem("authToken");
+        localStorage.removeItem("user");
+      }
+    }
+    setIsLoading(false);
+  }, []);
 
   // Function to handle user login
   const login = useCallback((userData: User, authToken: string) => {
@@ -41,8 +71,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setIsAuthenticated(true);
     setRole(userData.role);
     // In a real app, you'd store token/user data in localStorage/sessionStorage
-    localStorage.setItem('authToken', authToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.setItem("authToken", authToken);
+    localStorage.setItem("user", JSON.stringify(userData));
   }, []);
 
   // Function to handle user logout
@@ -51,8 +81,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setToken(null);
     setIsAuthenticated(false);
     setRole(null);
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("user");
   }, []);
 
   // Context value
@@ -63,6 +93,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     login,
     logout,
     token,
+    isLoading,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -72,7 +103,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
