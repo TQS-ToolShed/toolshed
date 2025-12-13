@@ -10,6 +10,7 @@ export interface Tool {
   description: string;
   pricePerDay: number;
   location: string;
+  district?: string;
   active: boolean;
   availabilityCalendar?: string;
   overallRating: number;
@@ -35,6 +36,7 @@ export interface CreateToolInput {
   pricePerDay: number;
   supplierId: string;
   location: string;
+  district?: string;
 }
 
 // UpdateToolInput - matches backend DTO
@@ -43,6 +45,7 @@ export interface UpdateToolInput {
   description?: string;
   pricePerDay?: number;
   location?: string;
+  district?: string;
   ownerId?: string;
   active?: boolean;
   availabilityCalendar?: string;

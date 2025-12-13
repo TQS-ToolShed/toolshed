@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Tool, CreateToolInput, UpdateToolInput } from '../api/tools-api';
+import { getAllDistricts, type District } from '@/modules/shared/api/districts-api';
 
 interface ToolFormProps {
   tool?: Tool | null;
@@ -18,9 +19,30 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
   const [description, setDescription] = useState('');
   const [pricePerDay, setPricePerDay] = useState('');
   const [location, setLocation] = useState('');
+  const [district, setDistrict] = useState('');
   const [active, setActive] = useState(true);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
 
   const isEditing = !!tool;
+
+  // Fetch districts on mount
+  useEffect(() => {
+    const fetchDistricts = async () => {
+      setLoadingDistricts(true);
+      try {
+        const data = await getAllDistricts();
+        setDistricts(data);
+      } catch (error) {
+        console.error('Failed to load districts:', error);
+        // Use fallback if API fails
+        setDistricts([]);
+      } finally {
+        setLoadingDistricts(false);
+      }
+    };
+    fetchDistricts();
+  }, []);
 
   useEffect(() => {
     if (tool) {
@@ -28,12 +50,14 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
       setDescription(tool.description);
       setPricePerDay(tool.pricePerDay.toString());
       setLocation(tool.location);
+      setDistrict(tool.district || '');
       setActive(tool.active);
     } else {
       setTitle('');
       setDescription('');
       setPricePerDay('');
       setLocation('');
+      setDistrict('');
       setActive(true);
     }
   }, [tool]);
@@ -47,6 +71,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
         description,
         pricePerDay: parseFloat(pricePerDay),
         location,
+        district,
         active,
       };
       onSubmit(updateData);
@@ -56,6 +81,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
         description,
         pricePerDay: parseFloat(pricePerDay),
         location,
+        district,
         supplierId,
       };
       onSubmit(createData);
@@ -115,6 +141,27 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
               placeholder="City, Country"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="district">District</Label>
+            <select
+              id="district"
+              value={district}
+              onChange={(e) => setDistrict(e.target.value)}
+              className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              disabled={loadingDistricts}
+            >
+              <option value="">Select a district (optional)</option>
+              {districts.map((d) => (
+                <option key={d.id} value={d.name}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+            {loadingDistricts && (
+              <p className="text-xs text-muted-foreground">Loading districts...</p>
+            )}
           </div>
         </CardContent>
         <CardFooter className="flex gap-2 p-4">
