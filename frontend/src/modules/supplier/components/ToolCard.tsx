@@ -1,6 +1,14 @@
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import type { Tool } from '../api/tools-api';
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import StarRating from "@/modules/shared/components/StarRating";
+import type { Tool } from "../api/tools-api";
 
 interface ToolCardProps {
   tool: Tool;
@@ -9,7 +17,12 @@ interface ToolCardProps {
   onDelete: (toolId: string) => void;
 }
 
-export const ToolCard = ({ tool, onEdit, onToggleActive, onDelete }: ToolCardProps) => {
+export const ToolCard = ({
+  tool,
+  onEdit,
+  onToggleActive,
+  onDelete,
+}: ToolCardProps) => {
   return (
     <Card className="w-full">
       <CardHeader>
@@ -18,8 +31,14 @@ export const ToolCard = ({ tool, onEdit, onToggleActive, onDelete }: ToolCardPro
             <CardTitle className="text-lg">{tool.title}</CardTitle>
             <CardDescription className="mt-1">{tool.location}</CardDescription>
           </div>
-          <span className={`px-2 py-1 text-xs rounded-full ${tool.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-            {tool.active ? 'Active' : 'Inactive'}
+          <span
+            className={`px-2 py-1 text-xs rounded-full ${
+              tool.active
+                ? "bg-green-100 text-green-800"
+                : "bg-gray-100 text-gray-800"
+            }`}
+          >
+            {tool.active ? "Active" : "Inactive"}
           </span>
         </div>
       </CardHeader>
@@ -32,24 +51,38 @@ export const ToolCard = ({ tool, onEdit, onToggleActive, onDelete }: ToolCardPro
             €{tool.pricePerDay.toFixed(2)}/day
           </span>
           <div className="flex items-center gap-1 text-muted-foreground">
-            <span>★ {tool.overallRating.toFixed(1)}</span>
-            <span>({tool.numRatings} reviews)</span>
+            <StarRating
+              rating={tool.overallRating}
+              showCount
+              count={tool.numRatings}
+              size={14}
+            />
           </div>
         </div>
       </CardContent>
       <CardFooter className="flex gap-2">
         <Button
-          variant={tool.active ? 'secondary' : 'default'}
+          variant={tool.active ? "secondary" : "default"}
           size="sm"
           onClick={() => onToggleActive(tool)}
           className="flex-1"
         >
-          {tool.active ? 'Set Inactive' : 'Set Active'}
+          {tool.active ? "Set Inactive" : "Set Active"}
         </Button>
-        <Button variant="outline" size="sm" onClick={() => onEdit(tool)} className="flex-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onEdit(tool)}
+          className="flex-1"
+        >
           Edit
         </Button>
-        <Button variant="destructive" size="sm" onClick={() => onDelete(tool.id)} className="flex-1">
+        <Button
+          variant="destructive"
+          size="sm"
+          onClick={() => onDelete(tool.id)}
+          className="flex-1"
+        >
           Delete
         </Button>
       </CardFooter>

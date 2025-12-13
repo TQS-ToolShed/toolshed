@@ -1,7 +1,14 @@
-import { useAuth } from '@/modules/auth/context/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RenterNavbar } from '../components/RenterNavbar';
-import { BackToDashboardButton } from '../components/BackToDashboardButton';
+import { useAuth } from "@/modules/auth/context/AuthContext";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import StarRating from "@/modules/shared/components/StarRating";
+import { RenterNavbar } from "../components/RenterNavbar";
+import { BackToDashboardButton } from "../components/BackToDashboardButton";
 
 export const RenterProfilePage = () => {
   const { user } = useAuth();
@@ -39,6 +46,17 @@ export const RenterProfilePage = () => {
               <div>
                 <p className="text-muted-foreground">Role</p>
                 <p className="font-semibold text-foreground">{user?.role}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Reputation Score</p>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">
+                    {user?.reputationScore
+                      ? user.reputationScore.toFixed(1)
+                      : "0.0"}
+                  </span>
+                  <StarRating rating={user?.reputationScore || 0} size={16} />
+                </div>
               </div>
             </CardContent>
           </Card>
