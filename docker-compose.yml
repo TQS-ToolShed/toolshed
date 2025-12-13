@@ -8,6 +8,8 @@ services:
       volumes:
         - frontend_node_modules:/frontend/node_modules
         - ./frontend:/frontend
+      environment:
+        - VITE_STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
       stdin_open: true
       tty: true
 
@@ -29,6 +31,7 @@ services:
       - GEO_WARM_CACHE_BACKOFF_MS=1000
     volumes:
       - geo_cache:/data
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
 
   db:
     image: postgres:15

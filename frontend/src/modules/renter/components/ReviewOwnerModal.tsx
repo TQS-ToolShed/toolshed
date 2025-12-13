@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { createReview } from '../api/reviews-api';
+import { useState, useEffect } from 'react';
+import { createReview, updateReview, type ReviewResponse } from '../api/reviews-api';
 
 interface ReviewOwnerModalProps {
   open: boolean;
   onClose: () => void;
   bookingId: string;
   ownerName: string;
+  existingReview?: ReviewResponse;
   onReviewSubmitted: () => void;
 }
 
@@ -14,12 +15,25 @@ export const ReviewOwnerModal = ({
   onClose,
   bookingId,
   ownerName,
+  existingReview,
   onReviewSubmitted,
 }: ReviewOwnerModalProps) => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      if (existingReview) {
+        setRating(existingReview.rating);
+        setComment(existingReview.comment);
+      } else {
+        setRating(5);
+        setComment('');
+      }
+    }
+  }, [open, existingReview]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +45,11 @@ export const ReviewOwnerModal = ({
     try {
       setIsSubmitting(true);
       setError(null);
-      await createReview({ bookingId, rating, comment });
+      if (existingReview) {
+        await updateReview(existingReview.id, { bookingId, rating, comment, type: 'RENTER_TO_OWNER' });
+      } else {
+        await createReview({ bookingId, rating, comment, type: 'RENTER_TO_OWNER' });
+      }
       onReviewSubmitted();
       onClose();
     } catch (err) {
@@ -47,7 +65,7 @@ export const ReviewOwnerModal = ({
     <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
       <div className="bg-background border border-border rounded-xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-          <h2 className="text-xl font-semibold">Review Owner</h2>
+          <h2 className="text-xl font-semibold">{existingReview ? 'Edit Review' : 'Review Owner'}</h2>
           <button
             type="button"
             onClick={onClose}

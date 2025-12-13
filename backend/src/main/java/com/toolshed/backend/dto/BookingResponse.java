@@ -1,9 +1,12 @@
 package com.toolshed.backend.dto;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import com.toolshed.backend.repository.enums.BookingStatus;
+import com.toolshed.backend.repository.enums.ConditionStatus;
+import com.toolshed.backend.repository.enums.DepositStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
 
 import lombok.AllArgsConstructor;
@@ -27,4 +30,18 @@ public class BookingResponse {
     private BookingStatus status;
     private PaymentStatus paymentStatus;
     private Double totalPrice;
+    private ReviewResponse review;
+    private ReviewResponse ownerReview;
+    private ReviewResponse toolReview;
+
+    // Condition Report Fields
+    private ConditionStatus conditionStatus;
+    private String conditionDescription;
+    private LocalDateTime conditionReportedAt;
+    private String conditionReportedByName;
+
+    // Deposit Fields
+    private DepositStatus depositStatus;
+    private Double depositAmount;
+    private LocalDateTime depositPaidAt;
 }

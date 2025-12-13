@@ -103,19 +103,20 @@ public class GeoApiService implements IGeoApiService {
         try {
             String url = GEO_API_BASE_URL + DISTRICTS_ENDPOINT;
             String response = httpClient.doHttpGet(url);
-            
+
             List<DistrictDto> districts = objectMapper.readValue(
                 response,
                 new TypeReference<List<DistrictDto>>() {}
             );
 
+            // Use correct getter for 'distrito' property
             cachedDistricts = districts.stream()
                 .map(DistrictDto::getDistrito)
                 .filter(name -> name != null && !name.isBlank())
                 .collect(Collectors.toList());
 
             saveCacheToDisk();
-            
+
             return new ArrayList<>(cachedDistricts);
         } catch (IOException e) {
             // Return empty list on error

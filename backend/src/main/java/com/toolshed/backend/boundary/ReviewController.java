@@ -1,7 +1,11 @@
 package com.toolshed.backend.boundary;
 
+import java.util.UUID;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +33,13 @@ public class ReviewController {
     @PostMapping
     public ResponseEntity<ReviewResponse> createReview(@Valid @RequestBody CreateReviewRequest request) {
         ReviewResponse response = reviewService.createReview(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Update a review", description = "Allows a renter to update their review")
+    @PutMapping("/{id}")
+    public ResponseEntity<ReviewResponse> updateReview(@PathVariable UUID id, @Valid @RequestBody CreateReviewRequest request) {
+        ReviewResponse response = reviewService.updateReview(id, request);
         return ResponseEntity.ok(response);
     }
 }

@@ -20,6 +20,7 @@ import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
+import com.toolshed.backend.repository.enums.ReviewType;
 import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 
@@ -107,11 +108,41 @@ public class ReviewSteps {
     }
 
     @When("the renter submits a review for the owner with rating {int} and comment {string}")
-    public void the_renter_submits_a_review_for_the_owner_with_rating_and_comment(Integer rating, String comment) throws Exception {
+    public void the_renter_submits_a_review_for_the_owner_with_rating_and_comment(Integer rating, String comment)
+            throws Exception {
         CreateReviewRequest request = new CreateReviewRequest();
         request.setBookingId(booking.getId());
         request.setRating(rating);
         request.setComment(comment);
+        request.setType(ReviewType.RENTER_TO_OWNER);
+
+        resultActions = mockMvc.perform(post("/api/reviews")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)));
+    }
+
+    @When("the owner submits a review for the renter with rating {int} and comment {string}")
+    public void the_owner_submits_a_review_for_the_renter_with_rating_and_comment(Integer rating, String comment)
+            throws Exception {
+        CreateReviewRequest request = new CreateReviewRequest();
+        request.setBookingId(booking.getId());
+        request.setRating(rating);
+        request.setComment(comment);
+        request.setType(ReviewType.OWNER_TO_RENTER);
+
+        resultActions = mockMvc.perform(post("/api/reviews")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)));
+    }
+
+    @When("the renter submits a review for the tool with rating {int} and comment {string}")
+    public void the_renter_submits_a_review_for_the_tool_with_rating_and_comment(Integer rating, String comment)
+            throws Exception {
+        CreateReviewRequest request = new CreateReviewRequest();
+        request.setBookingId(booking.getId());
+        request.setRating(rating);
+        request.setComment(comment);
+        request.setType(ReviewType.RENTER_TO_TOOL);
 
         resultActions = mockMvc.perform(post("/api/reviews")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -128,5 +159,18 @@ public class ReviewSteps {
         resultActions
                 .andExpect(jsonPath("$.rating").value(rating))
                 .andExpect(jsonPath("$.comment").value(comment));
+    }
+
+    @Then("the owner reputation should be {double}")
+    public void the_owner_reputation_should_be(Double expectedScore) {
+        User updatedOwner = userRepository.findById(owner.getId()).orElseThrow();
+        // Use assertive tolerance for floating point
+        org.assertj.core.api.Assertions.assertThat(updatedOwner.getReputationScore()).isEqualTo(expectedScore);
+    }
+
+    @Then("the tool rating should be {double}")
+    public void the_tool_rating_should_be(Double expectedRating) {
+        Tool updatedTool = toolRepository.findById(tool.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(updatedTool.getOverallRating()).isEqualTo(expectedRating);
     }
 }

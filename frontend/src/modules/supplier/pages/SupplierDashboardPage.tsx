@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { ToolBookingRequests } from '../components/ToolBookingRequests';
 import { ActiveRentals } from '../components/ActiveRentals';
 import { SupplierNavbar } from '../components/SupplierNavbar';
+import { WalletSection } from '../components/WalletSection';
 
 export const SupplierDashboardPage = () => {
 
@@ -34,20 +35,10 @@ export const SupplierDashboardPage = () => {
             </CardContent>
           </Card>
 
-          {/* Stats Card - Placeholder */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Statistics</CardTitle>
-              <CardDescription>
-                View your rental statistics and earnings
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-sm">Coming soon...</p>
-            </CardContent>
-          </Card>
+          {/* Wallet Section */}
+          <WalletSection />
 
-          {/* Rentals Card - Placeholder */}
+          {/* Rentals Card */}
           <ActiveRentals />
         </div>
 

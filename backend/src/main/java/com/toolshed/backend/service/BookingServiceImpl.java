@@ -1,6 +1,7 @@
 package com.toolshed.backend.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
@@ -12,16 +13,22 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.toolshed.backend.dto.BookingResponse;
+import com.toolshed.backend.dto.ConditionReportRequest;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
+import com.toolshed.backend.dto.ReviewResponse;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
+import com.toolshed.backend.repository.entities.Review;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
+import com.toolshed.backend.repository.enums.ConditionStatus;
+import com.toolshed.backend.repository.enums.DepositStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
+import com.toolshed.backend.repository.enums.ReviewType;
 
 @Service
 public class BookingServiceImpl implements BookingService {
@@ -31,8 +38,8 @@ public class BookingServiceImpl implements BookingService {
     private final UserRepository userRepository;
 
     public BookingServiceImpl(BookingRepository bookingRepository,
-                              ToolRepository toolRepository,
-                              UserRepository userRepository) {
+            ToolRepository toolRepository,
+            UserRepository userRepository) {
         this.bookingRepository = bookingRepository;
         this.toolRepository = toolRepository;
         this.userRepository = userRepository;
@@ -84,7 +91,8 @@ public class BookingServiceImpl implements BookingService {
     }
 
     /**
-     * task to mark finished bookings as completed and free tools if they are no longer rented.
+     * task to mark finished bookings as completed and free tools if they are no
+     * longer rented.
      */
     @Scheduled(cron = "0 * * * * *")
     @Transactional
@@ -175,12 +183,115 @@ public class BookingServiceImpl implements BookingService {
         return toBookingResponse(saved);
     }
 
+    private static final Double DEPOSIT_AMOUNT = 50.0;
+
+    @Override
+    @Transactional
+    public BookingResponse submitConditionReport(UUID bookingId, ConditionReportRequest request) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        // Validate renter
+        if (!booking.getRenter().getId().equals(request.getRenterId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the renter can submit a condition report");
+        }
+
+        // Validate booking is completed
+        if (booking.getStatus() != BookingStatus.COMPLETED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Condition reports can only be submitted for completed bookings");
+        }
+
+        // Validate no condition report already exists
+        if (booking.getConditionStatus() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Condition report already submitted");
+        }
+
+        // Set condition report fields
+        booking.setConditionStatus(request.getConditionStatus());
+        booking.setConditionDescription(request.getDescription());
+        booking.setConditionReportedAt(LocalDateTime.now());
+        booking.setConditionReportedBy(booking.getRenter());
+
+        // Determine deposit requirement
+        boolean requiresDeposit = request.getConditionStatus() == ConditionStatus.MINOR_DAMAGE
+                || request.getConditionStatus() == ConditionStatus.BROKEN
+                || request.getConditionStatus() == ConditionStatus.MISSING_PARTS;
+
+        if (requiresDeposit) {
+            booking.setDepositStatus(DepositStatus.REQUIRED);
+            booking.setDepositAmount(DEPOSIT_AMOUNT);
+        } else {
+            booking.setDepositStatus(DepositStatus.NOT_REQUIRED);
+            booking.setDepositAmount(0.0);
+        }
+
+        Booking saved = bookingRepository.save(booking);
+        return toBookingResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse payDeposit(UUID bookingId, UUID renterId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        // Validate renter
+        if (!booking.getRenter().getId().equals(renterId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the renter can pay the deposit");
+        }
+
+        // Validate deposit is required
+        if (booking.getDepositStatus() != DepositStatus.REQUIRED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No deposit required or already paid");
+        }
+
+        // Mark deposit as paid
+        booking.setDepositStatus(DepositStatus.PAID);
+        booking.setDepositPaidAt(LocalDateTime.now());
+
+        Booking saved = bookingRepository.save(booking);
+        return toBookingResponse(saved);
+    }
+
+    private ReviewResponse toReviewResponse(Review review) {
+        if (review == null)
+            return null;
+        String reviewerName = review.getReviewer() != null
+                ? (review.getReviewer().getFirstName() + " " + review.getReviewer().getLastName()).trim()
+                : null;
+
+        return ReviewResponse.builder()
+                .id(review.getId())
+                .bookingId(review.getBooking().getId())
+                .reviewerId(review.getReviewer() != null ? review.getReviewer().getId() : null)
+                .reviewerName(reviewerName)
+                .ownerId(review.getOwner() != null ? review.getOwner().getId() : null)
+                .toolId(review.getTool() != null ? review.getTool().getId() : null)
+                .rating(review.getRating())
+                .comment(review.getComment())
+                .date(review.getDate())
+                .build();
+    }
+
+    private Review getReviewByType(List<Review> reviews, ReviewType type) {
+        if (reviews == null)
+            return null;
+        return reviews.stream()
+                .filter(r -> r.getType() == type || (type == ReviewType.RENTER_TO_OWNER && r.getType() == null))
+                .findFirst()
+                .orElse(null);
+    }
+
     private OwnerBookingResponse toOwnerBookingResponse(Booking booking) {
         Tool tool = booking.getTool();
         User renter = booking.getRenter();
         String renterName = renter != null
                 ? (renter.getFirstName() + " " + renter.getLastName()).trim()
                 : null;
+
+        Review renterReview = getReviewByType(booking.getReviews(), ReviewType.RENTER_TO_OWNER);
+        Review ownerReview = getReviewByType(booking.getReviews(), ReviewType.OWNER_TO_RENTER);
 
         return OwnerBookingResponse.builder()
                 .id(booking.getId())
@@ -192,6 +303,20 @@ public class BookingServiceImpl implements BookingService {
                 .endDate(booking.getEndDate())
                 .status(booking.getStatus())
                 .totalPrice(booking.getTotalPrice())
+                .review(toReviewResponse(renterReview))
+                .ownerReview(toReviewResponse(ownerReview))
+                // Condition Report Fields
+                .conditionStatus(booking.getConditionStatus())
+                .conditionDescription(booking.getConditionDescription())
+                .conditionReportedAt(booking.getConditionReportedAt())
+                .conditionReportedByName(booking.getConditionReportedBy() != null
+                        ? (booking.getConditionReportedBy().getFirstName() + " "
+                                + booking.getConditionReportedBy().getLastName()).trim()
+                        : null)
+                // Deposit Fields
+                .depositStatus(booking.getDepositStatus())
+                .depositAmount(booking.getDepositAmount())
+                .depositPaidAt(booking.getDepositPaidAt())
                 .build();
     }
 
@@ -199,6 +324,10 @@ public class BookingServiceImpl implements BookingService {
         String ownerName = booking.getOwner() != null
                 ? (booking.getOwner().getFirstName() + " " + booking.getOwner().getLastName()).trim()
                 : null;
+
+        Review renterReview = getReviewByType(booking.getReviews(), ReviewType.RENTER_TO_OWNER);
+        Review ownerReview = getReviewByType(booking.getReviews(), ReviewType.OWNER_TO_RENTER);
+        Review toolReview = getReviewByType(booking.getReviews(), ReviewType.RENTER_TO_TOOL);
 
         return BookingResponse.builder()
                 .id(booking.getId())
@@ -212,6 +341,21 @@ public class BookingServiceImpl implements BookingService {
                 .status(booking.getStatus())
                 .paymentStatus(booking.getPaymentStatus())
                 .totalPrice(booking.getTotalPrice())
+                .review(toReviewResponse(renterReview))
+                .ownerReview(toReviewResponse(ownerReview))
+                .toolReview(toReviewResponse(toolReview))
+                // Condition Report Fields
+                .conditionStatus(booking.getConditionStatus())
+                .conditionDescription(booking.getConditionDescription())
+                .conditionReportedAt(booking.getConditionReportedAt())
+                .conditionReportedByName(booking.getConditionReportedBy() != null
+                        ? (booking.getConditionReportedBy().getFirstName() + " "
+                                + booking.getConditionReportedBy().getLastName()).trim()
+                        : null)
+                // Deposit Fields
+                .depositStatus(booking.getDepositStatus())
+                .depositAmount(booking.getDepositAmount())
+                .depositPaidAt(booking.getDepositPaidAt())
                 .build();
     }
 }

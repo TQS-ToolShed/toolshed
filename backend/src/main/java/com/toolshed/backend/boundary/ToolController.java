@@ -78,6 +78,12 @@ public class ToolController {
         return ResponseEntity.ok(toolService.getActive());
     }
 
+    @GetMapping("/supplier/{supplierId}")
+    public ResponseEntity<List<Tool>> getToolsBySupplier(@PathVariable String supplierId) {
+        UUID id = UUID.fromString(supplierId);
+        return ResponseEntity.ok(toolService.getByOwner(id));
+    }
+
     @GetMapping("/{toolId}")
     public ResponseEntity<ToolDetailsResponse> getToolById(@PathVariable String toolId) {
         UUID id = UUID.fromString(toolId);

@@ -1,15 +1,27 @@
 package com.toolshed.backend.repository.entities;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
 
-import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import com.toolshed.backend.repository.enums.ReviewType;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "review")
@@ -23,8 +35,8 @@ public class Review {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id", nullable = false, unique = false)
     private Booking booking;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -39,8 +51,11 @@ public class Review {
     @JoinColumn(name = "tool_id")
     private Tool tool;
 
+    @Enumerated(EnumType.STRING)
+    private ReviewType type;
+
     private Integer rating; // 1-5 scale usually
-    
+
     @Column(length = 1000)
     private String comment;
 
