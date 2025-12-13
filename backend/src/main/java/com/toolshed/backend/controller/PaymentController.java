@@ -1,5 +1,6 @@
 package com.toolshed.backend.controller;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -17,12 +18,18 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
+import com.toolshed.backend.dto.PayoutRequest;
+import com.toolshed.backend.dto.PayoutResponse;
+import com.toolshed.backend.dto.WalletResponse;
 import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.service.PaymentService;
 import com.toolshed.backend.service.PaymentServiceImpl.BookingNotFoundException;
 import com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException;
+import com.toolshed.backend.service.PaymentServiceImpl.InsufficientBalanceException;
+import com.toolshed.backend.service.PaymentServiceImpl.InvalidPayoutException;
 import com.toolshed.backend.service.PaymentServiceImpl.PaymentAlreadyCompletedException;
 import com.toolshed.backend.service.PaymentServiceImpl.PaymentProcessingException;
+import com.toolshed.backend.service.PaymentServiceImpl.UserNotFoundException;
 
 import jakarta.validation.Valid;
 
@@ -132,6 +139,51 @@ public class PaymentController {
                     "depositAmount", booking.getDepositAmount() != null ? booking.getDepositAmount() : 0.0));
         } catch (BookingNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    // ============ Wallet & Payout Endpoints ============
+
+    /**
+     * Gets the wallet information for an owner.
+     */
+    @GetMapping("/wallet/{ownerId}")
+    public ResponseEntity<WalletResponse> getOwnerWallet(@PathVariable UUID ownerId) {
+        try {
+            WalletResponse response = paymentService.getOwnerWallet(ownerId);
+            return ResponseEntity.ok(response);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    /**
+     * Gets the payout history for an owner.
+     */
+    @GetMapping("/payouts/{ownerId}")
+    public ResponseEntity<List<PayoutResponse>> getPayoutHistory(@PathVariable UUID ownerId) {
+        try {
+            List<PayoutResponse> payouts = paymentService.getPayoutHistory(ownerId);
+            return ResponseEntity.ok(payouts);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    /**
+     * Requests a payout for an owner.
+     */
+    @PostMapping("/payout/{ownerId}")
+    public ResponseEntity<PayoutResponse> requestPayout(
+            @PathVariable UUID ownerId,
+            @Valid @RequestBody PayoutRequest request) {
+        try {
+            PayoutResponse response = paymentService.requestPayout(ownerId, request.getAmount());
+            return ResponseEntity.ok(response);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (InsufficientBalanceException | InvalidPayoutException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 }

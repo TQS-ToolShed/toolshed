@@ -1,19 +1,29 @@
 package com.toolshed.backend.service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
+import com.toolshed.backend.dto.PayoutResponse;
+import com.toolshed.backend.dto.WalletResponse;
 import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.PayoutRepository;
+import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
+import com.toolshed.backend.repository.entities.Payout;
+import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.DepositStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
+import com.toolshed.backend.repository.enums.PayoutStatus;
 
 /**
  * Implementation of PaymentService for Stripe payment operations.
@@ -23,11 +33,17 @@ public class PaymentServiceImpl implements PaymentService {
 
     private static final String BOOKING_ID_KEY = "bookingId";
     private static final String BOOKING_NOT_FOUND_MSG = "Booking not found: ";
+    private static final String USER_NOT_FOUND_MSG = "User not found: ";
 
     private final BookingRepository bookingRepository;
+    private final UserRepository userRepository;
+    private final PayoutRepository payoutRepository;
 
-    public PaymentServiceImpl(BookingRepository bookingRepository) {
+    public PaymentServiceImpl(BookingRepository bookingRepository, UserRepository userRepository,
+            PayoutRepository payoutRepository) {
         this.bookingRepository = bookingRepository;
+        this.userRepository = userRepository;
+        this.payoutRepository = payoutRepository;
     }
 
     @Override
@@ -100,8 +116,22 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
+    @Transactional
     public Booking markBookingAsPaid(UUID bookingId) {
-        return updatePaymentStatus(bookingId, PaymentStatus.COMPLETED);
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException(BOOKING_NOT_FOUND_MSG + bookingId));
+
+        booking.setPaymentStatus(PaymentStatus.COMPLETED);
+
+        // Credit the owner's wallet
+        User owner = booking.getOwner();
+        if (owner != null && booking.getTotalPrice() != null) {
+            Double currentBalance = owner.getWalletBalance() != null ? owner.getWalletBalance() : 0.0;
+            owner.setWalletBalance(currentBalance + booking.getTotalPrice());
+            userRepository.save(owner);
+        }
+
+        return bookingRepository.save(booking);
     }
 
     @Override
@@ -145,6 +175,85 @@ public class PaymentServiceImpl implements PaymentService {
         return bookingRepository.save(booking);
     }
 
+    // ============ Wallet & Payout Operations ============
+
+    @Override
+    public WalletResponse getOwnerWallet(UUID ownerId) {
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND_MSG + ownerId));
+
+        List<PayoutResponse> recentPayouts = payoutRepository.findByOwnerIdOrderByRequestedAtDesc(ownerId)
+                .stream()
+                .limit(10)
+                .map(this::mapToPayoutResponse)
+                .collect(Collectors.toList());
+
+        return WalletResponse.builder()
+                .balance(owner.getWalletBalance() != null ? owner.getWalletBalance() : 0.0)
+                .recentPayouts(recentPayouts)
+                .build();
+    }
+
+    @Override
+    public List<PayoutResponse> getPayoutHistory(UUID ownerId) {
+        userRepository.findById(ownerId)
+                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND_MSG + ownerId));
+
+        return payoutRepository.findByOwnerIdOrderByRequestedAtDesc(ownerId)
+                .stream()
+                .map(this::mapToPayoutResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public PayoutResponse requestPayout(UUID ownerId, Double amount) {
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND_MSG + ownerId));
+
+        Double currentBalance = owner.getWalletBalance() != null ? owner.getWalletBalance() : 0.0;
+
+        if (amount <= 0) {
+            throw new InvalidPayoutException("Payout amount must be positive");
+        }
+
+        if (amount > currentBalance) {
+            throw new InsufficientBalanceException(
+                    "Insufficient balance. Available: €" + currentBalance + ", Requested: €" + amount);
+        }
+
+        // Simulate Stripe Transfer (generate fake transfer ID)
+        String stripeTransferId = "tr_simulated_" + UUID.randomUUID().toString().substring(0, 8);
+
+        // Create payout record
+        Payout payout = Payout.builder()
+                .owner(owner)
+                .amount(amount)
+                .status(PayoutStatus.COMPLETED)
+                .stripeTransferId(stripeTransferId)
+                .completedAt(LocalDateTime.now())
+                .build();
+
+        payout = payoutRepository.save(payout);
+
+        // Deduct from wallet balance
+        owner.setWalletBalance(currentBalance - amount);
+        userRepository.save(owner);
+
+        return mapToPayoutResponse(payout);
+    }
+
+    private PayoutResponse mapToPayoutResponse(Payout payout) {
+        return PayoutResponse.builder()
+                .id(payout.getId())
+                .amount(payout.getAmount())
+                .status(payout.getStatus())
+                .stripeTransferId(payout.getStripeTransferId())
+                .requestedAt(payout.getRequestedAt())
+                .completedAt(payout.getCompletedAt())
+                .build();
+    }
+
     private SessionCreateParams buildSessionParams(CreateCheckoutSessionRequest request,
             String successUrl, String cancelUrl, Long amountInCents) {
         return SessionCreateParams.builder()
@@ -170,8 +279,16 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
     }
 
+    // ============ Exception Classes ============
+
     public static class BookingNotFoundException extends RuntimeException {
         public BookingNotFoundException(String message) {
+            super(message);
+        }
+    }
+
+    public static class UserNotFoundException extends RuntimeException {
+        public UserNotFoundException(String message) {
             super(message);
         }
     }
@@ -190,6 +307,18 @@ public class PaymentServiceImpl implements PaymentService {
 
     public static class DepositNotRequiredException extends RuntimeException {
         public DepositNotRequiredException(String message) {
+            super(message);
+        }
+    }
+
+    public static class InsufficientBalanceException extends RuntimeException {
+        public InsufficientBalanceException(String message) {
+            super(message);
+        }
+    }
+
+    public static class InvalidPayoutException extends RuntimeException {
+        public InvalidPayoutException(String message) {
             super(message);
         }
     }

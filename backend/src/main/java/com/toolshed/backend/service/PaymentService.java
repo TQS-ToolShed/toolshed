@@ -1,9 +1,12 @@
 package com.toolshed.backend.service;
 
+import java.util.List;
 import java.util.UUID;
 
 import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
+import com.toolshed.backend.dto.PayoutResponse;
+import com.toolshed.backend.dto.WalletResponse;
 import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.repository.enums.PaymentStatus;
 
@@ -75,4 +78,31 @@ public interface PaymentService {
      * @return The updated booking
      */
     Booking updatePaymentStatus(UUID bookingId, PaymentStatus status);
+
+    // ============ Wallet & Payout Operations ============
+
+    /**
+     * Gets the wallet information for an owner.
+     *
+     * @param ownerId The ID of the owner
+     * @return WalletResponse with balance and recent payouts
+     */
+    WalletResponse getOwnerWallet(UUID ownerId);
+
+    /**
+     * Gets the payout history for an owner.
+     *
+     * @param ownerId The ID of the owner
+     * @return List of payout responses
+     */
+    List<PayoutResponse> getPayoutHistory(UUID ownerId);
+
+    /**
+     * Requests a payout for an owner.
+     *
+     * @param ownerId The ID of the owner
+     * @param amount  The amount to payout
+     * @return PayoutResponse with payout details
+     */
+    PayoutResponse requestPayout(UUID ownerId, Double amount);
 }

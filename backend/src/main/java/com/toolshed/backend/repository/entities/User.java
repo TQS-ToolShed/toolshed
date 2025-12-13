@@ -25,7 +25,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "app_user") 
+@Table(name = "app_user")
 @Data
 @Builder
 @NoArgsConstructor
@@ -58,6 +58,10 @@ public class User {
 
     @Column(nullable = false)
     private Double reputationScore;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Double walletBalance = 0.0;
 
     @CreationTimestamp
     private LocalDateTime registeredDate;
