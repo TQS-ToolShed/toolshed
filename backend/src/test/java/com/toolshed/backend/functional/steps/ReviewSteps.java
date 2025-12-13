@@ -15,6 +15,7 @@ import com.toolshed.backend.dto.CreateReviewRequest;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ReviewRepository;
 import com.toolshed.backend.repository.ToolRepository;
+import com.toolshed.backend.repository.PayoutRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.repository.entities.Tool;
@@ -47,6 +48,9 @@ public class ReviewSteps {
     private ReviewRepository reviewRepository;
 
     @Autowired
+    private PayoutRepository payoutRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private User renter;
@@ -57,6 +61,7 @@ public class ReviewSteps {
 
     @Before("@review")
     public void setUp() {
+        payoutRepository.deleteAll();
         reviewRepository.deleteAll();
         bookingRepository.deleteAll();
         toolRepository.deleteAll();

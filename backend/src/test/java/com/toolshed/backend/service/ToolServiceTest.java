@@ -110,8 +110,8 @@ class ToolServiceTest {
     }
 
     @Test
-    @DisplayName("Should return empty list immediately if both keyword and location are null (Defensive Coding)")
-    void testSearchToolsWithNullKeywordAndLocation() {
+    @DisplayName("Should return empty list immediately if both keyword and district are null (Defensive Coding)")
+    void testSearchToolsWithNullKeywordAndDistrict() {
         // Act
         List<Tool> result = toolService.searchTools(null, null, null, null);
 
@@ -123,18 +123,18 @@ class ToolServiceTest {
     }
 
     @Test
-    @DisplayName("Should search with location only when keyword is null")
-    void testSearchToolsWithLocationOnly() {
+    @DisplayName("Should search with district only when keyword is null")
+    void testSearchToolsWithDistrictOnly() {
         // Arrange
-        String location = "Aveiro";
-        when(toolRepo.searchTools(null, location, null, null)).thenReturn(List.of(sampleTool));
+        String district = "Aveiro";
+        when(toolRepo.searchTools(null, district, null, null)).thenReturn(List.of(sampleTool));
 
         // Act
-        List<Tool> result = toolService.searchTools(null, location, null, null);
+        List<Tool> result = toolService.searchTools(null, district, null, null);
 
         // Assert
         assertThat(result).hasSize(1);
-        verify(toolRepo, times(1)).searchTools(null, location, null, null);
+        verify(toolRepo, times(1)).searchTools(null, district, null, null);
     }
 
     @Test
@@ -503,21 +503,21 @@ class ToolServiceTest {
     }
 
     @Test
-    @DisplayName("Should combine keyword, location, and price filters")
+    @DisplayName("Should combine keyword, district, and price filters")
     void testSearchWithAllFilters() {
         // Arrange
         String keyword = "drill";
-        String location = "Porto";
+        String district = "Porto";
         Double minPrice = 10.0;
         Double maxPrice = 50.0;
-        when(toolRepo.searchTools(keyword, location, minPrice, maxPrice)).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools(keyword, district, minPrice, maxPrice)).thenReturn(List.of(sampleTool));
 
         // Act
-        List<Tool> result = toolService.searchTools(keyword, location, minPrice, maxPrice);
+        List<Tool> result = toolService.searchTools(keyword, district, minPrice, maxPrice);
 
         // Assert
         assertThat(result).hasSize(1);
-        verify(toolRepo).searchTools(keyword, location, minPrice, maxPrice);
+        verify(toolRepo).searchTools(keyword, district, minPrice, maxPrice);
     }
 
     // ==================== DISTRICT VALIDATION TESTS ====================
@@ -562,7 +562,7 @@ class ToolServiceTest {
     @Test
     @DisplayName("Should return empty list when keyword is empty string")
     void testSearchToolsWithEmptyKeyword() {
-        List<Tool> result = toolService.searchTools("   ", "   ");
+        List<Tool> result = toolService.searchTools("   ", "   ", null, null);
 
         assertThat(result).isEmpty();
         verifyNoInteractions(toolRepo);
@@ -572,24 +572,24 @@ class ToolServiceTest {
     @DisplayName("Should search with valid keyword and empty location")
     void testSearchToolsWithKeywordAndEmptyLocation() {
         String keyword = "Drill";
-        when(toolRepo.searchTools(keyword, "")).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools(keyword, "", null, null)).thenReturn(List.of(sampleTool));
 
-        List<Tool> result = toolService.searchTools(keyword, "   ");
+        List<Tool> result = toolService.searchTools(keyword, "   ", null, null);
 
         assertThat(result).hasSize(1);
-        verify(toolRepo).searchTools(keyword, "");
+        verify(toolRepo).searchTools(keyword, "", null, null);
     }
 
     @Test
     @DisplayName("Should search with valid location and empty keyword")
     void testSearchToolsWithLocationAndEmptyKeyword() {
         String location = "Aveiro";
-        when(toolRepo.searchTools("", location)).thenReturn(List.of(sampleTool));
+        when(toolRepo.searchTools("", location, null, null)).thenReturn(List.of(sampleTool));
 
-        List<Tool> result = toolService.searchTools("   ", location);
+        List<Tool> result = toolService.searchTools("   ", location, null, null);
 
         assertThat(result).hasSize(1);
-        verify(toolRepo).searchTools("", location);
+        verify(toolRepo).searchTools("", location, null, null);
     }
 
     @Test

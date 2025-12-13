@@ -102,7 +102,7 @@ export const searchTools = async (filters: ToolSearchFilters): Promise<Tool[]> =
     const params = new URLSearchParams();
     if (filters.keyword) params.append('keyword', filters.keyword);
 
-    if (filters.district) params.append('location', filters.district);
+    if (filters.district) params.append('district', filters.district);
 
     if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
     if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());

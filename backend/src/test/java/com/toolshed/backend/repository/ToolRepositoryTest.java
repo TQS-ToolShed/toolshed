@@ -296,22 +296,22 @@ class ToolRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should ignore keywords found only in non-searchable fields (e.g., location)")
-    void testSearchExcludesLocation() {
-        // Arrange: Tool 'hammer' from setUp() has location "Westside Storage"
-        // "Westside" is NOT in the title or description.
+    @DisplayName("Should ignore keywords found only in non-searchable fields (e.g., district)")
+    void testSearchExcludesDistrict() {
+        // Arrange: Tool 'hammer' from setUp() has district "Porto"
+        // "Porto" is NOT in the title or description.
 
         // Act
-        List<Tool> results = toolRepo.searchTools("Westside", null, null, null);
+        List<Tool> results = toolRepo.searchTools("Porto", null, null, null);
 
         // Assert
         assertThat(results).isEmpty();
     }
 
     @Test
-    @DisplayName("Should filter by Keyword AND Location simultaneously")
-    void testSearchWithKeywordAndLocation() {
-        // Scenario (updated after adding explicit location filter semantics): 
+    @DisplayName("Should filter by Keyword AND District simultaneously")
+    void testSearchWithKeywordAndDistrict() {
+        // Scenario (updated after adding explicit district filter semantics): 
         // 1. "Power Drill" (Aveiro) -> Matches Keyword & District
         // 2. "Bit Set" (Lisboa) -> Matches Keyword in description but DIFFERENT district
         // 3. "Circular Saw" (Lisboa, Sintra) -> Does not match keyword "Drill"
@@ -324,8 +324,8 @@ class ToolRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should return results matching Location only (when Keyword is null/empty)")
-    void testSearchWithLocationOnly() {
+    @DisplayName("Should return results matching District only (when Keyword is null/empty)")
+    void testSearchWithDistrictOnly() {
         // Scenario: User just searches for "Porto", no keyword typed.
         
         // Act
@@ -339,9 +339,9 @@ class ToolRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should ignore Location filter when it is null (Backward Compatibility)")
-    void testSearchWithKeywordOnly_LocationNull() {
-        // Scenario: User types "Drill" but leaves location filter empty.
+    @DisplayName("Should ignore District filter when it is null (Backward Compatibility)")
+    void testSearchWithKeywordOnly_DistrictNull() {
+        // Scenario: User types "Drill" but leaves district filter empty.
         // Matches: "Power Drill" (title) and "Bit Set" (description). "Circular Saw" no longer matches.
         List<Tool> results = toolRepo.searchTools("Drill", null, null, null);
         assertThat(results)
