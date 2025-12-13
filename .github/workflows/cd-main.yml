@@ -29,5 +29,5 @@ jobs:
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          sudo docker compose down --remove-orphans
+          sudo docker compose down --remove-orphans --volumes
           sudo docker compose up -d --build
