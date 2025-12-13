@@ -167,7 +167,6 @@ class ToolControllerTest {
                 .andExpect(jsonPath("$.title", is("Detail Drill")))
                 .andExpect(jsonPath("$.pricePerDay", is(tool.getPricePerDay())))
                 .andExpect(jsonPath("$.district", is(tool.getDistrict())))
-                .andExpect(jsonPath("$.municipality", is(tool.getMunicipality())))
                 .andExpect(jsonPath("$.availabilityCalendar", is(tool.getAvailabilityCalendar())))
                 .andExpect(jsonPath("$.overallRating", is(tool.getOverallRating())))
                 .andExpect(jsonPath("$.numRatings", is(tool.getNumRatings())))
@@ -233,7 +232,6 @@ class ToolControllerTest {
                 .description("Desc")
                 .pricePerDay(10.0)
                 .district("Aveiro")
-                .municipality("Aveiro")
                 .supplierId(UUID.randomUUID())
                 .build();
 
