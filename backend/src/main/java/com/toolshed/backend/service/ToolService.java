@@ -9,7 +9,7 @@ import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.dto.CreateToolInput;
 
 public interface ToolService {
-    List<Tool> searchTools(String keyword, String location, Double minPrice, Double maxPrice);
+    List<Tool> searchTools(String keyword, String district, Double minPrice, Double maxPrice);
     Optional<Tool> getById(UUID id);
     List<Tool> getAll();
     List<Tool> getActive();

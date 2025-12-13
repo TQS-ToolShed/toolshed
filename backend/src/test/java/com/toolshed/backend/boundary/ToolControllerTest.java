@@ -70,37 +70,37 @@ class ToolControllerTest {
     }
 
     @Test
-    @DisplayName("Should pass both Keyword AND Location to service")
-    void testSearchWithKeywordAndLocation() throws Exception {
+    @DisplayName("Should pass both Keyword AND District to service")
+    void testSearchWithKeywordAndDistrict() throws Exception {
         // Arrange
         String keyword = "drill";
-        String location = "Downtown";
-        Tool drill = createSampleTool("Downtown Drill");
+        String district = "Porto";
+        Tool drill = createSampleTool("Porto Drill");
 
         // Mock the service to expect BOTH arguments
-        when(toolService.searchTools(keyword, location, null, null)).thenReturn(List.of(drill));
+        when(toolService.searchTools(keyword, district, null, null)).thenReturn(List.of(drill));
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
                 .param("keyword", keyword)
-                .param("location", location) 
+                .param("district", district) 
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title", is("Downtown Drill")));
+                .andExpect(jsonPath("$[0].title", is("Porto Drill")));
 
-        // Verification: Ensure location was NOT null
-        verify(toolService, times(1)).searchTools(keyword, location, null, null);
+        // Verification: Ensure district was NOT null
+        verify(toolService, times(1)).searchTools(keyword, district, null, null);
     }
 
     @Test
-    @DisplayName("Should return 200 OK and matching tools for a valid search (Location is null)")
+    @DisplayName("Should return 200 OK and matching tools for a valid search (District is null)")
     void testSearchTools_ValidKeyword_ReturnsResults() throws Exception {
         // Arrange
         String keyword = "drill";
         Tool drill = createSampleTool("Power Drill");
 
-        // Mock: expect null for location because we don't send the param
+        // Mock: expect null for district because we don't send the param
         when(toolService.searchTools(keyword, null, null, null)).thenReturn(List.of(drill));
 
         // Act & Assert
@@ -308,26 +308,26 @@ class ToolControllerTest {
     }
 
     @Test
-    @DisplayName("Should combine all filters: keyword, location, and price range")
+    @DisplayName("Should combine all filters: keyword, district, and price range")
     void testSearchWithAllFilters() throws Exception {
         // Arrange
-        Tool tool = createSampleTool("Downtown Drill");
+        Tool tool = createSampleTool("Porto Drill");
         tool.setPricePerDay(30.0);
         
-        when(toolService.searchTools("drill", "Downtown", 10.0, 50.0)).thenReturn(List.of(tool));
+        when(toolService.searchTools("drill", "Porto", 10.0, 50.0)).thenReturn(List.of(tool));
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
                 .param("keyword", "drill")
-                .param("location", "Downtown")
+                .param("district", "Porto")
                 .param("minPrice", "10.0")
                 .param("maxPrice", "50.0")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title", is("Downtown Drill")));
+                .andExpect(jsonPath("$[0].title", is("Porto Drill")));
 
-        verify(toolService).searchTools("drill", "Downtown", 10.0, 50.0);
+        verify(toolService).searchTools("drill", "Porto", 10.0, 50.0);
     }
 
     @Test

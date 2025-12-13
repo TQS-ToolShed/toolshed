@@ -75,14 +75,12 @@ public class ToolSteps {
         // No-op for API test
     }
 
-    @When("I fill in the tool details with title {string}, description {string}, price {string}, location {string}")
-    public void i_fill_in_the_tool_details(String title, String description, String price, String location) {
+    @When("I fill in the tool details with title {string}, description {string}, price {string}, district {string}")
+    public void i_fill_in_the_tool_details(String title, String description, String price, String district) {
         toolRequest.setTitle(title);
         toolRequest.setDescription(description);
         toolRequest.setPricePerDay(Double.parseDouble(price));
-        // Parse location as "District, Municipality" or use defaults
-        String[] parts = location.split(",");
-        toolRequest.setDistrict(parts.length > 0 ? parts[0].trim() : "Aveiro");
+        toolRequest.setDistrict(district.trim());
         toolRequest.setSupplierId(testUser.getId());
     }
 
