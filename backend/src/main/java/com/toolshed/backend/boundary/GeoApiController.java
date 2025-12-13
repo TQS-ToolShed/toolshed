@@ -15,7 +15,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "GeoAPI", description = "Operations for retrieving Portuguese districts and municipalities")
+@Tag(name = "GeoAPI", description = "Operations for retrieving Portuguese districts")
 @RestController
 @RequestMapping("/api/geo")
 public class GeoApiController {
@@ -39,22 +39,5 @@ public class GeoApiController {
     @GetMapping("/districts")
     public ResponseEntity<List<String>> getAllDistricts() {
         return ResponseEntity.ok(geoApiService.getAllDistricts());
-    }
-
-    @Operation(
-        summary = "Get municipalities by district",
-        description = "Retrieves a list of all municipalities for a given district. Results are cached.",
-        responses = {
-            @ApiResponse(
-                responseCode = "200", 
-                description = "Successfully retrieved list of municipalities"
-            )
-        }
-    )
-    @GetMapping("/districts/{district}/municipalities")
-    public ResponseEntity<List<String>> getMunicipalitiesByDistrict(
-            @Parameter(description = "District name (e.g., 'Aveiro')")
-            @PathVariable String district) {
-        return ResponseEntity.ok(geoApiService.getMunicipalitiesByDistrict(district));
     }
 }

@@ -64,7 +64,6 @@ class ToolServiceTest {
         sampleTool.setTitle("Mock Drill");
         sampleTool.setDescription("Desc");
         sampleTool.setDistrict("Aveiro");
-        sampleTool.setMunicipality("Aveiro");
         sampleTool.setPricePerDay(10.0);
         sampleTool.setNumRatings(2);
         sampleTool.setOverallRating(4.0);
@@ -222,7 +221,6 @@ class ToolServiceTest {
     void testCreateTool() {
         when(userRepo.findById(supplier.getId())).thenReturn(Optional.of(supplier));
         when(geoApiService.districtExists("Aveiro")).thenReturn(true);
-        when(geoApiService.municipalityExistsInDistrict("Aveiro", "Aveiro")).thenReturn(true);
         when(toolRepo.save(any(Tool.class))).thenAnswer(invocation -> {
             Tool t = invocation.getArgument(0);
             t.setId(UUID.randomUUID());
@@ -234,7 +232,6 @@ class ToolServiceTest {
                 .description("Sharp saw")
                 .pricePerDay(12.0)
                 .district("Aveiro")
-                .municipality("Aveiro")
                 .supplierId(supplier.getId())
                 .build();
 
@@ -249,7 +246,6 @@ class ToolServiceTest {
         assertThat(saved.getOverallRating()).isZero();
         assertThat(saved.getNumRatings()).isZero();
         assertThat(saved.getDistrict()).isEqualTo("Aveiro");
-        assertThat(saved.getMunicipality()).isEqualTo("Aveiro");
     }
 
     @Test
@@ -261,7 +257,6 @@ class ToolServiceTest {
                 .description("Sharp saw")
                 .pricePerDay(12.0)
                 .district("Aveiro")
-                .municipality("Aveiro")
                 .supplierId(missingId)
                 .build();
 
@@ -372,14 +367,12 @@ class ToolServiceTest {
         when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
         when(userRepo.findById(newOwnerId)).thenReturn(Optional.of(newOwner));
         when(geoApiService.districtExists("Lisboa")).thenReturn(true);
-        when(geoApiService.municipalityExistsInDistrict("Lisboa", "Lisboa")).thenReturn(true);
 
         UpdateToolInput input = UpdateToolInput.builder()
                 .title("New Title")
                 .description("New Desc")
                 .pricePerDay(25.0)
                 .district("Lisboa")
-                .municipality("Lisboa")
                 .active(true)
                 .availabilityCalendar("cal-json")
                 .overallRating(4.9)
@@ -393,7 +386,6 @@ class ToolServiceTest {
         assertThat(sampleTool.getDescription()).isEqualTo("New Desc");
         assertThat(sampleTool.getPricePerDay()).isEqualTo(25.0);
         assertThat(sampleTool.getDistrict()).isEqualTo("Lisboa");
-        assertThat(sampleTool.getMunicipality()).isEqualTo("Lisboa");
         assertThat(sampleTool.isActive()).isTrue();
         assertThat(sampleTool.getAvailabilityCalendar()).isEqualTo("cal-json");
         assertThat(sampleTool.getOverallRating()).isEqualTo(4.9);
@@ -526,7 +518,7 @@ class ToolServiceTest {
         verify(toolRepo).searchTools(keyword, location, minPrice, maxPrice);
     }
 
-    // ==================== DISTRICT/MUNICIPALITY VALIDATION TESTS ====================
+    // ==================== DISTRICT VALIDATION TESTS ====================
 
     @Test
     @DisplayName("Should throw when creating tool with invalid district")
@@ -539,29 +531,6 @@ class ToolServiceTest {
                 .description("Sharp saw")
                 .pricePerDay(12.0)
                 .district("InvalidDistrict")
-                .municipality("SomeMunicipality")
-                .supplierId(supplier.getId())
-                .build();
-
-        assertThatThrownBy(() -> toolService.createTool(input))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode")
-                .isEqualTo(HttpStatus.BAD_REQUEST);
-    }
-
-    @Test
-    @DisplayName("Should throw when creating tool with invalid municipality")
-    void testCreateToolInvalidMunicipality() {
-        when(userRepo.findById(supplier.getId())).thenReturn(Optional.of(supplier));
-        when(geoApiService.districtExists("Aveiro")).thenReturn(true);
-        when(geoApiService.municipalityExistsInDistrict("Aveiro", "InvalidMunicipality")).thenReturn(false);
-
-        CreateToolInput input = CreateToolInput.builder()
-                .title("Saw")
-                .description("Sharp saw")
-                .pricePerDay(12.0)
-                .district("Aveiro")
-                .municipality("InvalidMunicipality")
                 .supplierId(supplier.getId())
                 .build();
 
@@ -587,42 +556,5 @@ class ToolServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
-    }
-
-    @Test
-    @DisplayName("Should throw when updating tool with invalid municipality")
-    void testUpdateToolInvalidMunicipality() {
-        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
-        when(geoApiService.districtExists("Aveiro")).thenReturn(true);
-        when(geoApiService.municipalityExistsInDistrict("Aveiro", "InvalidMunicipality")).thenReturn(false);
-
-        UpdateToolInput input = UpdateToolInput.builder()
-                .municipality("InvalidMunicipality")
-                .build();
-
-        String toolId = sampleTool.getId().toString();
-
-        assertThatThrownBy(() -> toolService.updateTool(toolId, input))
-                .isInstanceOf(ResponseStatusException.class)
-                .extracting("statusCode")
-                .isEqualTo(HttpStatus.BAD_REQUEST);
-    }
-
-    @Test
-    @DisplayName("Should update only municipality when district is valid")
-    void testUpdateToolOnlyMunicipality() {
-        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
-        when(geoApiService.districtExists("Aveiro")).thenReturn(true);
-        when(geoApiService.municipalityExistsInDistrict("Aveiro", "Águeda")).thenReturn(true);
-
-        UpdateToolInput input = UpdateToolInput.builder()
-                .municipality("Águeda")
-                .build();
-
-        toolService.updateTool(sampleTool.getId().toString(), input);
-
-        assertThat(sampleTool.getMunicipality()).isEqualTo("Águeda");
-        assertThat(sampleTool.getDistrict()).isEqualTo("Aveiro"); // unchanged
-        verify(toolRepo).save(sampleTool);
     }
 }

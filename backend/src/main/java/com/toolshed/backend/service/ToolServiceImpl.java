@@ -61,7 +61,7 @@ public class ToolServiceImpl implements ToolService {
             return Collections.emptyList();
         }
 
-        // Note: location parameter can now match district or municipality
+        // Note: location parameter matches district
         return toolRepo.searchTools(trimmedKeyword, trimmedLocation, minPrice, maxPrice);
     }
 
@@ -86,12 +86,9 @@ public class ToolServiceImpl implements ToolService {
         User supplier = userRepo.findById(input.getSupplierId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supplier not found"));
 
-        // Validate district and municipality using GeoAPI
+        // Validate district using GeoAPI
         if (!geoApiService.districtExists(input.getDistrict())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid district: " + input.getDistrict());
-        }
-        if (!geoApiService.municipalityExistsInDistrict(input.getDistrict(), input.getMunicipality())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid municipality for district: " + input.getMunicipality());
         }
 
         Tool tool = new Tool();
@@ -99,7 +96,6 @@ public class ToolServiceImpl implements ToolService {
         tool.setDescription(input.getDescription());
         tool.setPricePerDay(input.getPricePerDay());
         tool.setDistrict(input.getDistrict());
-        tool.setMunicipality(input.getMunicipality());
         tool.setOwner(supplier);
         tool.setActive(true);
         tool.setOverallRating(0.0);
@@ -138,24 +134,12 @@ public class ToolServiceImpl implements ToolService {
             tool.setPricePerDay(input.getPricePerDay());
         }
         
-        // Validate district and municipality if they are being updated
-        if (input.getDistrict() != null || input.getMunicipality() != null) {
-            String district = input.getDistrict() != null ? input.getDistrict() : tool.getDistrict();
-            String municipality = input.getMunicipality() != null ? input.getMunicipality() : tool.getMunicipality();
-            
-            if (!geoApiService.districtExists(district)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid district: " + district);
+        // Validate district if it is being updated
+        if (input.getDistrict() != null) {
+            if (!geoApiService.districtExists(input.getDistrict())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid district: " + input.getDistrict());
             }
-            if (!geoApiService.municipalityExistsInDistrict(district, municipality)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid municipality for district: " + municipality);
-            }
-            
-            if (input.getDistrict() != null) {
-                tool.setDistrict(input.getDistrict());
-            }
-            if (input.getMunicipality() != null) {
-                tool.setMunicipality(input.getMunicipality());
-            }
+            tool.setDistrict(input.getDistrict());
         }
         
         if (input.getActive() != null) {

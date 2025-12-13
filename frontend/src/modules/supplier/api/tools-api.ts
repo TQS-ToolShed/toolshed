@@ -10,7 +10,6 @@ export interface Tool {
   description: string;
   pricePerDay: number;
   district: string;
-  municipality: string;
   active: boolean;
   availabilityCalendar?: string;
   overallRating: number;
@@ -36,7 +35,6 @@ export interface CreateToolInput {
   pricePerDay: number;
   supplierId: string;
   district: string;
-  municipality: string;
 }
 
 // UpdateToolInput - matches backend DTO
@@ -45,7 +43,6 @@ export interface UpdateToolInput {
   description?: string;
   pricePerDay?: number;
   district?: string;
-  municipality?: string;
   ownerId?: string;
   active?: boolean;
   availabilityCalendar?: string;
@@ -96,7 +93,6 @@ export const getToolDetails = async (toolId: string): Promise<ToolDetails> => {
 export interface ToolSearchFilters {
   keyword?: string;
   district?: string;
-  municipality?: string;
   minPrice?: number;
   maxPrice?: number;
 }
@@ -106,8 +102,7 @@ export const searchTools = async (filters: ToolSearchFilters): Promise<Tool[]> =
     const params = new URLSearchParams();
     if (filters.keyword) params.append('keyword', filters.keyword);
 
-    const location = filters.municipality || filters.district;
-    if (location) params.append('location', location);
+    if (filters.district) params.append('location', filters.district);
 
     if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
     if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());

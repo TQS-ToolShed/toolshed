@@ -14,12 +14,11 @@ export const RenterDashboardPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [keyword, setKeyword] = useState('');
   const [district, setDistrict] = useState('');
-  const [municipality, setMunicipality] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
 
   const fetchTools = useCallback(
-    async (filters?: { keyword?: string; district?: string; municipality?: string; minPrice?: number; maxPrice?: number }) => {
+    async (filters?: { keyword?: string; district?: string; minPrice?: number; maxPrice?: number }) => {
       try {
         setIsLoading(true);
         setError(null);
@@ -27,7 +26,6 @@ export const RenterDashboardPage = () => {
         const hasFilters = Boolean(
           filters?.keyword ||
           filters?.district ||
-          filters?.municipality ||
           filters?.minPrice !== undefined ||
           filters?.maxPrice !== undefined
         );
@@ -35,7 +33,6 @@ export const RenterDashboardPage = () => {
           ? await searchTools({
               keyword: filters?.keyword,
               district: filters?.district,
-              municipality: filters?.municipality,
               minPrice: filters?.minPrice,
               maxPrice: filters?.maxPrice,
             })
@@ -59,7 +56,6 @@ export const RenterDashboardPage = () => {
     event?.preventDefault();
     const keywordQuery = keyword.trim();
     const districtQuery = district.trim();
-    const municipalityQuery = municipality.trim();
     const minPriceValue = minPrice.trim() ? parseFloat(minPrice) : undefined;
     const maxPriceValue = maxPrice.trim() ? parseFloat(maxPrice) : undefined;
 
@@ -67,7 +63,6 @@ export const RenterDashboardPage = () => {
     await fetchTools({
       keyword: keywordQuery || undefined,
       district: districtQuery || undefined,
-      municipality: municipalityQuery || undefined,
       minPrice: minPriceValue,
       maxPrice: maxPriceValue,
     });
@@ -77,7 +72,6 @@ export const RenterDashboardPage = () => {
   const handleResetFilters = async () => {
     setKeyword('');
     setDistrict('');
-    setMunicipality('');
     setMinPrice('');
     setMaxPrice('');
     setIsSearching(true);
@@ -142,18 +136,16 @@ export const RenterDashboardPage = () => {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Find the right tool</CardTitle>
-            <CardDescription>Search by keyword or narrow down by district and municipality</CardDescription>
+            <CardDescription>Search by keyword or narrow down by district</CardDescription>
           </CardHeader>
           <CardContent>
             <ToolSearchBar
               keyword={keyword}
               district={district}
-              municipality={municipality}
               minPrice={minPrice}
               maxPrice={maxPrice}
               onKeywordChange={setKeyword}
               onDistrictChange={setDistrict}
-              onMunicipalityChange={setMunicipality}
               onMinPriceChange={setMinPrice}
               onMaxPriceChange={setMaxPrice}
               onSearch={handleSearch}
