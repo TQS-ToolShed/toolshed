@@ -88,6 +88,7 @@ public class ToolServiceImpl implements ToolService {
         tool.setDescription(input.getDescription());
         tool.setPricePerDay(input.getPricePerDay());
         tool.setLocation(input.getLocation());
+        tool.setDistrict(input.getDistrict());
         tool.setOwner(supplier);
         tool.setActive(true);
         tool.setOverallRating(0.0);
@@ -127,6 +128,9 @@ public class ToolServiceImpl implements ToolService {
         }
         if (input.getLocation() != null) {
             tool.setLocation(input.getLocation());
+        }
+        if (input.getDistrict() != null) {
+            tool.setDistrict(input.getDistrict());
         }
         if (input.getActive() != null) {
             boolean requestedActive = input.getActive();

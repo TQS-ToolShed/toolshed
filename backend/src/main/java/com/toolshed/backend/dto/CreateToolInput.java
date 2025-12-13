@@ -32,6 +32,9 @@ public class CreateToolInput {
     @NotBlank
     private String location;
 
+    // Portuguese district
+    private String district;
+
     public String getTitle() {
         return title;
     }
@@ -70,5 +73,13 @@ public class CreateToolInput {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public String getDistrict() {
+        return district;
+    }
+
+    public void setDistrict(String district) {
+        this.district = district;
     }
 }

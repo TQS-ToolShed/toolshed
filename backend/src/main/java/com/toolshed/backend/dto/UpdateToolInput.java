@@ -25,6 +25,8 @@ public class UpdateToolInput {
 
     private String location;
 
+    private String district;
+
     private UUID ownerId;
 
     private Boolean active;
@@ -103,6 +105,14 @@ public class UpdateToolInput {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getDistrict() {
+        return district;
+    }
+
+    public void setDistrict(String district) {
+        this.district = district;
     }
 
     private Integer numRatings;

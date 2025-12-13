@@ -131,6 +131,7 @@ public class ToolController {
                 .description(tool.getDescription())
                 .pricePerDay(tool.getPricePerDay())
                 .location(tool.getLocation())
+                .district(tool.getDistrict())
                 .active(tool.isActive())
                 .availabilityCalendar(tool.getAvailabilityCalendar())
                 .overallRating(tool.getOverallRating())

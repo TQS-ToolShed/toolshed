@@ -41,6 +41,9 @@ public class Tool {
     @Column(nullable = false)
     private String location;
 
+    // District where the tool is located (Portuguese district)
+    private String district;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     @JsonBackReference
@@ -138,5 +141,13 @@ public class Tool {
 
     public void setNumRatings(int numRatings) {
         this.numRatings = numRatings;
+    }
+
+    public String getDistrict() {
+        return district;
+    }
+
+    public void setDistrict(String district) {
+        this.district = district;
     }
 }
