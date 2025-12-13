@@ -71,7 +71,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
         description,
         pricePerDay: parseFloat(pricePerDay),
         location,
-        district,
+        district: district || undefined,
         active,
       };
       onSubmit(updateData);
@@ -81,7 +81,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
         description,
         pricePerDay: parseFloat(pricePerDay),
         location,
-        district,
+        district: district || undefined,
         supplierId,
       };
       onSubmit(createData);
