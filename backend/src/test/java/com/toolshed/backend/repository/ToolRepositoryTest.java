@@ -5,7 +5,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +25,6 @@ class ToolRepositoryTest {
     private UserRepository userRepo;
 
     @BeforeEach
-    @SuppressWarnings("unused")
     void setUp() {
         
         // clean up
@@ -93,6 +91,7 @@ class ToolRepositoryTest {
         Tool inactive = new Tool();
         inactive.setTitle("Old Drill");
         inactive.setDescription("Broken");
+        inactive.setPricePerDay(1.0);
         inactive.setActive(false);
         inactive.setLocation("Recycling Bin");
         inactive.setOwner(defaultOwner);
@@ -103,7 +102,6 @@ class ToolRepositoryTest {
         
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should return tools where Title matches keyword (Case Insensitive)")
     void testSearchByTitle() {
@@ -114,7 +112,6 @@ class ToolRepositoryTest {
             .containsExactly("Power Drill");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should return tools where Description matches keyword")
     void testSearchByDescription() {
@@ -125,7 +122,6 @@ class ToolRepositoryTest {
             .containsExactly("Bit Set");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should return tools matching Title OR Description (Mixed Case)")
     void testSearchTitleOrDescriptionMixedCase() {
@@ -137,7 +133,6 @@ class ToolRepositoryTest {
             .doesNotContain("Old Drill");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should return tools searching with uppercase keyword against lowercase data")
     void testSearchCaseInsensitiveParams() {
@@ -148,7 +143,6 @@ class ToolRepositoryTest {
             .containsExactly("Heavy HAMMER");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should return empty list when no match is found")
     void testSearchNoResults() {
@@ -156,7 +150,6 @@ class ToolRepositoryTest {
         assertThat(results).isEmpty();
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should NOT return inactive tools even if keyword matches perfectly")
     void testSearchIgnoresInactiveTools() {
@@ -164,8 +157,11 @@ class ToolRepositoryTest {
         Tool inactiveTool = new Tool();
         inactiveTool.setTitle("Super Secret Drill");
         inactiveTool.setDescription("Hidden from public");
+        inactiveTool.setPricePerDay(10.0);
+        inactiveTool.setLocation("Secret Base");
         inactiveTool.setActive(false); // Explicitly inactive
         inactiveTool.setOwner(userRepo.findAll().get(0)); // Use existing owner
+        inactiveTool.setOverallRating(0.0);
         toolRepo.save(inactiveTool);
 
         // Act
@@ -178,7 +174,6 @@ class ToolRepositoryTest {
                 .doesNotContain("Super Secret Drill");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should match keyword embedded in the middle of a word (Partial Match)")
     void testSearchPartialMatchInsideWord() {
@@ -192,7 +187,6 @@ class ToolRepositoryTest {
                 .contains("Power Drill");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should handle special characters in keyword")
     void testSearchWithSpecialCharacters() {
@@ -201,8 +195,10 @@ class ToolRepositoryTest {
         specialTool.setTitle("Drill & Driver Set + Bits");
         specialTool.setDescription("Professional usage");
         specialTool.setPricePerDay(10.0);
+        specialTool.setLocation("Workshop");
         specialTool.setActive(true);
         specialTool.setOwner(userRepo.findAll().get(0));
+        specialTool.setOverallRating(5.0);
         toolRepo.save(specialTool);
 
         // Act: Search using the symbol "&"
@@ -214,7 +210,6 @@ class ToolRepositoryTest {
                 .contains("Drill & Driver Set + Bits");
     }
     
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should return ALL active tools if keyword is empty string")
     void testSearchWithEmptyString() {
@@ -228,7 +223,6 @@ class ToolRepositoryTest {
         assertThat(results).hasSize(4); 
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should return active tools regardless of damage status (damage is tracked separately)")
     void testSearchReturnsActiveTools() {
@@ -238,8 +232,11 @@ class ToolRepositoryTest {
         Tool activeTool = new Tool();
         activeTool.setTitle("Scratched Saw");
         activeTool.setDescription("Works fine but looks ugly");
+        activeTool.setPricePerDay(15.0);
+        activeTool.setLocation("Garage");
         activeTool.setActive(true); // Active
         activeTool.setOwner(userRepo.findAll().get(0));
+        activeTool.setOverallRating(3.5);
         toolRepo.save(activeTool);
 
         List<Tool> results = toolRepo.searchTools("Scratched", null);
@@ -249,7 +246,6 @@ class ToolRepositoryTest {
                 .contains("Scratched Saw");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should find tool by title and safely ignore null description")
     void testSearchWithNullDescription() {
@@ -257,8 +253,11 @@ class ToolRepositoryTest {
         Tool nullDescTool = new Tool();
         nullDescTool.setTitle("Null-Test Key");
         nullDescTool.setDescription(null); 
+        nullDescTool.setPricePerDay(5.0);
+        nullDescTool.setLocation("Shed");
         nullDescTool.setActive(true);
         nullDescTool.setOwner(userRepo.findAll().get(0));
+        nullDescTool.setOverallRating(2.0);
         toolRepo.save(nullDescTool);
 
         // Act
@@ -271,7 +270,6 @@ class ToolRepositoryTest {
                 .containsExactly("Null-Test Key");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should treat SQL wildcard characters literally (e.g., underscore)")
     void testSearchForLiteralUnderscore() {
@@ -279,8 +277,11 @@ class ToolRepositoryTest {
         Tool underscoreTool = new Tool();
         underscoreTool.setTitle("T-Square_Ruler");
         underscoreTool.setDescription("Used for 90 degree angles");
+        underscoreTool.setPricePerDay(8.0);
+        underscoreTool.setLocation("Studio");
         underscoreTool.setActive(true);
         underscoreTool.setOwner(userRepo.findAll().get(0));
+        underscoreTool.setOverallRating(4.0);
         toolRepo.save(underscoreTool);
 
         // Act
@@ -294,7 +295,6 @@ class ToolRepositoryTest {
                 .contains("T-Square_Ruler");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should ignore keywords found only in non-searchable fields (e.g., location)")
     void testSearchExcludesLocation() {
@@ -308,7 +308,6 @@ class ToolRepositoryTest {
         assertThat(results).isEmpty();
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should filter by Keyword AND Location simultaneously")
     void testSearchWithKeywordAndLocation() {
@@ -324,7 +323,6 @@ class ToolRepositoryTest {
                 .containsExactly("Power Drill");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should return results matching Location only (when Keyword is null/empty)")
     void testSearchWithLocationOnly() {
@@ -340,7 +338,6 @@ class ToolRepositoryTest {
                 .containsExactly("Heavy HAMMER");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should ignore Location filter when it is null (Backward Compatibility)")
     void testSearchWithKeywordOnly_LocationNull() {
@@ -354,7 +351,6 @@ class ToolRepositoryTest {
                 .doesNotContain("Circular Saw");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should be case-insensitive for Location as well")
     void testSearchLocationCaseInsensitive() {
@@ -367,7 +363,6 @@ class ToolRepositoryTest {
                 .contains("Power Drill");
     }
 
-    @Disabled("Temporarily disabled until pricePerDay defaults are fixed")
     @Test
     @DisplayName("Should return empty list if Keyword matches but Location does not")
     void testSearchNoMatchForLocation() {

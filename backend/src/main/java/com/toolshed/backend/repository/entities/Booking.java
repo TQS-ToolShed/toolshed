@@ -1,11 +1,16 @@
 package com.toolshed.backend.repository.entities;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import com.toolshed.backend.repository.enums.BookingStatus;
+import com.toolshed.backend.repository.enums.ConditionStatus;
+import com.toolshed.backend.repository.enums.DepositStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -46,6 +51,9 @@ public class Booking {
     @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
+    @jakarta.persistence.OneToMany(mappedBy = "booking", fetch = FetchType.LAZY)
+    private List<Review> reviews;
+
     private LocalDate startDate;
     private LocalDate endDate;
 
@@ -57,5 +65,24 @@ public class Booking {
 
     private Double totalPrice;
 
-    // Damage tracking has been moved to ToolDamage entity
+    // Condition Report Fields
+    @Enumerated(EnumType.STRING)
+    private ConditionStatus conditionStatus;
+
+    @Column(length = 500)
+    private String conditionDescription;
+
+    private LocalDateTime conditionReportedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "condition_reported_by")
+    private User conditionReportedBy;
+
+    // Deposit Fields
+    @Enumerated(EnumType.STRING)
+    private DepositStatus depositStatus;
+
+    private Double depositAmount;
+
+    private LocalDateTime depositPaidAt;
 }

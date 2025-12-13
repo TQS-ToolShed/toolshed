@@ -119,6 +119,19 @@ export const getActiveTools = async (): Promise<Tool[]> => {
   }
 };
 
+// Get tools by supplier
+export const getToolsBySupplier = async (supplierId: string): Promise<Tool[]> => {
+  try {
+    const response = await axios.get<Tool[]>(`${API_URL}/supplier/${supplierId}`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to fetch supplier tools');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+
 // Create a new tool
 export const createTool = async (input: CreateToolInput): Promise<void> => {
   try {
