@@ -402,4 +402,170 @@ class PaymentIT {
                     .isEqualTo(PaymentStatus.FAILED);
         }
     }
+
+    @Nested
+    @DisplayName("Mark Deposit As Paid Tests")
+    class MarkDepositAsPaidTests {
+
+        @Test
+        @DisplayName("Should mark deposit as paid and persist to database")
+        void markDepositAsPaid_validBooking_updatesStatusInDatabase() {
+            // Setup: Create completed booking with deposit required
+            booking.setStatus(BookingStatus.COMPLETED);
+            booking.setPaymentStatus(PaymentStatus.COMPLETED);
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            booking = bookingRepository.save(booking);
+
+            // Act
+            Booking result = paymentService.markDepositAsPaid(booking.getId());
+
+            // Assert
+            assertThat(result.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            assertThat(result.getDepositPaidAt()).isNotNull();
+
+            // Verify persistence
+            Booking persistedBooking = bookingRepository.findById(booking.getId()).orElseThrow();
+            assertThat(persistedBooking.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            assertThat(persistedBooking.getDepositPaidAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Should throw exception for non-existent booking")
+        void markDepositAsPaid_nonExistentBooking_throwsException() {
+            UUID nonExistentId = UUID.randomUUID();
+
+            assertThatThrownBy(() -> paymentService.markDepositAsPaid(nonExistentId))
+                    .isInstanceOf(BookingNotFoundException.class)
+                    .hasMessageContaining("Booking not found");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when deposit not required")
+        void markDepositAsPaid_depositNotRequired_throwsException() {
+            booking.setStatus(BookingStatus.COMPLETED);
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.NOT_REQUIRED);
+            booking = bookingRepository.save(booking);
+
+            assertThatThrownBy(() -> paymentService.markDepositAsPaid(booking.getId()))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+        }
+
+        @Test
+        @DisplayName("Should throw exception when deposit already paid")
+        void markDepositAsPaid_alreadyPaid_throwsException() {
+            booking.setStatus(BookingStatus.COMPLETED);
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            booking.setDepositPaidAt(java.time.LocalDateTime.now());
+            booking = bookingRepository.save(booking);
+
+            assertThatThrownBy(() -> paymentService.markDepositAsPaid(booking.getId()))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+        }
+    }
+
+    @Nested
+    @DisplayName("Condition Report and Deposit Flow Tests")
+    class ConditionReportDepositFlowTests {
+
+        @Autowired
+        private com.toolshed.backend.service.BookingService bookingService;
+
+        @Test
+        @DisplayName("Should require deposit when condition report indicates damage")
+        void conditionReport_brokenCondition_requiresDeposit() {
+            // Setup: Create completed booking
+            booking.setStatus(BookingStatus.COMPLETED);
+            booking.setPaymentStatus(PaymentStatus.COMPLETED);
+            booking = bookingRepository.save(booking);
+
+            // Act: Submit condition report with BROKEN status
+            com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                    com.toolshed.backend.repository.enums.ConditionStatus.BROKEN,
+                    "Tool is damaged beyond use",
+                    renter.getId());
+
+            com.toolshed.backend.dto.BookingResponse response = bookingService.submitConditionReport(booking.getId(),
+                    request);
+
+            // Assert
+            assertThat(response.getConditionStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.BROKEN);
+            assertThat(response.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            assertThat(response.getDepositAmount()).isEqualTo(50.0);
+
+            // Verify persistence
+            Booking persistedBooking = bookingRepository.findById(booking.getId()).orElseThrow();
+            assertThat(persistedBooking.getConditionStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.BROKEN);
+            assertThat(persistedBooking.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+        }
+
+        @Test
+        @DisplayName("Should not require deposit when condition is OK")
+        void conditionReport_okCondition_noDepositRequired() {
+            // Setup: Create completed booking
+            booking.setStatus(BookingStatus.COMPLETED);
+            booking.setPaymentStatus(PaymentStatus.COMPLETED);
+            booking = bookingRepository.save(booking);
+
+            // Act: Submit condition report with OK status
+            com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                    com.toolshed.backend.repository.enums.ConditionStatus.OK,
+                    "Tool returned in perfect condition",
+                    renter.getId());
+
+            com.toolshed.backend.dto.BookingResponse response = bookingService.submitConditionReport(booking.getId(),
+                    request);
+
+            // Assert
+            assertThat(response.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.NOT_REQUIRED);
+            assertThat(response.getDepositAmount()).isEqualTo(0.0);
+        }
+
+        @Test
+        @DisplayName("Full flow: damage reported → deposit required → deposit paid")
+        void fullFlow_damageReported_depositPaid() {
+            // Step 1: Complete booking
+            booking.setStatus(BookingStatus.COMPLETED);
+            booking.setPaymentStatus(PaymentStatus.COMPLETED);
+            booking = bookingRepository.save(booking);
+
+            // Step 2: Submit condition report with damage
+            com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                    com.toolshed.backend.repository.enums.ConditionStatus.MINOR_DAMAGE,
+                    "Minor scratches on the handle",
+                    renter.getId());
+
+            bookingService.submitConditionReport(booking.getId(), request);
+
+            // Verify deposit is required
+            Booking afterReport = bookingRepository.findById(booking.getId()).orElseThrow();
+            assertThat(afterReport.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            assertThat(afterReport.getDepositAmount()).isEqualTo(50.0);
+
+            // Step 3: Pay deposit
+            Booking afterPayment = paymentService.markDepositAsPaid(booking.getId());
+
+            // Verify deposit is paid
+            assertThat(afterPayment.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            assertThat(afterPayment.getDepositPaidAt()).isNotNull();
+
+            // Verify final persisted state
+            Booking finalState = bookingRepository.findById(booking.getId()).orElseThrow();
+            assertThat(finalState.getConditionStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.MINOR_DAMAGE);
+            assertThat(finalState.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+        }
+    }
 }

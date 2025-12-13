@@ -1,6 +1,5 @@
 package com.toolshed.backend.repository.entities;
 
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -37,7 +36,7 @@ public class Review {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false)
+    @JoinColumn(name = "booking_id", nullable = false, unique = false)
     private Booking booking;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -56,7 +55,7 @@ public class Review {
     private ReviewType type;
 
     private Integer rating; // 1-5 scale usually
-    
+
     @Column(length = 1000)
     private String comment;
 

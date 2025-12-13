@@ -1,6 +1,7 @@
 package com.toolshed.backend.boundary;
 
 import com.toolshed.backend.dto.BookingResponse;
+import com.toolshed.backend.dto.ConditionReportRequest;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
 import com.toolshed.backend.dto.UpdateBookingStatusRequest;
@@ -32,7 +33,8 @@ public class BookingController {
         return ResponseEntity.ok(response);
     }
 
-    // Query-parameter variant to align with other endpoints that avoid extra path segments
+    // Query-parameter variant to align with other endpoints that avoid extra path
+    // segments
     @Operation(summary = "Get bookings for owner", description = "Lists booking requests for a specific owner")
     @GetMapping(params = "ownerId")
     public ResponseEntity<List<OwnerBookingResponse>> getBookingsForOwnerQuery(@RequestParam UUID ownerId) {
@@ -60,6 +62,24 @@ public class BookingController {
             @PathVariable UUID bookingId,
             @Valid @RequestBody UpdateBookingStatusRequest request) {
         BookingResponse response = bookingService.updateBookingStatus(bookingId, request.getStatus());
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Submit condition report", description = "Renter reports the condition of the tool at the end of rental. Damage triggers deposit requirement.")
+    @PostMapping("/{bookingId}/condition-report")
+    public ResponseEntity<BookingResponse> submitConditionReport(
+            @PathVariable UUID bookingId,
+            @Valid @RequestBody ConditionReportRequest request) {
+        BookingResponse response = bookingService.submitConditionReport(bookingId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Pay deposit", description = "Renter pays the security deposit required due to damage report.")
+    @PostMapping("/{bookingId}/pay-deposit")
+    public ResponseEntity<BookingResponse> payDeposit(
+            @PathVariable UUID bookingId,
+            @RequestParam UUID renterId) {
+        BookingResponse response = bookingService.payDeposit(bookingId, renterId);
         return ResponseEntity.ok(response);
     }
 }

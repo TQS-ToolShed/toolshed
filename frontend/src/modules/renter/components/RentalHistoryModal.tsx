@@ -3,9 +3,11 @@ import {
   getBookingsForRenter,
   type BookingResponse,
 } from "../api/bookings-api";
+import { handlePayDeposit } from "../api/payment-api";
 import { useAuth } from "@/modules/auth/context/AuthContext";
 import { ReviewOwnerModal } from "./ReviewOwnerModal";
 import { ReviewToolModal } from "./ReviewToolModal";
+import { ConditionReportModal } from "./ConditionReportModal";
 
 interface RentalHistoryModalProps {
   open: boolean;
@@ -24,6 +26,8 @@ export const RentalHistoryModal = ({
     useState<BookingResponse | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isToolReviewModalOpen, setIsToolReviewModalOpen] = useState(false);
+  const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
+  const [isPayingDeposit, setIsPayingDeposit] = useState<string | null>(null);
 
   const loadBookings = async () => {
     if (!user?.id) return;
@@ -65,6 +69,35 @@ export const RentalHistoryModal = ({
     REJECTED: "bg-red-100 text-red-800",
     APPROVED: "bg-blue-100 text-blue-800",
     PENDING: "bg-gray-100 text-gray-800",
+  };
+
+  const conditionStyles: Record<string, string> = {
+    OK: "bg-emerald-100 text-emerald-800",
+    USED: "bg-blue-100 text-blue-800",
+    MINOR_DAMAGE: "bg-amber-100 text-amber-800",
+    BROKEN: "bg-red-100 text-red-800",
+    MISSING_PARTS: "bg-orange-100 text-orange-800",
+  };
+
+  const depositStyles: Record<string, string> = {
+    NOT_REQUIRED: "bg-gray-100 text-gray-600",
+    REQUIRED: "bg-amber-100 text-amber-800",
+    PAID: "bg-emerald-100 text-emerald-800",
+  };
+
+  const onPayDepositClick = async (bookingId: string) => {
+    if (!user?.id) return;
+    try {
+      setIsPayingDeposit(bookingId);
+      // Redirects to Stripe checkout
+      await handlePayDeposit(bookingId);
+      // Note: Page will redirect, but in case it doesn't:
+      await loadBookings();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to initiate deposit payment');
+    } finally {
+      setIsPayingDeposit(null);
+    }
   };
 
   if (!open) return null;
@@ -137,6 +170,30 @@ export const RentalHistoryModal = ({
                           )}
                         </div>
 
+                        {/* Condition Report Status */}
+                        {booking.conditionStatus && (
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                            <span
+                              className={`px-2 py-1 rounded-full font-medium ${conditionStyles[booking.conditionStatus] || 'bg-gray-100 text-gray-800'}`}
+                            >
+                              Condition: {booking.conditionStatus.replace('_', ' ')}
+                            </span>
+                            {booking.depositStatus && (
+                              <span
+                                className={`px-2 py-1 rounded-full font-medium ${depositStyles[booking.depositStatus] || 'bg-gray-100 text-gray-800'}`}
+                              >
+                                Deposit: {booking.depositStatus.replace('_', ' ')}
+                                {booking.depositAmount && booking.depositStatus !== 'NOT_REQUIRED' && ` (€${booking.depositAmount.toFixed(2)})`}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {booking.conditionDescription && (
+                          <p className="mt-1 text-xs text-muted-foreground italic">
+                            "{booking.conditionDescription}"
+                          </p>
+                        )}
+
                         {booking.review && (
                           <div className="mt-2 p-2 bg-muted/50 rounded-md text-sm">
                             <div className="flex items-center gap-1 mb-1">
@@ -196,6 +253,28 @@ export const RentalHistoryModal = ({
                       </div>
                       {booking.status === "COMPLETED" && (
                         <div className="flex flex-col gap-2">
+                          {/* Condition Report Button - only show if no condition report yet */}
+                          {!booking.conditionStatus && (
+                            <button
+                              onClick={() => {
+                                setSelectedBooking(booking);
+                                setIsConditionModalOpen(true);
+                              }}
+                              className="px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors bg-purple-600 text-white hover:bg-purple-700"
+                            >
+                              Report Condition
+                            </button>
+                          )}
+                          {/* Pay Deposit Button - only show if deposit is required */}
+                          {booking.depositStatus === 'REQUIRED' && (
+                            <button
+                              onClick={() => onPayDepositClick(booking.id)}
+                              disabled={isPayingDeposit === booking.id}
+                              className="px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap transition-colors bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+                            >
+                              {isPayingDeposit === booking.id ? 'Paying...' : `Pay Deposit €${booking.depositAmount?.toFixed(2)}`}
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               setSelectedBooking(booking);
@@ -262,6 +341,21 @@ export const RentalHistoryModal = ({
           toolName={selectedBooking.toolTitle || "the tool"}
           existingReview={selectedBooking.toolReview}
           onReviewSubmitted={() => {
+            loadBookings();
+          }}
+        />
+      )}
+
+      {selectedBooking && (
+        <ConditionReportModal
+          open={isConditionModalOpen}
+          onClose={() => {
+            setIsConditionModalOpen(false);
+            setSelectedBooking(null);
+          }}
+          bookingId={selectedBooking.id}
+          toolName={selectedBooking.toolTitle || "the tool"}
+          onSubmitted={() => {
             loadBookings();
           }}
         />

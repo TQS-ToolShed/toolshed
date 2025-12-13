@@ -1,24 +1,29 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { markBookingAsPaid, getPaymentStatus } from '../api/payment-api';
+import { markBookingAsPaid, markDepositAsPaid, getPaymentStatus } from '../api/payment-api';
 
 /**
  * Payment Success Page
  * 
- * Displayed after a successful Stripe checkout.
- * Reads the bookingId from URL params and marks the booking as paid.
+ * Displayed after a successful Stripe checkout for both rental payments and deposits.
+ * Reads the bookingId and type from URL params and marks the appropriate payment as completed.
  */
 export const PaymentSuccessPage = () => {
   const [searchParams] = useSearchParams();
   const bookingId = searchParams.get('bookingId');
-  const sessionId = searchParams.get('session_id'); // Stripe session ID (optional)
+  const sessionId = searchParams.get('session_id');
+  const paymentType = searchParams.get('type'); // 'deposit' or undefined
   
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [paymentInfo, setPaymentInfo] = useState<{
     paymentStatus: string;
     totalPrice: number;
+    depositStatus?: string;
+    depositAmount?: number;
   } | null>(null);
+
+  const isDeposit = paymentType === 'deposit';
 
   useEffect(() => {
     const confirmPayment = async () => {
@@ -29,8 +34,12 @@ export const PaymentSuccessPage = () => {
       }
 
       try {
-        // Mark the booking as paid in our database
-        await markBookingAsPaid(bookingId);
+        // Mark the appropriate payment as completed
+        if (isDeposit) {
+          await markDepositAsPaid(bookingId);
+        } else {
+          await markBookingAsPaid(bookingId);
+        }
         
         // Get updated payment status
         const statusInfo = await getPaymentStatus(bookingId);
@@ -42,13 +51,13 @@ export const PaymentSuccessPage = () => {
         setErrorMessage(
           error instanceof Error 
             ? error.message 
-            : 'Failed to confirm payment'
+            : isDeposit ? 'Failed to confirm deposit payment' : 'Failed to confirm payment'
         );
       }
     };
 
     confirmPayment();
-  }, [bookingId]);
+  }, [bookingId, isDeposit]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -58,8 +67,12 @@ export const PaymentSuccessPage = () => {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
-            <h1 className="text-2xl font-bold mb-2">Confirming Payment...</h1>
-            <p className="text-muted-foreground">Please wait while we verify your payment.</p>
+            <h1 className="text-2xl font-bold mb-2">
+              {isDeposit ? 'Confirming Deposit...' : 'Confirming Payment...'}
+            </h1>
+            <p className="text-muted-foreground">
+              Please wait while we verify your {isDeposit ? 'deposit' : 'payment'}.
+            </p>
           </>
         )}
 
@@ -81,10 +94,10 @@ export const PaymentSuccessPage = () => {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-green-600 mb-2">
-              Payment Successful!
+              {isDeposit ? 'Deposit Paid!' : 'Payment Successful!'}
             </h1>
             <p className="text-muted-foreground mb-4">
-              Your payment has been processed successfully.
+              Your {isDeposit ? 'security deposit has' : 'payment has'} been processed successfully.
             </p>
             
             {paymentInfo && (
@@ -95,12 +108,14 @@ export const PaymentSuccessPage = () => {
                 </p>
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium">Amount:</span>{' '}
-                  €{paymentInfo.totalPrice.toFixed(2)}
+                  €{isDeposit && paymentInfo.depositAmount 
+                    ? paymentInfo.depositAmount.toFixed(2) 
+                    : paymentInfo.totalPrice.toFixed(2)}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   <span className="font-medium">Status:</span>{' '}
                   <span className="text-green-600 font-medium">
-                    {paymentInfo.paymentStatus}
+                    {isDeposit ? paymentInfo.depositStatus : paymentInfo.paymentStatus}
                   </span>
                 </p>
                 {sessionId && (
@@ -138,13 +153,13 @@ export const PaymentSuccessPage = () => {
               </svg>
             </div>
             <h1 className="text-2xl font-bold text-red-600 mb-2">
-              Payment Confirmation Failed
+              {isDeposit ? 'Deposit Confirmation Failed' : 'Payment Confirmation Failed'}
             </h1>
             <p className="text-muted-foreground mb-4">
-              {errorMessage || 'There was an issue confirming your payment.'}
+              {errorMessage || `There was an issue confirming your ${isDeposit ? 'deposit' : 'payment'}.`}
             </p>
             <p className="text-sm text-muted-foreground mb-6">
-              Don't worry - if your payment went through, it will be reflected shortly.
+              Don't worry - if your {isDeposit ? 'deposit' : 'payment'} went through, it will be reflected shortly.
               Please contact support if the issue persists.
             </p>
             <Link
@@ -159,3 +174,4 @@ export const PaymentSuccessPage = () => {
     </div>
   );
 };
+
