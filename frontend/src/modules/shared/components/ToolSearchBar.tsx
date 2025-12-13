@@ -3,17 +3,15 @@ import { useEffect, useState } from 'react';
 import { Search, MapPin, RotateCcw, Euro } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { fetchDistricts, fetchMunicipalities } from '@/modules/shared/api/geo-api';
+import { fetchDistricts } from '@/modules/shared/api/geo-api';
 
 export interface ToolSearchBarProps {
   keyword: string;
   district: string;
-  municipality: string;
   minPrice: string;
   maxPrice: string;
   onKeywordChange: (value: string) => void;
   onDistrictChange: (value: string) => void;
-  onMunicipalityChange: (value: string) => void;
   onMinPriceChange: (value: string) => void;
   onMaxPriceChange: (value: string) => void;
   onSearch: (event?: FormEvent<HTMLFormElement>) => void;
@@ -25,12 +23,10 @@ export interface ToolSearchBarProps {
 export function ToolSearchBar({
   keyword,
   district,
-  municipality,
   minPrice,
   maxPrice,
   onKeywordChange,
   onDistrictChange,
-  onMunicipalityChange,
   onMinPriceChange,
   onMaxPriceChange,
   onSearch,
@@ -39,7 +35,6 @@ export function ToolSearchBar({
   className = '',
 }: ToolSearchBarProps) {
   const [districtOptions, setDistrictOptions] = useState<string[]>([]);
-  const [municipalityOptions, setMunicipalityOptions] = useState<string[]>([]);
   const [isGeoLoading, setIsGeoLoading] = useState(false);
 
   useEffect(() => {
@@ -66,42 +61,8 @@ export function ToolSearchBar({
     };
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadMunicipalities = async () => {
-      if (!district) {
-        setMunicipalityOptions([]);
-        onMunicipalityChange('');
-        return;
-      }
-
-      try {
-        setIsGeoLoading(true);
-        const municipalities = await fetchMunicipalities(district);
-        if (!isMounted) return;
-        setMunicipalityOptions(municipalities);
-        if (municipality && !municipalities.includes(municipality)) {
-          onMunicipalityChange('');
-        }
-      } finally {
-        if (isMounted) {
-          setIsGeoLoading(false);
-        }
-      }
-    };
-
-    loadMunicipalities();
-
-    return () => {
-      isMounted = false;
-    };
-    // Only re-run when the selected district changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [district]);
-
   const effectiveLoading = isLoading || isGeoLoading;
-  const hasFilters = keyword.trim() || district.trim() || municipality.trim() || minPrice.trim() || maxPrice.trim();
+  const hasFilters = keyword.trim() || district.trim() || minPrice.trim() || maxPrice.trim();
 
   return (
     <form
@@ -134,22 +95,6 @@ export function ToolSearchBar({
             <option value="">All districts</option>
             {districtOptions.map((d) => (
               <option key={d} value={d}>{d}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Municipality select */}
-        <div className="relative flex-1">
-          <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <select
-            value={municipality}
-            onChange={(e) => onMunicipalityChange(e.target.value)}
-            disabled={effectiveLoading || !district}
-            className="pl-10 pr-3 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="">All municipalities</option>
-            {municipalityOptions.map((m) => (
-              <option key={m} value={m}>{m}</option>
             ))}
           </select>
         </div>

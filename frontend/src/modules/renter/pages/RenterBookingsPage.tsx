@@ -131,7 +131,7 @@ export const RenterBookingsPage = () => {
             <p className="text-sm text-muted-foreground mb-1">Booking</p>
             <h2 className="text-3xl font-bold">{tool.title}</h2>
             <p className="text-muted-foreground">
-              {[tool.municipality, tool.district].filter(Boolean).join(', ')}
+              {tool.district}
             </p>
           </div>
           <BackToDashboardButton />

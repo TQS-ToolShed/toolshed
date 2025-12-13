@@ -15,7 +15,7 @@ export const AvailableToolCard = ({ tool }: AvailableToolCardProps) => {
           <div>
             <CardTitle className="text-lg">{tool.title}</CardTitle>
             <CardDescription className="mt-1">
-              {[tool.municipality, tool.district].filter(Boolean).join(', ')}
+              {tool.district}
             </CardDescription>
           </div>
           <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">

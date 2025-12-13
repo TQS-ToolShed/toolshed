@@ -17,7 +17,7 @@ export const ToolCard = ({ tool, onEdit, onToggleActive, onDelete }: ToolCardPro
           <div>
             <CardTitle className="text-lg">{tool.title}</CardTitle>
             <CardDescription className="mt-1">
-              {[tool.municipality, tool.district].filter(Boolean).join(', ')}
+              {tool.district}
             </CardDescription>
           </div>
           <span className={`px-2 py-1 text-xs rounded-full ${tool.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>

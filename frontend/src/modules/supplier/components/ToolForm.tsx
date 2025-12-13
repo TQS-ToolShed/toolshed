@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Tool, CreateToolInput, UpdateToolInput } from '../api/tools-api';
-import { fetchDistricts, fetchMunicipalities } from '@/modules/shared/api/geo-api';
+import { fetchDistricts } from '@/modules/shared/api/geo-api';
 
 interface ToolFormProps {
   tool?: Tool | null;
@@ -19,9 +19,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
   const [description, setDescription] = useState('');
   const [pricePerDay, setPricePerDay] = useState('');
   const [district, setDistrict] = useState('');
-  const [municipality, setMunicipality] = useState('');
   const [districtOptions, setDistrictOptions] = useState<string[]>([]);
-  const [municipalityOptions, setMunicipalityOptions] = useState<string[]>([]);
   const [isLoadingGeo, setIsLoadingGeo] = useState(false);
   const [active, setActive] = useState(true);
 
@@ -57,51 +55,15 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
       setDescription(tool.description);
       setPricePerDay(tool.pricePerDay.toString());
       setDistrict(tool.district);
-      setMunicipality(tool.municipality);
       setActive(tool.active);
     } else {
       setTitle('');
       setDescription('');
       setPricePerDay('');
       setDistrict('');
-      setMunicipality('');
       setActive(true);
     }
   }, [tool]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const loadMunicipalities = async () => {
-      if (!district) {
-        setMunicipalityOptions([]);
-        setMunicipality('');
-        return;
-      }
-
-      try {
-        setIsLoadingGeo(true);
-        const municipalities = await fetchMunicipalities(district);
-        if (!isMounted) return;
-        setMunicipalityOptions(municipalities);
-        if (municipality && !municipalities.includes(municipality)) {
-          setMunicipality('');
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingGeo(false);
-        }
-      }
-    };
-
-    loadMunicipalities();
-
-    return () => {
-      isMounted = false;
-    };
-    // We only refetch municipalities when the district changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [district]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,7 +79,6 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
         description,
         pricePerDay: parsedPrice,
         district,
-        municipality,
         active,
       };
       onSubmit(updateData);
@@ -127,7 +88,6 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
         description,
         pricePerDay: parsedPrice,
         district,
-        municipality,
         supplierId,
       };
       onSubmit(createData);
@@ -178,40 +138,21 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="district">District</Label>
-              <select
-                id="district"
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                required
-                disabled={isLoadingGeo || isLoading}
-              >
-                <option value="">Select a district</option>
-                {districtOptions.map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="municipality">Municipality</Label>
-              <select
-                id="municipality"
-                value={municipality}
-                onChange={(e) => setMunicipality(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                required
-                disabled={!district || isLoadingGeo || isLoading}
-              >
-                <option value="">Select a municipality</option>
-                {municipalityOptions.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="district">District</Label>
+            <select
+              id="district"
+              value={district}
+              onChange={(e) => setDistrict(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              required
+              disabled={isLoadingGeo || isLoading}
+            >
+              <option value="">Select a district</option>
+              {districtOptions.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
           </div>
         </CardContent>
         <CardFooter className="flex gap-2 p-4">
