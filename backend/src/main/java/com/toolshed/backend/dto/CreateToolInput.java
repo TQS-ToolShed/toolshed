@@ -32,9 +32,6 @@ public class CreateToolInput {
     @NotBlank
     private String district;
 
-    @NotBlank
-    private String municipality;
-
     public String getTitle() {
         return title;
     }
@@ -73,13 +70,5 @@ public class CreateToolInput {
 
     public void setDistrict(String district) {
         this.district = district;
-    }
-
-    public String getMunicipality() {
-        return municipality;
-    }
-
-    public void setMunicipality(String municipality) {
-        this.municipality = municipality;
     }
 }

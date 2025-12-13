@@ -25,8 +25,6 @@ public class UpdateToolInput {
 
     private String district;
 
-    private String municipality;
-
     private UUID ownerId;
 
     private Boolean active;
@@ -81,14 +79,6 @@ public class UpdateToolInput {
 
     public void setDistrict(String district) {
         this.district = district;
-    }
-
-    public String getMunicipality() {
-        return municipality;
-    }
-
-    public void setMunicipality(String municipality) {
-        this.municipality = municipality;
     }
 
     public Double getPricePerDay() {

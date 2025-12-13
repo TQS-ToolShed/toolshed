@@ -41,9 +41,6 @@ public class Tool {
     @Column(nullable = false)
     private String district;
 
-    @Column(nullable = false)
-    private String municipality;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     @JsonBackReference
@@ -101,14 +98,6 @@ public class Tool {
 
     public void setDistrict(String district) {
         this.district = district;
-    }
-
-    public String getMunicipality() {
-        return municipality;
-    }
-
-    public void setMunicipality(String municipality) {
-        this.municipality = municipality;
     }
 
     public User getOwner() {
