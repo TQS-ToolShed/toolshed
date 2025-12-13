@@ -61,7 +61,7 @@ public class ToolServiceImpl implements ToolService {
             return Collections.emptyList();
         }
 
-        // Note: location parameter can now match district or municipality
+        // Note: location parameter matches district
         return toolRepo.searchTools(trimmedKeyword, trimmedLocation, minPrice, maxPrice);
     }
 
