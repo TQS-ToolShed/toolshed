@@ -79,7 +79,6 @@ class ReviewIT {
         tool.setDescription("Description");
         tool.setPricePerDay(10.0);
         tool.setDistrict("Aveiro");
-        tool.setMunicipality("Aveiro");
         tool.setOwner(owner);
         tool.setActive(true);
         tool.setOverallRating(0.0);

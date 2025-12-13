@@ -55,7 +55,6 @@ class ToolControllerTest {
         tool.setActive(true);
         tool.setPricePerDay(5.0);
         tool.setDistrict("Lisboa");
-        tool.setMunicipality("Lisboa");
         tool.setOverallRating(4.5);
         tool.setNumRatings(10);
 

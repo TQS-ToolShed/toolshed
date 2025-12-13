@@ -51,7 +51,6 @@ class ToolRepositoryTest {
         drill.setPricePerDay(5.0);
         drill.setActive(true);
         drill.setDistrict("Aveiro");
-        drill.setMunicipality("Aveiro");
         drill.setOwner(defaultOwner);
         drill.setAvailabilityCalendar("{\"mon\": true, \"tue\": true, \"wed\": false}");
         drill.setOverallRating(4.8);
@@ -63,7 +62,6 @@ class ToolRepositoryTest {
         bitSet.setPricePerDay(20.0);
         bitSet.setActive(true);
         bitSet.setDistrict("Lisboa");
-        bitSet.setMunicipality("Lisboa");
         bitSet.setOwner(defaultOwner);
         bitSet.setAvailabilityCalendar("{\"weekends\": true}");
         bitSet.setOverallRating(4.5);
@@ -75,7 +73,6 @@ class ToolRepositoryTest {
         hammer.setPricePerDay(100.0);
         hammer.setActive(true);
         hammer.setDistrict("Porto");
-        hammer.setMunicipality("Porto");
         hammer.setOwner(defaultOwner);
         hammer.setAvailabilityCalendar("{\"available\": true}");
         hammer.setOverallRating(3.9);
@@ -87,7 +84,6 @@ class ToolRepositoryTest {
         saw.setPricePerDay(15.0);
         saw.setActive(true);
         saw.setDistrict("Lisboa");
-        saw.setMunicipality("Sintra");
         saw.setOwner(defaultOwner);
         saw.setAvailabilityCalendar("{\"available\": true}");
         saw.setOverallRating(5.0);
@@ -99,7 +95,6 @@ class ToolRepositoryTest {
         inactive.setPricePerDay(1.0);
         inactive.setActive(false);
         inactive.setDistrict("Aveiro");
-        inactive.setMunicipality("Aveiro");
         inactive.setOwner(defaultOwner);
         inactive.setAvailabilityCalendar("{\"available\": false}");
         inactive.setOverallRating(1.2);
@@ -165,7 +160,6 @@ class ToolRepositoryTest {
         inactiveTool.setDescription("Hidden from public");
         inactiveTool.setPricePerDay(10.0);
         inactiveTool.setDistrict("Aveiro");
-        inactiveTool.setMunicipality("Aveiro");
         inactiveTool.setActive(false); // Explicitly inactive
         inactiveTool.setOwner(userRepo.findAll().get(0)); // Use existing owner
         inactiveTool.setOverallRating(0.0);
@@ -203,7 +197,6 @@ class ToolRepositoryTest {
         specialTool.setDescription("Professional usage");
         specialTool.setPricePerDay(10.0);
         specialTool.setDistrict("Porto");
-        specialTool.setMunicipality("Porto");
         specialTool.setActive(true);
         specialTool.setOwner(userRepo.findAll().get(0));
         specialTool.setOverallRating(5.0);
@@ -242,7 +235,6 @@ class ToolRepositoryTest {
         activeTool.setDescription("Works fine but looks ugly");
         activeTool.setPricePerDay(15.0);
         activeTool.setDistrict("Lisboa");
-        activeTool.setMunicipality("Cascais");
         activeTool.setActive(true); // Active
         activeTool.setOwner(userRepo.findAll().get(0));
         activeTool.setOverallRating(3.5);
@@ -264,7 +256,6 @@ class ToolRepositoryTest {
         nullDescTool.setDescription(null); 
         nullDescTool.setPricePerDay(5.0);
         nullDescTool.setDistrict("Aveiro");
-        nullDescTool.setMunicipality("Aveiro");
         nullDescTool.setActive(true);
         nullDescTool.setOwner(userRepo.findAll().get(0));
         nullDescTool.setOverallRating(2.0);
@@ -289,7 +280,6 @@ class ToolRepositoryTest {
         underscoreTool.setDescription("Used for 90 degree angles");
         underscoreTool.setPricePerDay(8.0);
         underscoreTool.setDistrict("Porto");
-        underscoreTool.setMunicipality("Matosinhos");
         underscoreTool.setActive(true);
         underscoreTool.setOwner(userRepo.findAll().get(0));
         underscoreTool.setOverallRating(4.0);

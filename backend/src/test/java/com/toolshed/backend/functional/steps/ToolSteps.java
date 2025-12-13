@@ -83,7 +83,6 @@ public class ToolSteps {
         // Parse location as "District, Municipality" or use defaults
         String[] parts = location.split(",");
         toolRequest.setDistrict(parts.length > 0 ? parts[0].trim() : "Aveiro");
-        toolRequest.setMunicipality(parts.length > 1 ? parts[1].trim() : "Aveiro");
         toolRequest.setSupplierId(testUser.getId());
     }
 
@@ -108,7 +107,6 @@ public class ToolSteps {
         tool.setDescription("Seeded tool");
         tool.setPricePerDay(10.0);
         tool.setDistrict("Porto");
-        tool.setMunicipality("Porto");
         tool.setOwner(testUser);
         tool.setActive(true);
         tool.setOverallRating(0.0);
