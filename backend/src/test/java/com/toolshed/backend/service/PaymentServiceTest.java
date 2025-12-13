@@ -832,4 +832,220 @@ class PaymentServiceTest {
             }
         }
     }
+
+    // ===== Deposit Payment Tests =====
+
+    @Nested
+    @DisplayName("Mark Deposit As Paid Tests")
+    class MarkDepositAsPaidTests {
+
+        @Test
+        @DisplayName("Should mark deposit as paid successfully when status is REQUIRED")
+        void shouldMarkDepositAsPaidSuccessfully() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act
+            Booking result = paymentService.markDepositAsPaid(bookingId);
+
+            // Assert
+            assertThat(result.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            assertThat(result.getDepositPaidAt()).isNotNull();
+            verify(bookingRepository).save(booking);
+        }
+
+        @Test
+        @DisplayName("Should throw BookingNotFoundException when booking not found")
+        void shouldThrowExceptionWhenBookingNotFound() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            when(bookingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.markDepositAsPaid(nonExistentId))
+                    .isInstanceOf(BookingNotFoundException.class)
+                    .hasMessageContaining("Booking not found");
+            verify(bookingRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should throw DepositNotRequiredException when deposit status is NOT_REQUIRED")
+        void shouldThrowExceptionWhenDepositNotRequired() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.NOT_REQUIRED);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.markDepositAsPaid(bookingId))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+            verify(bookingRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should throw DepositNotRequiredException when deposit already paid")
+        void shouldThrowExceptionWhenDepositAlreadyPaid() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.markDepositAsPaid(bookingId))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+            verify(bookingRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should set depositPaidAt timestamp when marking as paid")
+        void shouldSetDepositPaidAtTimestamp() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act
+            Booking result = paymentService.markDepositAsPaid(bookingId);
+
+            // Assert
+            assertThat(result.getDepositPaidAt()).isNotNull();
+            assertThat(result.getDepositPaidAt()).isBeforeOrEqualTo(java.time.LocalDateTime.now());
+        }
+    }
+
+    @Nested
+    @DisplayName("Create Deposit Checkout Session Tests")
+    class CreateDepositCheckoutSessionTests {
+
+        private static final String SUCCESS_URL = "http://localhost:5173/payment/success";
+        private static final String CANCEL_URL = "http://localhost:5173/payment/cancelled";
+
+        @Test
+        @DisplayName("Should create deposit checkout session successfully")
+        void shouldCreateDepositCheckoutSessionSuccessfully() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_deposit_test");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_deposit_test");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenReturn(mockSession);
+
+                // Act
+                CheckoutSessionResponse response = paymentService.createDepositCheckoutSession(
+                        bookingId, SUCCESS_URL, CANCEL_URL);
+
+                // Assert
+                assertThat(response).isNotNull();
+                assertThat(response.getSessionId()).isEqualTo("cs_deposit_test");
+                assertThat(response.getCheckoutUrl()).isEqualTo("https://checkout.stripe.com/pay/cs_deposit_test");
+            }
+        }
+
+        @Test
+        @DisplayName("Should throw BookingNotFoundException when booking not found for deposit")
+        void shouldThrowExceptionWhenBookingNotFoundForDeposit() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            when(bookingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.createDepositCheckoutSession(
+                    nonExistentId, SUCCESS_URL, CANCEL_URL))
+                    .isInstanceOf(BookingNotFoundException.class)
+                    .hasMessageContaining("Booking not found");
+        }
+
+        @Test
+        @DisplayName("Should throw DepositNotRequiredException when deposit not required")
+        void shouldThrowExceptionWhenDepositNotRequiredForCheckout() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.NOT_REQUIRED);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.createDepositCheckoutSession(
+                    bookingId, SUCCESS_URL, CANCEL_URL))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+        }
+
+        @Test
+        @DisplayName("Should throw DepositNotRequiredException when deposit already paid for checkout")
+        void shouldThrowExceptionWhenDepositAlreadyPaidForCheckout() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.createDepositCheckoutSession(
+                    bookingId, SUCCESS_URL, CANCEL_URL))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+        }
+
+        @Test
+        @DisplayName("Should set correct deposit amount of 50 euros in cents")
+        void shouldSetCorrectDepositAmountInCents() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_amount_test");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_amount_test");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenAnswer(invocation -> {
+                            SessionCreateParams params = invocation.getArgument(0);
+                            // Verify amount is 5000 cents (€50.00)
+                            assertThat(params.getLineItems().get(0).getPriceData().getUnitAmount())
+                                    .isEqualTo(5000L);
+                            return mockSession;
+                        });
+
+                // Act
+                paymentService.createDepositCheckoutSession(bookingId, SUCCESS_URL, CANCEL_URL);
+            }
+        }
+
+        @Test
+        @DisplayName("Should include deposit type in metadata")
+        void shouldIncludeDepositTypeInMetadata() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_meta_test");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_meta_test");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenAnswer(invocation -> {
+                            SessionCreateParams params = invocation.getArgument(0);
+                            // Verify metadata contains type=deposit
+                            assertThat(params.getMetadata()).containsKey("type");
+                            assertThat(params.getMetadata().get("type")).isEqualTo("deposit");
+                            return mockSession;
+                        });
+
+                // Act
+                paymentService.createDepositCheckoutSession(bookingId, SUCCESS_URL, CANCEL_URL);
+            }
+        }
+    }
 }

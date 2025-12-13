@@ -745,4 +745,243 @@ class BookingServiceImplTest {
                 // Owner review should be null since no OWNER_TO_RENTER type
                 assertThat(response.getOwnerReview()).isNull();
         }
+
+        // ===== Condition Report Tests =====
+
+        @Test
+        @DisplayName("Should submit condition report and set NOT_REQUIRED deposit for OK condition")
+        void submitConditionReportOKCondition() {
+                UUID bookingId = UUID.randomUUID();
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                tool.setTitle("Test Tool");
+                booking.setRenter(renter);
+                booking.setOwner(tool.getOwner());
+                booking.setStatus(BookingStatus.COMPLETED);
+                booking.setPaymentStatus(PaymentStatus.COMPLETED);
+                booking.setStartDate(LocalDate.now().minusDays(2));
+                booking.setEndDate(LocalDate.now().minusDays(1));
+                booking.setTotalPrice(20.0);
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                                com.toolshed.backend.repository.enums.ConditionStatus.OK,
+                                "Tool returned in perfect condition",
+                                renter.getId());
+
+                BookingResponse response = bookingService.submitConditionReport(bookingId, request);
+
+                assertThat(response.getConditionStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.OK);
+                assertThat(response.getConditionDescription()).isEqualTo("Tool returned in perfect condition");
+                assertThat(response.getDepositStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.NOT_REQUIRED);
+                assertThat(response.getDepositAmount()).isEqualTo(0.0);
+                verify(bookingRepository).save(any(Booking.class));
+        }
+
+        @Test
+        @DisplayName("Should set REQUIRED deposit when condition is BROKEN")
+        void submitConditionReportBrokenConditionRequiresDeposit() {
+                UUID bookingId = UUID.randomUUID();
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                tool.setTitle("Broken Tool");
+                booking.setRenter(renter);
+                booking.setOwner(tool.getOwner());
+                booking.setStatus(BookingStatus.COMPLETED);
+                booking.setPaymentStatus(PaymentStatus.COMPLETED);
+                booking.setStartDate(LocalDate.now().minusDays(2));
+                booking.setEndDate(LocalDate.now().minusDays(1));
+                booking.setTotalPrice(30.0);
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                                com.toolshed.backend.repository.enums.ConditionStatus.BROKEN,
+                                "Tool is completely broken",
+                                renter.getId());
+
+                BookingResponse response = bookingService.submitConditionReport(bookingId, request);
+
+                assertThat(response.getConditionStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.BROKEN);
+                assertThat(response.getDepositStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+                assertThat(response.getDepositAmount()).isEqualTo(50.0);
+                verify(bookingRepository).save(any(Booking.class));
+        }
+
+        @Test
+        @DisplayName("Should set REQUIRED deposit when condition is MINOR_DAMAGE")
+        void submitConditionReportMinorDamageRequiresDeposit() {
+                UUID bookingId = UUID.randomUUID();
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                tool.setTitle("Damaged Tool");
+                booking.setRenter(renter);
+                booking.setOwner(tool.getOwner());
+                booking.setStatus(BookingStatus.COMPLETED);
+                booking.setPaymentStatus(PaymentStatus.COMPLETED);
+                booking.setStartDate(LocalDate.now().minusDays(2));
+                booking.setEndDate(LocalDate.now().minusDays(1));
+                booking.setTotalPrice(25.0);
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                                com.toolshed.backend.repository.enums.ConditionStatus.MINOR_DAMAGE,
+                                "Small scratch on handle",
+                                renter.getId());
+
+                BookingResponse response = bookingService.submitConditionReport(bookingId, request);
+
+                assertThat(response.getConditionStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.MINOR_DAMAGE);
+                assertThat(response.getDepositStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+                assertThat(response.getDepositAmount()).isEqualTo(50.0);
+        }
+
+        @Test
+        @DisplayName("Should throw exception when booking not found")
+        void submitConditionReportBookingNotFound() {
+                UUID bookingId = UUID.randomUUID();
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.empty());
+
+                com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                                com.toolshed.backend.repository.enums.ConditionStatus.OK,
+                                "Test",
+                                renter.getId());
+
+                assertThatThrownBy(() -> bookingService.submitConditionReport(bookingId, request))
+                                .isInstanceOf(ResponseStatusException.class)
+                                .hasMessageContaining("Booking not found")
+                                .extracting("statusCode")
+                                .isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("Should throw exception when condition already reported")
+        void submitConditionReportAlreadyReported() {
+                UUID bookingId = UUID.randomUUID();
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                booking.setRenter(renter);
+                booking.setOwner(tool.getOwner());
+                booking.setStatus(BookingStatus.COMPLETED);
+                booking.setConditionStatus(com.toolshed.backend.repository.enums.ConditionStatus.OK);
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+                com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                                com.toolshed.backend.repository.enums.ConditionStatus.BROKEN,
+                                "Trying to report again",
+                                renter.getId());
+
+                assertThatThrownBy(() -> bookingService.submitConditionReport(bookingId, request))
+                                .isInstanceOf(ResponseStatusException.class)
+                                .hasMessageContaining("already submitted")
+                                .extracting("statusCode")
+                                .isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @DisplayName("Should throw exception when booking is not COMPLETED")
+        void submitConditionReportNotCompleted() {
+                UUID bookingId = UUID.randomUUID();
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                booking.setRenter(renter);
+                booking.setOwner(tool.getOwner());
+                booking.setStatus(BookingStatus.APPROVED);
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+                com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                                com.toolshed.backend.repository.enums.ConditionStatus.OK,
+                                "Test",
+                                renter.getId());
+
+                assertThatThrownBy(() -> bookingService.submitConditionReport(bookingId, request))
+                                .isInstanceOf(ResponseStatusException.class)
+                                .hasMessageContaining("completed bookings")
+                                .extracting("statusCode")
+                                .isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        @DisplayName("Should set REQUIRED deposit when condition is MISSING_PARTS")
+        void submitConditionReportMissingPartsRequiresDeposit() {
+                UUID bookingId = UUID.randomUUID();
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                tool.setTitle("Incomplete Tool");
+                booking.setRenter(renter);
+                booking.setOwner(tool.getOwner());
+                booking.setStatus(BookingStatus.COMPLETED);
+                booking.setPaymentStatus(PaymentStatus.COMPLETED);
+                booking.setStartDate(LocalDate.now().minusDays(2));
+                booking.setEndDate(LocalDate.now().minusDays(1));
+                booking.setTotalPrice(40.0);
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                                com.toolshed.backend.repository.enums.ConditionStatus.MISSING_PARTS,
+                                "Missing drill bits",
+                                renter.getId());
+
+                BookingResponse response = bookingService.submitConditionReport(bookingId, request);
+
+                assertThat(response.getConditionStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.MISSING_PARTS);
+                assertThat(response.getDepositStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+                assertThat(response.getDepositAmount()).isEqualTo(50.0);
+        }
+
+        @Test
+        @DisplayName("Should set NOT_REQUIRED deposit when condition is USED")
+        void submitConditionReportUsedConditionNoDeposit() {
+                UUID bookingId = UUID.randomUUID();
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                tool.setTitle("Used Tool");
+                booking.setRenter(renter);
+                booking.setOwner(tool.getOwner());
+                booking.setStatus(BookingStatus.COMPLETED);
+                booking.setPaymentStatus(PaymentStatus.COMPLETED);
+                booking.setStartDate(LocalDate.now().minusDays(2));
+                booking.setEndDate(LocalDate.now().minusDays(1));
+                booking.setTotalPrice(15.0);
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+                com.toolshed.backend.dto.ConditionReportRequest request = new com.toolshed.backend.dto.ConditionReportRequest(
+                                com.toolshed.backend.repository.enums.ConditionStatus.USED,
+                                "Normal wear and tear",
+                                renter.getId());
+
+                BookingResponse response = bookingService.submitConditionReport(bookingId, request);
+
+                assertThat(response.getConditionStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.USED);
+                assertThat(response.getDepositStatus())
+                                .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.NOT_REQUIRED);
+                assertThat(response.getDepositAmount()).isEqualTo(0.0);
+        }
 }
