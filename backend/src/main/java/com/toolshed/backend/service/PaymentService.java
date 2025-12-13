@@ -15,12 +15,23 @@ public interface PaymentService {
     /**
      * Creates a Stripe Checkout Session for a booking payment.
      *
-     * @param request The checkout session request containing booking details
+     * @param request    The checkout session request containing booking details
      * @param successUrl The URL to redirect to after successful payment
-     * @param cancelUrl The URL to redirect to if payment is cancelled
+     * @param cancelUrl  The URL to redirect to if payment is cancelled
      * @return CheckoutSessionResponse with session ID and checkout URL
      */
-    CheckoutSessionResponse createCheckoutSession(CreateCheckoutSessionRequest request, String successUrl, String cancelUrl);
+    CheckoutSessionResponse createCheckoutSession(CreateCheckoutSessionRequest request, String successUrl,
+            String cancelUrl);
+
+    /**
+     * Creates a Stripe Checkout Session for a deposit payment.
+     *
+     * @param bookingId  The booking ID for the deposit
+     * @param successUrl The URL to redirect to after successful payment
+     * @param cancelUrl  The URL to redirect to if payment is cancelled
+     * @return CheckoutSessionResponse with session ID and checkout URL
+     */
+    CheckoutSessionResponse createDepositCheckoutSession(UUID bookingId, String successUrl, String cancelUrl);
 
     /**
      * Marks a booking as paid.
@@ -29,6 +40,14 @@ public interface PaymentService {
      * @return The updated booking
      */
     Booking markBookingAsPaid(UUID bookingId);
+
+    /**
+     * Marks a booking's deposit as paid.
+     *
+     * @param bookingId The ID of the booking whose deposit to mark as paid
+     * @return The updated booking
+     */
+    Booking markDepositAsPaid(UUID bookingId);
 
     /**
      * Gets the payment status of a booking.
@@ -44,7 +63,7 @@ public interface PaymentService {
      * @param bookingId The ID of the booking to validate
      * @return The booking if valid
      * @throws IllegalArgumentException if booking not found
-     * @throws IllegalStateException if booking is already paid
+     * @throws IllegalStateException    if booking is already paid
      */
     Booking validateBookingForPayment(UUID bookingId);
 
@@ -52,7 +71,7 @@ public interface PaymentService {
      * Updates the payment status of a booking.
      *
      * @param bookingId The ID of the booking
-     * @param status The new payment status
+     * @param status    The new payment status
      * @return The updated booking
      */
     Booking updatePaymentStatus(UUID bookingId, PaymentStatus status);

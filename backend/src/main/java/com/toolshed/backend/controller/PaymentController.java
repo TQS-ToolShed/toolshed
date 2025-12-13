@@ -20,6 +20,7 @@ import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
 import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.service.PaymentService;
 import com.toolshed.backend.service.PaymentServiceImpl.BookingNotFoundException;
+import com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException;
 import com.toolshed.backend.service.PaymentServiceImpl.PaymentAlreadyCompletedException;
 import com.toolshed.backend.service.PaymentServiceImpl.PaymentProcessingException;
 
@@ -67,6 +68,24 @@ public class PaymentController {
     }
 
     /**
+     * Creates a Stripe Checkout Session for a deposit payment.
+     */
+    @PostMapping("/create-deposit-checkout/{bookingId}")
+    public ResponseEntity<CheckoutSessionResponse> createDepositCheckoutSession(@PathVariable UUID bookingId) {
+        try {
+            CheckoutSessionResponse response = paymentService.createDepositCheckoutSession(bookingId, successUrl,
+                    cancelUrl);
+            return ResponseEntity.ok(response);
+        } catch (BookingNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (DepositNotRequiredException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (PaymentProcessingException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    /**
      * Marks a booking as paid after successful Stripe payment.
      */
     @PostMapping("/mark-paid/{bookingId}")
@@ -75,10 +94,26 @@ public class PaymentController {
             paymentService.markBookingAsPaid(bookingId);
             return ResponseEntity.ok(Map.of(
                     "message", "Booking marked as paid",
-                    BOOKING_ID_KEY, bookingId.toString()
-            ));
+                    BOOKING_ID_KEY, bookingId.toString()));
         } catch (BookingNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    /**
+     * Marks a deposit as paid after successful Stripe payment.
+     */
+    @PostMapping("/mark-deposit-paid/{bookingId}")
+    public ResponseEntity<Map<String, String>> markDepositAsPaid(@PathVariable UUID bookingId) {
+        try {
+            paymentService.markDepositAsPaid(bookingId);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Deposit marked as paid",
+                    BOOKING_ID_KEY, bookingId.toString()));
+        } catch (BookingNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (DepositNotRequiredException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         }
     }
 
@@ -92,8 +127,9 @@ public class PaymentController {
             return ResponseEntity.ok(Map.of(
                     BOOKING_ID_KEY, bookingId.toString(),
                     "paymentStatus", booking.getPaymentStatus().name(),
-                    "totalPrice", booking.getTotalPrice()
-            ));
+                    "totalPrice", booking.getTotalPrice(),
+                    "depositStatus", booking.getDepositStatus() != null ? booking.getDepositStatus().name() : "N/A",
+                    "depositAmount", booking.getDepositAmount() != null ? booking.getDepositAmount() : 0.0));
         } catch (BookingNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }

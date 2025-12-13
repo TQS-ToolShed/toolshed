@@ -1,5 +1,6 @@
 package com.toolshed.backend.service;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -11,6 +12,7 @@ import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.entities.Booking;
+import com.toolshed.backend.repository.enums.DepositStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
 
 /**
@@ -29,33 +31,91 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     @Override
-    public CheckoutSessionResponse createCheckoutSession(CreateCheckoutSessionRequest request, String successUrl, String cancelUrl) {
-        // Validate the booking exists and can be paid
+    public CheckoutSessionResponse createCheckoutSession(CreateCheckoutSessionRequest request, String successUrl,
+            String cancelUrl) {
         validateBookingForPayment(request.getBookingId());
-
         Long amountInCents = request.getAmountInCents();
 
         try {
-            // Build the Stripe Checkout Session
             SessionCreateParams params = buildSessionParams(request, successUrl, cancelUrl, amountInCents);
-
-            // Create the session with Stripe
             Session session = Session.create(params);
 
-            // Return the session info
             return CheckoutSessionResponse.builder()
                     .sessionId(session.getId())
                     .checkoutUrl(session.getUrl())
                     .build();
-
         } catch (StripeException e) {
             throw new PaymentProcessingException("Failed to create checkout session: " + e.getMessage(), e);
         }
     }
 
     @Override
+    public CheckoutSessionResponse createDepositCheckoutSession(UUID bookingId, String successUrl, String cancelUrl) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException(BOOKING_NOT_FOUND_MSG + bookingId));
+
+        if (booking.getDepositStatus() != DepositStatus.REQUIRED) {
+            throw new DepositNotRequiredException("No deposit required or already paid for booking: " + bookingId);
+        }
+
+        Long amountInCents = Math.round(booking.getDepositAmount() * 100);
+
+        try {
+            SessionCreateParams params = SessionCreateParams.builder()
+                    .setMode(SessionCreateParams.Mode.PAYMENT)
+                    .setSuccessUrl(
+                            successUrl + "?bookingId=" + bookingId + "&type=deposit&session_id={CHECKOUT_SESSION_ID}")
+                    .setCancelUrl(cancelUrl + "?bookingId=" + bookingId + "&type=deposit")
+                    .addLineItem(
+                            SessionCreateParams.LineItem.builder()
+                                    .setQuantity(1L)
+                                    .setPriceData(
+                                            SessionCreateParams.LineItem.PriceData.builder()
+                                                    .setCurrency("eur")
+                                                    .setUnitAmount(amountInCents)
+                                                    .setProductData(
+                                                            SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                                    .setName("Caução - " + (booking.getTool() != null
+                                                                            ? booking.getTool().getTitle()
+                                                                            : "Ferramenta"))
+                                                                    .setDescription(
+                                                                            "Depósito de segurança para Booking ID: "
+                                                                                    + bookingId)
+                                                                    .build())
+                                                    .build())
+                                    .build())
+                    .putMetadata(BOOKING_ID_KEY, bookingId.toString())
+                    .putMetadata("type", "deposit")
+                    .build();
+
+            Session session = Session.create(params);
+
+            return CheckoutSessionResponse.builder()
+                    .sessionId(session.getId())
+                    .checkoutUrl(session.getUrl())
+                    .build();
+        } catch (StripeException e) {
+            throw new PaymentProcessingException("Failed to create deposit checkout session: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public Booking markBookingAsPaid(UUID bookingId) {
         return updatePaymentStatus(bookingId, PaymentStatus.COMPLETED);
+    }
+
+    @Override
+    public Booking markDepositAsPaid(UUID bookingId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new BookingNotFoundException(BOOKING_NOT_FOUND_MSG + bookingId));
+
+        if (booking.getDepositStatus() != DepositStatus.REQUIRED) {
+            throw new DepositNotRequiredException("No deposit required or already paid for booking: " + bookingId);
+        }
+
+        booking.setDepositStatus(DepositStatus.PAID);
+        booking.setDepositPaidAt(LocalDateTime.now());
+        return bookingRepository.save(booking);
     }
 
     @Override
@@ -85,14 +145,12 @@ public class PaymentServiceImpl implements PaymentService {
         return bookingRepository.save(booking);
     }
 
-    /**
-     * Builds the Stripe session parameters.
-     */
-    private SessionCreateParams buildSessionParams(CreateCheckoutSessionRequest request, 
+    private SessionCreateParams buildSessionParams(CreateCheckoutSessionRequest request,
             String successUrl, String cancelUrl, Long amountInCents) {
         return SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(successUrl + "?bookingId=" + request.getBookingId() + "&session_id={CHECKOUT_SESSION_ID}")
+                .setSuccessUrl(
+                        successUrl + "?bookingId=" + request.getBookingId() + "&session_id={CHECKOUT_SESSION_ID}")
                 .setCancelUrl(cancelUrl + "?bookingId=" + request.getBookingId())
                 .addLineItem(
                         SessionCreateParams.LineItem.builder()
@@ -112,30 +170,27 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
     }
 
-    /**
-     * Exception thrown when a booking is not found.
-     */
     public static class BookingNotFoundException extends RuntimeException {
         public BookingNotFoundException(String message) {
             super(message);
         }
     }
 
-    /**
-     * Exception thrown when payment is already completed.
-     */
     public static class PaymentAlreadyCompletedException extends RuntimeException {
         public PaymentAlreadyCompletedException(String message) {
             super(message);
         }
     }
 
-    /**
-     * Exception thrown when payment processing fails.
-     */
     public static class PaymentProcessingException extends RuntimeException {
         public PaymentProcessingException(String message, Throwable cause) {
             super(message, cause);
+        }
+    }
+
+    public static class DepositNotRequiredException extends RuntimeException {
+        public DepositNotRequiredException(String message) {
+            super(message);
         }
     }
 }

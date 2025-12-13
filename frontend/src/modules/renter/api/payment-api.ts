@@ -83,6 +83,34 @@ export const handlePayBooking = async (booking: PayableBooking): Promise<void> =
 };
 
 /**
+ * Creates a Stripe Checkout Session for deposit payment and redirects to Stripe.
+ * 
+ * @param bookingId The booking ID with required deposit
+ * @returns Promise that resolves when redirect happens (or rejects on error)
+ */
+export const handlePayDeposit = async (bookingId: string): Promise<void> => {
+  try {
+    const response = await axios.post<CheckoutSessionResponse>(
+      `${PAYMENTS_URL}/create-deposit-checkout/${bookingId}`
+    );
+
+    const { checkoutUrl } = response.data;
+
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+      return;
+    }
+
+    throw new Error('No checkout URL received from server');
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to initiate deposit payment');
+    }
+    throw error instanceof Error ? error : new Error('Deposit payment initiation failed');
+  }
+};
+
+/**
  * Marks a booking as paid after successful Stripe payment.
  * Call this from the success page after the user returns from Stripe.
  * 
@@ -100,6 +128,22 @@ export const markBookingAsPaid = async (bookingId: string): Promise<void> => {
 };
 
 /**
+ * Marks a deposit as paid after successful Stripe payment.
+ * 
+ * @param bookingId The booking whose deposit to mark as paid
+ */
+export const markDepositAsPaid = async (bookingId: string): Promise<void> => {
+  try {
+    await axios.post(`${PAYMENTS_URL}/mark-deposit-paid/${bookingId}`);
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to update deposit status');
+    }
+    throw new Error('Network error while updating deposit status');
+  }
+};
+
+/**
  * Gets the payment status of a booking.
  * 
  * @param bookingId The booking to check
@@ -109,6 +153,8 @@ export const getPaymentStatus = async (bookingId: string): Promise<{
   bookingId: string;
   paymentStatus: string;
   totalPrice: number;
+  depositStatus?: string;
+  depositAmount?: number;
 }> => {
   try {
     const response = await axios.get(`${PAYMENTS_URL}/status/${bookingId}`);
@@ -120,3 +166,4 @@ export const getPaymentStatus = async (bookingId: string): Promise<{
     throw new Error('Network error while getting payment status');
   }
 };
+
