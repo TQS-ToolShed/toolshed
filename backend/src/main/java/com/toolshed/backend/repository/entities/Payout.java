@@ -5,7 +5,7 @@ import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.toolshed.backend.repository.enums.ReviewType;
+import com.toolshed.backend.repository.enums.PayoutStatus;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,42 +23,39 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * Entity representing a payout request from an owner.
+ */
 @Entity
-@Table(name = "review")
+@Table(name = "payout")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Review {
+public class Payout {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false, unique = false)
-    private Booking booking;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reviewer_id")
-    private User reviewer;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id")
+    @JoinColumn(name = "owner_id", nullable = false)
     private User owner;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tool_id")
-    private Tool tool;
+    @Column(nullable = false)
+    private Double amount;
 
     @Enumerated(EnumType.STRING)
-    private ReviewType type;
+    @Column(nullable = false)
+    private PayoutStatus status;
 
-    private Integer rating; // 1-5 scale usually
-
-    @Column(length = 1000)
-    private String comment;
+    /**
+     * Simulated Stripe Transfer ID.
+     */
+    private String stripeTransferId;
 
     @CreationTimestamp
-    private LocalDateTime date;
+    private LocalDateTime requestedAt;
+
+    private LocalDateTime completedAt;
 }

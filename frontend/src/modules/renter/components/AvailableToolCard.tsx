@@ -1,32 +1,41 @@
-import { Link } from "react-router-dom";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import StarRating from "@/modules/shared/components/StarRating";
-import type { Tool } from "@/modules/supplier/api/tools-api";
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Star } from 'lucide-react';
+import type { Tool } from '@/modules/supplier/api/tools-api';
 
 interface AvailableToolCardProps {
   tool: Tool;
+  isFavorite?: boolean;
+  onToggleFavorite?: (toolId: string) => void;
 }
 
-export const AvailableToolCard = ({ tool }: AvailableToolCardProps) => {
+export const AvailableToolCard = ({ tool, isFavorite = false, onToggleFavorite }: AvailableToolCardProps) => {
   return (
     <Card className="h-full">
       <CardHeader>
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between items-start gap-2">
           <div>
             <CardTitle className="text-lg">{tool.title}</CardTitle>
             <CardDescription className="mt-1">{tool.location}</CardDescription>
           </div>
-          <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
-            Available
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onToggleFavorite?.(tool.id)}
+              aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              className="rounded-full p-2 hover:bg-muted transition-colors"
+            >
+              {isFavorite ? (
+                <Star className="h-4 w-4 fill-yellow-400 text-yellow-500" />
+              ) : (
+                <Star className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+            <span className="px-2 py-1 text-xs rounded-full bg-emerald-100 text-emerald-800">
+              Available
+            </span>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

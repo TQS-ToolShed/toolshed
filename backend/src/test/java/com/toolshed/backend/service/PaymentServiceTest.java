@@ -1,12 +1,15 @@
 package com.toolshed.backend.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,24 +25,32 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.stripe.exception.StripeException;
 import com.stripe.exception.ApiException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 
 import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
+import com.toolshed.backend.dto.PayoutResponse;
+import com.toolshed.backend.dto.WalletResponse;
 import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.PayoutRepository;
+import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
+import com.toolshed.backend.repository.entities.Payout;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.BookingStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
+import com.toolshed.backend.repository.enums.PayoutStatus;
 import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 import com.toolshed.backend.service.PaymentServiceImpl.BookingNotFoundException;
+import com.toolshed.backend.service.PaymentServiceImpl.InsufficientBalanceException;
+import com.toolshed.backend.service.PaymentServiceImpl.InvalidPayoutException;
 import com.toolshed.backend.service.PaymentServiceImpl.PaymentAlreadyCompletedException;
 import com.toolshed.backend.service.PaymentServiceImpl.PaymentProcessingException;
+import com.toolshed.backend.service.PaymentServiceImpl.UserNotFoundException;
 
 /**
  * Unit tests for PaymentServiceImpl.
@@ -50,6 +61,12 @@ class PaymentServiceTest {
 
     @Mock
     private BookingRepository bookingRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private PayoutRepository payoutRepository;
 
     @InjectMocks
     private PaymentServiceImpl paymentService;
@@ -830,6 +847,472 @@ class PaymentServiceTest {
                 assertThat(response).isNotNull();
                 assertThat(response.getSessionId()).isEqualTo("cs_metadata_test");
             }
+        }
+    }
+
+    // ===== Deposit Payment Tests =====
+
+    @Nested
+    @DisplayName("Mark Deposit As Paid Tests")
+    class MarkDepositAsPaidTests {
+
+        @Test
+        @DisplayName("Should mark deposit as paid successfully when status is REQUIRED")
+        void shouldMarkDepositAsPaidSuccessfully() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act
+            Booking result = paymentService.markDepositAsPaid(bookingId);
+
+            // Assert
+            assertThat(result.getDepositStatus())
+                    .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            assertThat(result.getDepositPaidAt()).isNotNull();
+            verify(bookingRepository).save(booking);
+        }
+
+        @Test
+        @DisplayName("Should throw BookingNotFoundException when booking not found")
+        void shouldThrowExceptionWhenBookingNotFound() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            when(bookingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.markDepositAsPaid(nonExistentId))
+                    .isInstanceOf(BookingNotFoundException.class)
+                    .hasMessageContaining("Booking not found");
+            verify(bookingRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should throw DepositNotRequiredException when deposit status is NOT_REQUIRED")
+        void shouldThrowExceptionWhenDepositNotRequired() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.NOT_REQUIRED);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.markDepositAsPaid(bookingId))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+            verify(bookingRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should throw DepositNotRequiredException when deposit already paid")
+        void shouldThrowExceptionWhenDepositAlreadyPaid() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.markDepositAsPaid(bookingId))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+            verify(bookingRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Should set depositPaidAt timestamp when marking as paid")
+        void shouldSetDepositPaidAtTimestamp() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act
+            Booking result = paymentService.markDepositAsPaid(bookingId);
+
+            // Assert
+            assertThat(result.getDepositPaidAt()).isNotNull();
+            assertThat(result.getDepositPaidAt()).isBeforeOrEqualTo(java.time.LocalDateTime.now());
+        }
+    }
+
+    @Nested
+    @DisplayName("Create Deposit Checkout Session Tests")
+    class CreateDepositCheckoutSessionTests {
+
+        private static final String SUCCESS_URL = "http://localhost:5173/payment/success";
+        private static final String CANCEL_URL = "http://localhost:5173/payment/cancelled";
+
+        @Test
+        @DisplayName("Should create deposit checkout session successfully")
+        void shouldCreateDepositCheckoutSessionSuccessfully() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_deposit_test");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_deposit_test");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenReturn(mockSession);
+
+                // Act
+                CheckoutSessionResponse response = paymentService.createDepositCheckoutSession(
+                        bookingId, SUCCESS_URL, CANCEL_URL);
+
+                // Assert
+                assertThat(response).isNotNull();
+                assertThat(response.getSessionId()).isEqualTo("cs_deposit_test");
+                assertThat(response.getCheckoutUrl()).isEqualTo("https://checkout.stripe.com/pay/cs_deposit_test");
+            }
+        }
+
+        @Test
+        @DisplayName("Should throw BookingNotFoundException when booking not found for deposit")
+        void shouldThrowExceptionWhenBookingNotFoundForDeposit() {
+            // Arrange
+            UUID nonExistentId = UUID.randomUUID();
+            when(bookingRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.createDepositCheckoutSession(
+                    nonExistentId, SUCCESS_URL, CANCEL_URL))
+                    .isInstanceOf(BookingNotFoundException.class)
+                    .hasMessageContaining("Booking not found");
+        }
+
+        @Test
+        @DisplayName("Should throw DepositNotRequiredException when deposit not required")
+        void shouldThrowExceptionWhenDepositNotRequiredForCheckout() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.NOT_REQUIRED);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.createDepositCheckoutSession(
+                    bookingId, SUCCESS_URL, CANCEL_URL))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+        }
+
+        @Test
+        @DisplayName("Should throw DepositNotRequiredException when deposit already paid for checkout")
+        void shouldThrowExceptionWhenDepositAlreadyPaidForCheckout() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.PAID);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.createDepositCheckoutSession(
+                    bookingId, SUCCESS_URL, CANCEL_URL))
+                    .isInstanceOf(com.toolshed.backend.service.PaymentServiceImpl.DepositNotRequiredException.class)
+                    .hasMessageContaining("No deposit required or already paid");
+        }
+
+        @Test
+        @DisplayName("Should set correct deposit amount of 50 euros in cents")
+        void shouldSetCorrectDepositAmountInCents() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_amount_test");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_amount_test");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenAnswer(invocation -> {
+                            SessionCreateParams params = invocation.getArgument(0);
+                            // Verify amount is 5000 cents (€50.00)
+                            assertThat(params.getLineItems().get(0).getPriceData().getUnitAmount())
+                                    .isEqualTo(5000L);
+                            return mockSession;
+                        });
+
+                // Act
+                paymentService.createDepositCheckoutSession(bookingId, SUCCESS_URL, CANCEL_URL);
+            }
+        }
+
+        @Test
+        @DisplayName("Should include deposit type in metadata")
+        void shouldIncludeDepositTypeInMetadata() {
+            // Arrange
+            booking.setDepositStatus(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
+            booking.setDepositAmount(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+            try (MockedStatic<Session> mockedSession = mockStatic(Session.class)) {
+                Session mockSession = org.mockito.Mockito.mock(Session.class);
+                when(mockSession.getId()).thenReturn("cs_meta_test");
+                when(mockSession.getUrl()).thenReturn("https://checkout.stripe.com/pay/cs_meta_test");
+
+                mockedSession.when(() -> Session.create(any(SessionCreateParams.class)))
+                        .thenAnswer(invocation -> {
+                            SessionCreateParams params = invocation.getArgument(0);
+                            // Verify metadata contains type=deposit
+                            assertThat(params.getMetadata()).containsKey("type");
+                            assertThat(params.getMetadata().get("type")).isEqualTo("deposit");
+                            return mockSession;
+                        });
+
+                // Act
+                paymentService.createDepositCheckoutSession(bookingId, SUCCESS_URL, CANCEL_URL);
+            }
+        }
+    }
+
+    // ============ Wallet & Payout Tests ============
+
+    @Nested
+    @DisplayName("Get Owner Wallet Tests")
+    class GetOwnerWalletTests {
+
+        @Test
+        @DisplayName("Should return wallet with balance and empty payouts")
+        void shouldReturnWalletWithBalance() {
+            // Arrange
+            owner.setWalletBalance(150.0);
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+            when(payoutRepository.findByOwnerIdOrderByRequestedAtDesc(owner.getId()))
+                    .thenReturn(Collections.emptyList());
+
+            // Act
+            WalletResponse response = paymentService.getOwnerWallet(owner.getId());
+
+            // Assert
+            assertThat(response).isNotNull();
+            assertThat(response.getBalance()).isEqualTo(150.0);
+            assertThat(response.getRecentPayouts()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should return wallet with recent payouts")
+        void shouldReturnWalletWithRecentPayouts() {
+            // Arrange
+            owner.setWalletBalance(50.0);
+            Payout payout1 = Payout.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .amount(100.0)
+                    .status(PayoutStatus.COMPLETED)
+                    .stripeTransferId("tr_test_123")
+                    .requestedAt(LocalDateTime.now().minusDays(1))
+                    .completedAt(LocalDateTime.now().minusDays(1))
+                    .build();
+
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+            when(payoutRepository.findByOwnerIdOrderByRequestedAtDesc(owner.getId()))
+                    .thenReturn(Arrays.asList(payout1));
+
+            // Act
+            WalletResponse response = paymentService.getOwnerWallet(owner.getId());
+
+            // Assert
+            assertThat(response.getBalance()).isEqualTo(50.0);
+            assertThat(response.getRecentPayouts()).hasSize(1);
+            assertThat(response.getRecentPayouts().get(0).getAmount()).isEqualTo(100.0);
+        }
+
+        @Test
+        @DisplayName("Should throw UserNotFoundException when owner not found")
+        void shouldThrowWhenOwnerNotFound() {
+            // Arrange
+            UUID unknownId = UUID.randomUUID();
+            when(userRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.getOwnerWallet(unknownId))
+                    .isInstanceOf(UserNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("Should return zero balance when walletBalance is null")
+        void shouldReturnZeroBalanceWhenNull() {
+            // Arrange
+            owner.setWalletBalance(null);
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+            when(payoutRepository.findByOwnerIdOrderByRequestedAtDesc(owner.getId()))
+                    .thenReturn(Collections.emptyList());
+
+            // Act
+            WalletResponse response = paymentService.getOwnerWallet(owner.getId());
+
+            // Assert
+            assertThat(response.getBalance()).isEqualTo(0.0);
+        }
+    }
+
+    @Nested
+    @DisplayName("Request Payout Tests")
+    class RequestPayoutTests {
+
+        @Test
+        @DisplayName("Should successfully request payout")
+        void shouldSuccessfullyRequestPayout() {
+            // Arrange
+            owner.setWalletBalance(200.0);
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+            when(payoutRepository.save(any(Payout.class))).thenAnswer(inv -> {
+                Payout p = inv.getArgument(0);
+                p.setId(UUID.randomUUID());
+                return p;
+            });
+            when(userRepository.save(any(User.class))).thenReturn(owner);
+
+            // Act
+            PayoutResponse response = paymentService.requestPayout(owner.getId(), 100.0);
+
+            // Assert
+            assertThat(response).isNotNull();
+            assertThat(response.getAmount()).isEqualTo(100.0);
+            assertThat(response.getStatus()).isEqualTo(PayoutStatus.COMPLETED);
+            assertThat(response.getStripeTransferId()).startsWith("tr_simulated_");
+            verify(payoutRepository).save(any(Payout.class));
+            verify(userRepository).save(owner);
+        }
+
+        @Test
+        @DisplayName("Should deduct amount from wallet balance")
+        void shouldDeductAmountFromBalance() {
+            // Arrange
+            owner.setWalletBalance(200.0);
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+            when(payoutRepository.save(any(Payout.class))).thenAnswer(inv -> {
+                Payout p = inv.getArgument(0);
+                p.setId(UUID.randomUUID());
+                return p;
+            });
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            // Act
+            paymentService.requestPayout(owner.getId(), 150.0);
+
+            // Assert - verify the balance was updated
+            verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Should throw InsufficientBalanceException when balance too low")
+        void shouldThrowWhenInsufficientBalance() {
+            // Arrange
+            owner.setWalletBalance(50.0);
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.requestPayout(owner.getId(), 100.0))
+                    .isInstanceOf(InsufficientBalanceException.class)
+                    .hasMessageContaining("Insufficient balance");
+            verify(payoutRepository, never()).save(any(Payout.class));
+        }
+
+        @Test
+        @DisplayName("Should throw InvalidPayoutException for zero amount")
+        void shouldThrowForZeroAmount() {
+            // Arrange
+            owner.setWalletBalance(100.0);
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.requestPayout(owner.getId(), 0.0))
+                    .isInstanceOf(InvalidPayoutException.class)
+                    .hasMessageContaining("positive");
+        }
+
+        @Test
+        @DisplayName("Should throw InvalidPayoutException for negative amount")
+        void shouldThrowForNegativeAmount() {
+            // Arrange
+            owner.setWalletBalance(100.0);
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.requestPayout(owner.getId(), -50.0))
+                    .isInstanceOf(InvalidPayoutException.class);
+        }
+
+        @Test
+        @DisplayName("Should throw UserNotFoundException when owner not found")
+        void shouldThrowWhenOwnerNotFoundForPayout() {
+            // Arrange
+            UUID unknownId = UUID.randomUUID();
+            when(userRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.requestPayout(unknownId, 100.0))
+                    .isInstanceOf(UserNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Get Payout History Tests")
+    class GetPayoutHistoryTests {
+
+        @Test
+        @DisplayName("Should return payout history")
+        void shouldReturnPayoutHistory() {
+            // Arrange
+            Payout payout1 = Payout.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .amount(50.0)
+                    .status(PayoutStatus.COMPLETED)
+                    .stripeTransferId("tr_1")
+                    .requestedAt(LocalDateTime.now().minusDays(2))
+                    .completedAt(LocalDateTime.now().minusDays(2))
+                    .build();
+            Payout payout2 = Payout.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .amount(75.0)
+                    .status(PayoutStatus.COMPLETED)
+                    .stripeTransferId("tr_2")
+                    .requestedAt(LocalDateTime.now().minusDays(1))
+                    .completedAt(LocalDateTime.now().minusDays(1))
+                    .build();
+
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+            when(payoutRepository.findByOwnerIdOrderByRequestedAtDesc(owner.getId()))
+                    .thenReturn(Arrays.asList(payout2, payout1));
+
+            // Act
+            List<PayoutResponse> history = paymentService.getPayoutHistory(owner.getId());
+
+            // Assert
+            assertThat(history).hasSize(2);
+            assertThat(history.get(0).getAmount()).isEqualTo(75.0);
+            assertThat(history.get(1).getAmount()).isEqualTo(50.0);
+        }
+
+        @Test
+        @DisplayName("Should return empty list when no payouts")
+        void shouldReturnEmptyListWhenNoPayouts() {
+            // Arrange
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+            when(payoutRepository.findByOwnerIdOrderByRequestedAtDesc(owner.getId()))
+                    .thenReturn(Collections.emptyList());
+
+            // Act
+            List<PayoutResponse> history = paymentService.getPayoutHistory(owner.getId());
+
+            // Assert
+            assertThat(history).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should throw UserNotFoundException when owner not found")
+        void shouldThrowWhenOwnerNotFoundForHistory() {
+            // Arrange
+            UUID unknownId = UUID.randomUUID();
+            when(userRepository.findById(unknownId)).thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThatThrownBy(() -> paymentService.getPayoutHistory(unknownId))
+                    .isInstanceOf(UserNotFoundException.class);
         }
     }
 }

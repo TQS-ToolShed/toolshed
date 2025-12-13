@@ -16,6 +16,20 @@ const badgeStyles: Record<string, string> = {
   PENDING: 'bg-gray-100 text-gray-800',
 };
 
+const conditionStyles: Record<string, string> = {
+  OK: 'bg-emerald-100 text-emerald-800',
+  USED: 'bg-blue-100 text-blue-800',
+  MINOR_DAMAGE: 'bg-amber-100 text-amber-800',
+  BROKEN: 'bg-red-100 text-red-800',
+  MISSING_PARTS: 'bg-orange-100 text-orange-800',
+};
+
+const depositStyles: Record<string, string> = {
+  NOT_REQUIRED: 'bg-gray-100 text-gray-600',
+  REQUIRED: 'bg-amber-100 text-amber-800',
+  PAID: 'bg-emerald-100 text-emerald-800',
+};
+
 export const SupplierRentalHistoryModal = ({ open, onClose }: SupplierRentalHistoryModalProps) => {
   const { user } = useAuth();
   const [bookings, setBookings] = useState<SupplierBookingRequest[]>([]);
@@ -114,6 +128,41 @@ export const SupplierRentalHistoryModal = ({ open, onClose }: SupplierRentalHist
                         )}
                         <span>ID: {booking.id.slice(0, 8)}</span>
                       </div>
+
+                      {/* Condition Report Status */}
+                      {booking.conditionStatus && (
+                        <div className="mt-2 p-2 bg-purple-50/50 rounded-md border border-purple-100">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="font-medium text-xs uppercase tracking-wider text-purple-800">
+                              Condition Report:
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full font-medium ${conditionStyles[booking.conditionStatus] || 'bg-gray-100 text-gray-800'}`}
+                            >
+                              {booking.conditionStatus.replace('_', ' ')}
+                            </span>
+                            {booking.depositStatus && (
+                              <span
+                                className={`px-2 py-0.5 rounded-full font-medium ${depositStyles[booking.depositStatus] || 'bg-gray-100 text-gray-800'}`}
+                              >
+                                Deposit: {booking.depositStatus.replace('_', ' ')}
+                                {booking.depositAmount && booking.depositStatus !== 'NOT_REQUIRED' && ` (€${booking.depositAmount.toFixed(2)})`}
+                              </span>
+                            )}
+                          </div>
+                          {booking.conditionDescription && (
+                            <p className="mt-1 text-xs text-purple-900/80 italic">
+                              "{booking.conditionDescription}"
+                            </p>
+                          )}
+                          {booking.conditionReportedAt && (
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Reported by {booking.conditionReportedByName} on {new Date(booking.conditionReportedAt).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {booking.review && (
                         <div className="mt-2 p-2 bg-muted/50 rounded-md text-sm">
                           <div className="flex items-center gap-1 mb-1">

@@ -5,6 +5,8 @@ import type { ReviewResponse } from '../../renter/api/reviews-api';
 const API_URL = `${API_BASE_URL}/api/bookings`;
 
 export type BookingStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'COMPLETED';
+export type ConditionStatus = 'OK' | 'USED' | 'MINOR_DAMAGE' | 'BROKEN' | 'MISSING_PARTS';
+export type DepositStatus = 'NOT_REQUIRED' | 'REQUIRED' | 'PAID';
 
 export interface SupplierBookingRequest {
   id: string;
@@ -18,6 +20,15 @@ export interface SupplierBookingRequest {
   totalPrice?: number;
   review?: ReviewResponse;
   ownerReview?: ReviewResponse;
+  // Condition Report Fields
+  conditionStatus?: ConditionStatus;
+  conditionDescription?: string;
+  conditionReportedAt?: string;
+  conditionReportedByName?: string;
+  // Deposit Fields
+  depositStatus?: DepositStatus;
+  depositAmount?: number;
+  depositPaidAt?: string;
 }
 
 export const getBookingsForOwner = async (ownerId: string): Promise<SupplierBookingRequest[]> => {
