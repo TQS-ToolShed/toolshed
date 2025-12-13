@@ -1,3 +1,4 @@
+@e2e
 Feature: Email Validation
   As a user filling out a registration form
   I want to check if my email is already registered

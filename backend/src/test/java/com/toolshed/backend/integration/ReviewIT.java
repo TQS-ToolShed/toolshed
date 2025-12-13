@@ -197,7 +197,7 @@ class ReviewIT {
         assertThat(body.getComment()).isEqualTo("Excellent tool, worked perfectly!");
         assertThat(body.getReviewerId()).isEqualTo(renter.getId());
         assertThat(body.getToolId()).isEqualTo(tool.getId());
-        assertThat(body.getOwnerId()).isNull();
+        assertThat(body.getOwnerId()).isEqualTo(owner.getId());
 
         // Verify Tool Rating
         // Started 0.0, 0 ratings. Added 5 stars -> 5.0 average, 1 rating
