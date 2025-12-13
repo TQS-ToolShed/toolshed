@@ -1,3 +1,4 @@
+@e2e
 Feature: User Registration
   As a new user
   I want to register on the ToolShed platform

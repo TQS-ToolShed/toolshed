@@ -159,7 +159,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-
             <!-- Maven Surefire Plugin for functional tests -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

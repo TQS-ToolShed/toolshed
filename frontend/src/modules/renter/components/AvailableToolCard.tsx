@@ -39,17 +39,27 @@ export const AvailableToolCard = ({ tool, isFavorite = false, onToggleFavorite }
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground line-clamp-2">{tool.description}</p>
+        <p className="text-sm text-muted-foreground line-clamp-2">
+          {tool.description}
+        </p>
         <div className="flex justify-between text-sm">
-          <div className="font-semibold text-primary">€{tool.pricePerDay.toFixed(2)}/day</div>
+          <div className="font-semibold text-primary">
+            €{tool.pricePerDay.toFixed(2)}/day
+          </div>
           <div className="flex items-center gap-1 text-muted-foreground">
-            <span>★ {tool.overallRating.toFixed(1)}</span>
-            <span>({tool.numRatings} reviews)</span>
+            <StarRating
+              rating={tool.overallRating}
+              showCount
+              count={tool.numRatings}
+              size={14}
+            />
           </div>
         </div>
       </CardContent>
       <CardFooter className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">Availability updated daily</div>
+        <div className="text-sm text-muted-foreground">
+          Availability updated daily
+        </div>
         <Button size="sm" variant="secondary" asChild>
           <Link to={`/renter/bookings/${tool.id}`}>View details</Link>
         </Button>

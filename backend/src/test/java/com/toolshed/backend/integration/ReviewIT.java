@@ -118,6 +118,18 @@ class ReviewIT {
         assertThat(body.getComment()).isEqualTo("Excellent experience!");
         assertThat(body.getReviewerId()).isEqualTo(renter.getId());
         assertThat(body.getOwnerId()).isEqualTo(owner.getId());
+
+        // Verify Owner Reputation increased (started at 5.0, added 5, average still
+        // 5.0)
+        // Let's change start reputation to 0 to make it clear, or just check it works.
+        // Setup sets reputation to 5.0.
+        // 5.0 (existing? No, setup just sets field).
+        // Wait, current logic fetches ALL reviews. The setup DOES NOT create past
+        // reviews.
+        // So this is the FIRST review. 5.0 rating -> 5.0 average.
+
+        User updatedOwner = userRepository.findById(owner.getId()).orElseThrow();
+        assertThat(updatedOwner.getReputationScore()).isEqualTo(5.0);
     }
 
     @Test
@@ -140,6 +152,11 @@ class ReviewIT {
         assertThat(body.getComment()).isEqualTo("Good renter, returned on time.");
         assertThat(body.getReviewerId()).isEqualTo(owner.getId());
         assertThat(body.getOwnerId()).isEqualTo(renter.getId());
+
+        // Verify Renter Reputation
+        // Started 5.0 (dummy value in setup). 1 review of 4 stars -> Average 4.0
+        User updatedRenter = userRepository.findById(renter.getId()).orElseThrow();
+        assertThat(updatedRenter.getReputationScore()).isEqualTo(4.0);
     }
 
     @Test
@@ -180,6 +197,30 @@ class ReviewIT {
         assertThat(body.getComment()).isEqualTo("Excellent tool, worked perfectly!");
         assertThat(body.getReviewerId()).isEqualTo(renter.getId());
         assertThat(body.getToolId()).isEqualTo(tool.getId());
-        assertThat(body.getOwnerId()).isNull();
+        assertThat(body.getOwnerId()).isEqualTo(owner.getId());
+
+        // Verify Tool Rating
+        // Started 0.0, 0 ratings. Added 5 stars -> 5.0 average, 1 rating
+        Tool updatedTool = toolRepository.findById(tool.getId()).orElseThrow();
+        assertThat(updatedTool.getOverallRating()).isEqualTo(5.0);
+        assertThat(updatedTool.getNumRatings()).isEqualTo(1);
+    }
+
+    @Test
+    void createReview_singleOneStar_updatesReputationCorrectly() {
+        CreateReviewRequest request = new CreateReviewRequest();
+        request.setBookingId(booking.getId());
+        request.setRating(1);
+        request.setComment("Bad");
+        request.setType(ReviewType.RENTER_TO_OWNER);
+
+        restTemplate.postForEntity(
+                "/api/reviews",
+                request,
+                ReviewResponse.class);
+
+        // Verify Owner Reputation
+        User updatedOwner = userRepository.findById(owner.getId()).orElseThrow();
+        assertThat(updatedOwner.getReputationScore()).isEqualTo(1.0);
     }
 }

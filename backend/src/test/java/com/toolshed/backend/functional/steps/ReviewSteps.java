@@ -160,4 +160,17 @@ public class ReviewSteps {
                 .andExpect(jsonPath("$.rating").value(rating))
                 .andExpect(jsonPath("$.comment").value(comment));
     }
+
+    @Then("the owner reputation should be {double}")
+    public void the_owner_reputation_should_be(Double expectedScore) {
+        User updatedOwner = userRepository.findById(owner.getId()).orElseThrow();
+        // Use assertive tolerance for floating point
+        org.assertj.core.api.Assertions.assertThat(updatedOwner.getReputationScore()).isEqualTo(expectedScore);
+    }
+
+    @Then("the tool rating should be {double}")
+    public void the_tool_rating_should_be(Double expectedRating) {
+        Tool updatedTool = toolRepository.findById(tool.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(updatedTool.getOverallRating()).isEqualTo(expectedRating);
+    }
 }
