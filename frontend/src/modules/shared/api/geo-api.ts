@@ -2,7 +2,6 @@ import axios from 'axios';
 import { API_BASE_URL } from '@/lib/api';
 
 const GEO_API_URL = `${API_BASE_URL}/api/geo`;
-const PUBLIC_GEO_API_URL = 'https://json.geoapi.pt';
 
 // --- Caches ---
 let districtCache: string[] | null = null;
@@ -20,13 +19,25 @@ let storedMunicipalities: Record<string, string[]> | null = null;
 let districtRequestPromise: Promise<string[]> | null = null;
 const municipalityRequests = new Map<string, Promise<string[]>>();
 
-const GEO_BACKEND_TIMEOUT_MS = 15000;
-const GEO_PUBLIC_TIMEOUT_MS = 8000;
+// Backend may rate-limit or be slower when warming cache; allow more time
+const GEO_BACKEND_TIMEOUT_MS = 30000;
+
+const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
+const withRetries = async <T>(fn: () => Promise<T>, attempts = 3, baseDelayMs = 500): Promise<T> => {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const delay = baseDelayMs * Math.pow(2, i);
+      await sleep(delay);
+    }
+  }
+  throw lastErr;
+};
 
 const hasStorage = typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
-
-type PublicDistrict = { distrito?: string };
-type PublicMunicipalityResponse = { distrito?: string; municipios?: string[] };
 
 const dedupeAndFilter = (values: Array<string | undefined | null>) =>
   Array.from(new Set(values.filter((v): v is string => !!v && v.trim().length > 0)));
@@ -69,38 +80,27 @@ export const fetchDistricts = async (): Promise<string[]> => {
   // 2. Return existing in-flight request if one is already running
   if (districtRequestPromise) return districtRequestPromise;
 
-  // 3. Create the fetch logic wrapped in a function
+  // 3. Create the fetch logic wrapped in a function (backend-only)
   const fetchLogic = async (): Promise<string[]> => {
     try {
-      // Try Backend
-      const response = await axios.get<string[]>(`${GEO_API_URL}/districts`, {
-        timeout: GEO_BACKEND_TIMEOUT_MS,
-      });
+      const response = await withRetries(
+        () => axios.get<string[]>(`${GEO_API_URL}/districts`, { timeout: GEO_BACKEND_TIMEOUT_MS }),
+        3,
+        800
+      );
 
-      if (response.data?.length) {
-        districtCache = response.data;
-        storedDistricts = response.data;
-        saveToStorage(DISTRICTS_STORAGE_KEY, response.data);
-        return response.data;
+      const data = Array.isArray(response.data) ? response.data : [];
+      if (data.length) {
+        districtCache = data;
+        storedDistricts = data;
+        saveToStorage(DISTRICTS_STORAGE_KEY, data);
+        return data;
       }
-      console.warn('Backend returned empty districts; falling back to public GeoAPI');
-    } catch (error) {
-      console.warn('Backend district fetch failed; falling back to public GeoAPI', error);
-    }
 
-    try {
-      // Try Public API
-      const response = await axios.get<PublicDistrict[]>(`${PUBLIC_GEO_API_URL}/distritos`, {
-        timeout: GEO_PUBLIC_TIMEOUT_MS,
-      });
-
-      const districts = dedupeAndFilter(response.data?.map((d) => d.distrito) ?? []);
-      districtCache = districts;
-      storedDistricts = districts;
-      saveToStorage(DISTRICTS_STORAGE_KEY, districts);
-      return districts;
+      console.warn('Backend returned empty districts');
+      return [];
     } catch (error) {
-      console.error('Failed to fetch districts', error);
+      console.warn('Backend district fetch failed', error);
       return [];
     }
   };
@@ -118,97 +118,86 @@ export const fetchMunicipalities = async (district: string): Promise<string[]> =
   const normalizedDistrict = district.trim();
   if (!normalizedDistrict) return [];
 
-  // Use a canonical key to avoid mismatches due to case or extra spaces
+  // Canonical key avoids mismatches due to case/spacing
   const cacheKey = normalizedDistrict.toLowerCase();
   const storageKey = `geo_api_municipality_${cacheKey}`;
   console.log('Checking cache for key:', storageKey, '| input district:', district);
 
-  // 1. Return cached data immediately
+  // 1. In-memory cache
   const cached = municipalityCache.get(cacheKey);
   if (cached) return cached;
 
-  // 1b. Load from persistent storage (per-district key) before any network call
+  // 2. Per-district localStorage cache (strictly before any network promises)
   if (hasStorage) {
     const raw = window.localStorage.getItem(storageKey);
     if (raw !== null) {
       try {
         const parsed = JSON.parse(raw);
         const municipalities = Array.isArray(parsed) ? dedupeAndFilter(parsed) : [];
-        municipalityCache.set(cacheKey, municipalities);
-        return municipalities;
+        if (municipalities.length) {
+          municipalityCache.set(cacheKey, municipalities);
+          return municipalities;
+        }
+
+        // Avoid treating empty cached results as authoritative (they may come from
+        // previous rate-limit/timeout situations). Remove and continue.
+        window.localStorage.removeItem(storageKey);
       } catch (error) {
         console.warn(`Failed to parse ${storageKey} from storage`, error);
-        return [];
+        window.localStorage.removeItem(storageKey);
       }
     }
   }
 
-  // 1c. Load from aggregated persistent storage for backward compatibility
+  // 3. Aggregated storage (backward compatibility)
   if (!storedMunicipalities) {
-    storedMunicipalities = loadFromStorage<Record<string, string[]>>(
-      MUNICIPALITIES_STORAGE_KEY,
-      {}
-    );
+    storedMunicipalities = loadFromStorage<Record<string, string[]>>(MUNICIPALITIES_STORAGE_KEY, {});
   }
 
   const stored = storedMunicipalities[cacheKey] ?? storedMunicipalities[normalizedDistrict];
   if (stored?.length) {
     municipalityCache.set(cacheKey, stored);
-    // Also write through to the per-district key to prevent future misses
     saveToStorage(storageKey, stored);
     return stored;
   }
 
-  // 2. Return existing in-flight request if one is already running for THIS district
+  // 4. In-flight dedupe
   if (municipalityRequests.has(cacheKey)) {
     return municipalityRequests.get(cacheKey)!;
   }
 
-  // 3. Define the fetch logic
+  // 5. Backend-only fetch
   const fetchLogic = async (): Promise<string[]> => {
     const encodedDistrict = encodeURIComponent(normalizedDistrict);
 
     try {
-      // Try Backend
-      const response = await axios.get<string[]>(
-        `${GEO_API_URL}/districts/${encodedDistrict}/municipalities`,
-        { timeout: GEO_BACKEND_TIMEOUT_MS }
+      const response = await withRetries(
+        () =>
+          axios.get<string[]>(`${GEO_API_URL}/districts/${encodedDistrict}/municipalities`, {
+            timeout: GEO_BACKEND_TIMEOUT_MS,
+          }),
+        3,
+        800
       );
 
-      if (response.data?.length) {
-        municipalityCache.set(cacheKey, response.data);
+      const data = Array.isArray(response.data) ? response.data : [];
+      if (data.length) {
+        municipalityCache.set(cacheKey, data);
         storedMunicipalities = storedMunicipalities ?? {};
-        storedMunicipalities[cacheKey] = response.data;
+        storedMunicipalities[cacheKey] = data;
         saveToStorage(MUNICIPALITIES_STORAGE_KEY, storedMunicipalities);
-        saveToStorage(storageKey, response.data);
-        return response.data;
+        saveToStorage(storageKey, data);
+        return data;
       }
-      console.warn('Backend returned empty municipalities; falling back to public GeoAPI');
-    } catch (error) {
-      console.warn('Backend municipality fetch failed; falling back to public GeoAPI', error);
-    }
 
-    try {
-      // Try Public API
-      const response = await axios.get<PublicMunicipalityResponse>(
-        `${PUBLIC_GEO_API_URL}/distrito/${encodedDistrict}/municipios`,
-        { timeout: GEO_PUBLIC_TIMEOUT_MS }
-      );
-
-      const municipalities = dedupeAndFilter(response.data?.municipios ?? []);
-      municipalityCache.set(cacheKey, municipalities);
-      storedMunicipalities = storedMunicipalities ?? {};
-      storedMunicipalities[cacheKey] = municipalities;
-      saveToStorage(MUNICIPALITIES_STORAGE_KEY, storedMunicipalities);
-      saveToStorage(storageKey, municipalities);
-      return municipalities;
+      console.warn('Backend returned empty municipalities');
+      return [];
     } catch (error) {
-      console.error('Failed to fetch municipalities', error);
+      console.warn('Backend municipality fetch failed', error);
       return [];
     }
   };
 
-  // 4. Store promise in map, await it, and remove from map when done
   const promise = fetchLogic();
   municipalityRequests.set(cacheKey, promise);
 

@@ -1,21 +1,20 @@
 package com.toolshed.backend.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,19 +23,25 @@ class GeoApiServiceTest {
     @Mock
     private ISimpleHttpClient httpClient;
 
-    @InjectMocks
     private GeoApiService geoApiService;
 
-    private static final String DISTRICTS_JSON = "[{\"id\":\"01\",\"nome\":\"Aveiro\"},{\"id\":\"02\",\"nome\":\"Beja\"},{\"id\":\"11\",\"nome\":\"Lisboa\"}]";
-    private static final String AVEIRO_MUNICIPALITIES_JSON = "[{\"id\":\"0101\",\"nome\":\"Águeda\"},{\"id\":\"0102\",\"nome\":\"Albergaria-a-Velha\"},{\"id\":\"0103\",\"nome\":\"Aveiro\"}]";
-    private static final String LISBOA_MUNICIPALITIES_JSON = "[{\"id\":\"1106\",\"nome\":\"Lisboa\"},{\"id\":\"1109\",\"nome\":\"Loures\"},{\"id\":\"1116\",\"nome\":\"Sintra\"}]";
+    @TempDir
+    Path tempDir;
+
+    private static final String DISTRICTS_JSON = "[{\"distrito\":\"Aveiro\"},{\"distrito\":\"Beja\"},{\"distrito\":\"Lisboa\"}]";
+    private static final String AVEIRO_MUNICIPALITIES_JSON = "{\"distrito\":\"Aveiro\",\"municipios\":[{\"nome\":\"Águeda\",\"codigoine\":\"0101\"},{\"nome\":\"Albergaria-a-Velha\",\"codigoine\":\"0102\"},{\"nome\":\"Aveiro\",\"codigoine\":\"0103\"}]}";
+    private static final String LISBOA_MUNICIPALITIES_JSON = "{\"distrito\":\"Lisboa\",\"municipios\":[{\"nome\":\"Lisboa\",\"codigoine\":\"1101\"},{\"nome\":\"Loures\",\"codigoine\":\"1102\"},{\"nome\":\"Sintra\",\"codigoine\":\"1103\"}]}";
 
     @BeforeEach
     void setUp() throws IOException {
+        // Isolate disk cache between tests
+        System.setProperty("geo.cache.path", tempDir.resolve("geo-cache.json").toString());
+        geoApiService = new GeoApiService(httpClient);
+
         // Setup default mock responses using lenient to avoid unnecessary stubbing errors
-        lenient().when(httpClient.doHttpGet("https://geoapi.pt/distritos")).thenReturn(DISTRICTS_JSON);
-        lenient().when(httpClient.doHttpGet("https://geoapi.pt/distrito/Aveiro/municipios")).thenReturn(AVEIRO_MUNICIPALITIES_JSON);
-        lenient().when(httpClient.doHttpGet("https://geoapi.pt/distrito/Lisboa/municipios")).thenReturn(LISBOA_MUNICIPALITIES_JSON);
+        lenient().when(httpClient.doHttpGet("https://json.geoapi.pt/distritos")).thenReturn(DISTRICTS_JSON);
+        lenient().when(httpClient.doHttpGet("https://json.geoapi.pt/distrito/Aveiro/municipios")).thenReturn(AVEIRO_MUNICIPALITIES_JSON);
+        lenient().when(httpClient.doHttpGet("https://json.geoapi.pt/distrito/Lisboa/municipios")).thenReturn(LISBOA_MUNICIPALITIES_JSON);
     }
 
     @Test
@@ -48,7 +53,7 @@ class GeoApiServiceTest {
         // Assert
         assertThat(districts).hasSize(3);
         assertThat(districts).contains("Aveiro", "Beja", "Lisboa");
-        verify(httpClient, times(1)).doHttpGet("https://geoapi.pt/distritos");
+        verify(httpClient, times(1)).doHttpGet("https://json.geoapi.pt/distritos");
     }
 
     @Test
@@ -60,7 +65,7 @@ class GeoApiServiceTest {
 
         // Assert
         assertThat(districts1).isEqualTo(districts2);
-        verify(httpClient, times(1)).doHttpGet("https://geoapi.pt/distritos");
+        verify(httpClient, times(1)).doHttpGet("https://json.geoapi.pt/distritos");
     }
 
     @Test
@@ -72,7 +77,7 @@ class GeoApiServiceTest {
         // Assert
         assertThat(municipalities).hasSize(3);
         assertThat(municipalities).contains("Águeda", "Albergaria-a-Velha", "Aveiro");
-        verify(httpClient, times(1)).doHttpGet("https://geoapi.pt/distrito/Aveiro/municipios");
+        verify(httpClient, times(1)).doHttpGet("https://json.geoapi.pt/distrito/Aveiro/municipios");
     }
 
     @Test
@@ -89,8 +94,8 @@ class GeoApiServiceTest {
         assertThat(lisboaMunicipalities).contains("Lisboa", "Loures", "Sintra");
         
         // Should only call API once per district
-        verify(httpClient, times(1)).doHttpGet("https://geoapi.pt/distrito/Aveiro/municipios");
-        verify(httpClient, times(1)).doHttpGet("https://geoapi.pt/distrito/Lisboa/municipios");
+        verify(httpClient, times(1)).doHttpGet("https://json.geoapi.pt/distrito/Aveiro/municipios");
+        verify(httpClient, times(1)).doHttpGet("https://json.geoapi.pt/distrito/Lisboa/municipios");
     }
 
     @Test
@@ -138,7 +143,7 @@ class GeoApiServiceTest {
     @DisplayName("Should return empty list when API returns error for municipalities")
     void testGetMunicipalitiesWithApiError() throws IOException {
         // Arrange
-        when(httpClient.doHttpGet("https://geoapi.pt/distrito/ErrorDistrict/municipios")).thenThrow(new IOException("API Error"));
+        when(httpClient.doHttpGet("https://json.geoapi.pt/distrito/ErrorDistrict/municipios")).thenThrow(new IOException("API Error"));
 
         // Act
         List<String> municipalities = geoApiService.getMunicipalitiesByDistrict("ErrorDistrict");
@@ -151,7 +156,7 @@ class GeoApiServiceTest {
     @DisplayName("Should return empty list when API returns error for districts")
     void testGetDistrictsWithApiError() throws IOException {
         // Arrange
-        when(httpClient.doHttpGet("https://geoapi.pt/distritos")).thenThrow(new IOException("API Error"));
+        when(httpClient.doHttpGet("https://json.geoapi.pt/distritos")).thenThrow(new IOException("API Error"));
 
         // Act
         List<String> districts = geoApiService.getAllDistricts();
