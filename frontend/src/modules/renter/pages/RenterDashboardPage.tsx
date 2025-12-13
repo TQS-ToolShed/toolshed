@@ -14,7 +14,6 @@ export const RenterDashboardPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [keyword, setKeyword] = useState('');
   const [location, setLocation] = useState('');
-  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   const fetchTools = useCallback(
     async (filters?: { keyword?: string; location?: string }) => {
@@ -39,15 +38,6 @@ export const RenterDashboardPage = () => {
 
   useEffect(() => {
     fetchTools();
-    const stored = localStorage.getItem('renter:favorites');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as string[];
-        setFavoriteIds(new Set(parsed));
-      } catch {
-        // ignore malformed storage
-      }
-    }
   }, [fetchTools]);
 
   const handleSearch = async (event?: FormEvent<HTMLFormElement>) => {
@@ -71,34 +61,11 @@ export const RenterDashboardPage = () => {
     setIsSearching(false);
   };
 
-  const handleToggleFavorite = (toolId: string) => {
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(toolId)) {
-        next.delete(toolId);
-      } else {
-        next.add(toolId);
-      }
-      localStorage.setItem('renter:favorites', JSON.stringify(Array.from(next)));
-      return next;
-    });
-  };
-
   const averagePrice = useMemo(() => {
     if (!tools.length) return 0;
     const total = tools.reduce((sum, tool) => sum + tool.pricePerDay, 0);
     return total / tools.length;
   }, [tools]);
-
-  const sortedTools = useMemo(() => {
-    if (!tools.length) return [];
-    return [...tools].sort((a, b) => {
-      const aFav = favoriteIds.has(a.id);
-      const bFav = favoriteIds.has(b.id);
-      if (aFav === bFav) return 0;
-      return aFav ? -1 : 1;
-    });
-  }, [tools, favoriteIds]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -187,13 +154,8 @@ export const RenterDashboardPage = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {sortedTools.map((tool) => (
-              <AvailableToolCard
-                key={tool.id}
-                tool={tool}
-                isFavorite={favoriteIds.has(tool.id)}
-                onToggleFavorite={handleToggleFavorite}
-              />
+            {tools.map((tool) => (
+              <AvailableToolCard key={tool.id} tool={tool} />
             ))}
           </div>
         )}
