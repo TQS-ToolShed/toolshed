@@ -155,8 +155,13 @@
                         <include>**/*Test.java</include>
                         <include>**/*Tests.java</include>
                         <include>**/*IT.java</include>
-                        <include>**/CucumberTestRunner.java</include>
                     </includes>
+                    <excludes>
+                        <!-- Exclude E2E/Playwright tests - they require frontend running -->
+                        <exclude>**/CucumberTestRunner.java</exclude>
+                        <exclude>**/e2e/**</exclude>
+                        <exclude>**/functional/**</exclude>
+                    </excludes>
                     <testSourceDirectory>src/test/java</testSourceDirectory>
                     <additionalTestSourceDirectories>
                         <additionalTestSourceDirectory>src/test/functional/java</additionalTestSourceDirectory>

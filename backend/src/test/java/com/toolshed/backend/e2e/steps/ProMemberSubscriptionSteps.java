@@ -1,4 +1,4 @@
-package com.toolshed.backend.functional.steps;
+package com.toolshed.backend.e2e.steps;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

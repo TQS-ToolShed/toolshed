@@ -1,4 +1,4 @@
-package com.toolshed.backend.functional.steps;
+package com.toolshed.backend.e2e.steps;
 
 import static org.hamcrest.Matchers.hasItem;
 import org.springframework.beans.factory.annotation.Autowired;

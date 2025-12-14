@@ -2,7 +2,7 @@ package com.toolshed.backend.boundary;
 
 import java.util.UUID;
 
-import com.toolshed.backend.controller.SubscriptionController;
+import com.toolshed.backend.boundary.SubscriptionController;
 import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.SubscriptionStatusResponse;
 import com.toolshed.backend.repository.enums.SubscriptionTier;

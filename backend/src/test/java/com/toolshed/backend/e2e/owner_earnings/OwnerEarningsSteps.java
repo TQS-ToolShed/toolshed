@@ -1,4 +1,4 @@
-package com.toolshed.backend.functional.owner_earnings;
+package com.toolshed.backend.e2e.owner_earnings;
 
 import com.toolshed.backend.dto.MonthlyEarningsResponse;
 import com.toolshed.backend.repository.BookingRepository;

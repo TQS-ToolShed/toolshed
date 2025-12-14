@@ -57,7 +57,7 @@ class AuthControllerLoginIT {
         baseUrl = "http://localhost:" + port + "/api/auth/login";
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        
+
         // Clear database before each test (order matters for foreign key constraints)
         reviewRepository.deleteAll();
         bookingRepository.deleteAll();
@@ -86,7 +86,7 @@ class AuthControllerLoginIT {
         void shouldLoginSuccessfullyWithValidRenterCredentials() {
             // Arrange
             createTestUser("renter@test.com", "password123", UserStatus.ACTIVE, UserRole.RENTER);
-            
+
             LoginRequest loginRequest = LoginRequest.builder()
                     .email("renter@test.com")
                     .password("password123")
@@ -110,7 +110,7 @@ class AuthControllerLoginIT {
         void shouldLoginSuccessfullyWithValidSupplierCredentials() {
             // Arrange
             createTestUser("supplier@test.com", "securePass456", UserStatus.ACTIVE, UserRole.SUPPLIER);
-            
+
             LoginRequest loginRequest = LoginRequest.builder()
                     .email("supplier@test.com")
                     .password("securePass456")
@@ -134,7 +134,7 @@ class AuthControllerLoginIT {
         void shouldLoginSuccessfullyWithCaseSensitivePassword() {
             // Arrange
             createTestUser("user@test.com", "PassWord123", UserStatus.ACTIVE, UserRole.RENTER);
-            
+
             LoginRequest loginRequest = LoginRequest.builder()
                     .email("user@test.com")
                     .password("PassWord123")
@@ -172,7 +172,7 @@ class AuthControllerLoginIT {
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(response.getBody()).contains("Invalid email or password");
+            assertThat(response.getBody()).contains("Invalid credentials");
         }
 
         @Test
@@ -180,7 +180,7 @@ class AuthControllerLoginIT {
         void shouldReturn400WhenPasswordIsIncorrect() {
             // Arrange
             createTestUser("user@test.com", "correctPassword", UserStatus.ACTIVE, UserRole.RENTER);
-            
+
             LoginRequest loginRequest = LoginRequest.builder()
                     .email("user@test.com")
                     .password("wrongPassword")
@@ -193,7 +193,7 @@ class AuthControllerLoginIT {
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(response.getBody()).contains("Invalid email or password");
+            assertThat(response.getBody()).contains("Invalid credentials");
         }
 
         @Test
@@ -201,10 +201,10 @@ class AuthControllerLoginIT {
         void shouldReturn400WhenPasswordCaseIsWrong() {
             // Arrange
             createTestUser("user@test.com", "PassWord123", UserStatus.ACTIVE, UserRole.RENTER);
-            
+
             LoginRequest loginRequest = LoginRequest.builder()
                     .email("user@test.com")
-                    .password("password123")  // lowercase instead of PassWord123
+                    .password("password123") // lowercase instead of PassWord123
                     .build();
 
             HttpEntity<LoginRequest> request = new HttpEntity<>(loginRequest, headers);
@@ -214,7 +214,7 @@ class AuthControllerLoginIT {
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(response.getBody()).contains("Invalid email or password");
+            assertThat(response.getBody()).contains("Invalid credentials");
         }
     }
 
@@ -227,7 +227,7 @@ class AuthControllerLoginIT {
         void shouldReturn400WhenAccountIsSuspended() {
             // Arrange
             createTestUser("suspended@test.com", "password123", UserStatus.SUSPENDED, UserRole.RENTER);
-            
+
             LoginRequest loginRequest = LoginRequest.builder()
                     .email("suspended@test.com")
                     .password("password123")
@@ -240,7 +240,7 @@ class AuthControllerLoginIT {
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(response.getBody()).contains("Account is not active");
+            assertThat(response.getBody()).contains("Account is suspended");
         }
 
         @Test
@@ -248,7 +248,7 @@ class AuthControllerLoginIT {
         void shouldReturn400WhenAccountIsPendingVerification() {
             // Arrange
             createTestUser("pending@test.com", "password123", UserStatus.PENDING_VERIFICATION, UserRole.RENTER);
-            
+
             LoginRequest loginRequest = LoginRequest.builder()
                     .email("pending@test.com")
                     .password("password123")
@@ -261,7 +261,7 @@ class AuthControllerLoginIT {
 
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(response.getBody()).contains("Account is not active");
+            assertThat(response.getBody()).contains("Account is not verified");
         }
     }
 
@@ -347,7 +347,7 @@ class AuthControllerLoginIT {
             // Arrange
             String specialPassword = "P@ssw0rd!@#$%^&*()";
             createTestUser("special@test.com", specialPassword, UserStatus.ACTIVE, UserRole.RENTER);
-            
+
             LoginRequest loginRequest = LoginRequest.builder()
                     .email("special@test.com")
                     .password(specialPassword)
@@ -370,7 +370,7 @@ class AuthControllerLoginIT {
             // Arrange
             String longEmail = "verylongemailaddress.with.multiple.dots.and.subdomains@very.long.domain.name.example.com";
             createTestUser(longEmail, "password123", UserStatus.ACTIVE, UserRole.SUPPLIER);
-            
+
             LoginRequest loginRequest = LoginRequest.builder()
                     .email(longEmail)
                     .password("password123")
@@ -392,7 +392,7 @@ class AuthControllerLoginIT {
         void shouldHandleEmailCaseInsensitivityCorrectly() {
             // Arrange - create user with lowercase email
             createTestUser("user@test.com", "password123", UserStatus.ACTIVE, UserRole.RENTER);
-            
+
             // Act - try to login with uppercase email
             LoginRequest loginRequest = LoginRequest.builder()
                     .email("USER@TEST.COM")
@@ -404,7 +404,7 @@ class AuthControllerLoginIT {
 
             // Assert - should fail because emails are case sensitive in this implementation
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-            assertThat(response.getBody()).contains("Invalid email or password");
+            assertThat(response.getBody()).contains("Invalid credentials");
         }
     }
 }

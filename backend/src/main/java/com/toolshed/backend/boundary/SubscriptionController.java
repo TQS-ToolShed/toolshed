@@ -1,4 +1,4 @@
-package com.toolshed.backend.controller;
+package com.toolshed.backend.boundary;
 
 import java.util.UUID;
 

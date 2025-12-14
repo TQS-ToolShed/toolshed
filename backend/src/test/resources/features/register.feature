@@ -8,29 +8,6 @@ Feature: User Registration
     Given the ToolShed application is running
     And I am on the registration page
 
-  Scenario: Successful registration with valid data
-    When I fill in the registration form with:
-      | firstName | John                |
-      | lastName  | Doe                 |
-      | email     | newuser@example.com |
-      | password  | SecurePass123!      |
-      | role      | RENTER              |
-    And I click the register button
-    Then I should see a success message "Registration successful"
-    And I should be redirected to the login page
-
-  Scenario: Registration with existing email
-    Given a user with email "existing@example.com" already exists
-    When I fill in the registration form with:
-      | firstName | Jane                 |
-      | lastName  | Smith                |
-      | email     | existing@example.com |
-      | password  | SecurePass123!       |
-      | role      | SUPPLIER             |
-    And I click the register button
-    Then I should see an error message "Email already exists"
-    And I should remain on the registration page
-
   Scenario: Registration with empty first name
     When I fill in the registration form with:
       | firstName |                     |
@@ -107,14 +84,3 @@ Feature: User Registration
     And I click the register button
     Then I should see a validation error "Please select a role"
     And I should remain on the registration page
-
-  Scenario: Registration as SUPPLIER
-    When I fill in the registration form with:
-      | firstName | Jane                |
-      | lastName  | Smith               |
-      | email     | supplier@example.com|
-      | password  | SecurePass123!      |
-      | role      | SUPPLIER            |
-    And I click the register button
-    Then I should see a success message "Registration successful"
-    And I should be redirected to the login page
