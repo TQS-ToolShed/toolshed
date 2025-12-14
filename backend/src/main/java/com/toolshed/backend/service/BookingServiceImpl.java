@@ -13,14 +13,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.toolshed.backend.dto.BookingResponse;
+import com.toolshed.backend.dto.CancelBookingResponse;
 import com.toolshed.backend.dto.ConditionReportRequest;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
 import com.toolshed.backend.dto.ReviewResponse;
 import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.PayoutRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
+import com.toolshed.backend.repository.entities.Payout;
 import com.toolshed.backend.repository.entities.Review;
 import com.toolshed.backend.repository.entities.Tool;
 import com.toolshed.backend.repository.entities.User;
@@ -28,6 +31,7 @@ import com.toolshed.backend.repository.enums.BookingStatus;
 import com.toolshed.backend.repository.enums.ConditionStatus;
 import com.toolshed.backend.repository.enums.DepositStatus;
 import com.toolshed.backend.repository.enums.PaymentStatus;
+import com.toolshed.backend.repository.enums.PayoutStatus;
 import com.toolshed.backend.repository.enums.ReviewType;
 
 @Service
@@ -36,13 +40,19 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final ToolRepository toolRepository;
     private final UserRepository userRepository;
+    private final PayoutRepository payoutRepository;
+    private final SubscriptionService subscriptionService;
 
     public BookingServiceImpl(BookingRepository bookingRepository,
             ToolRepository toolRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            PayoutRepository payoutRepository,
+            SubscriptionService subscriptionService) {
         this.bookingRepository = bookingRepository;
         this.toolRepository = toolRepository;
         this.userRepository = userRepository;
+        this.payoutRepository = payoutRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     @Override
@@ -74,6 +84,11 @@ public class BookingServiceImpl implements BookingService {
 
         long days = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) + 1;
         double totalPrice = days * tool.getPricePerDay();
+
+        // Apply Pro Member discount (5% off for Pro subscribers)
+        double discountPercentage = subscriptionService.getDiscountPercentage(renter);
+        double discountAmount = totalPrice * (discountPercentage / 100);
+        totalPrice = totalPrice - discountAmount;
 
         Booking booking = new Booking();
         booking.setTool(tool);
@@ -252,6 +267,116 @@ public class BookingServiceImpl implements BookingService {
 
         Booking saved = bookingRepository.save(booking);
         return toBookingResponse(saved);
+    }
+
+    @Override
+    @Transactional
+    public CancelBookingResponse cancelBooking(UUID bookingId, UUID renterId) {
+        Booking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        // Validate renter
+        if (!booking.getRenter().getId().equals(renterId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the renter can cancel the booking");
+        }
+
+        // Validate booking can be cancelled
+        if (booking.getStatus() != BookingStatus.PENDING && booking.getStatus() != BookingStatus.APPROVED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Cannot cancel booking with status: " + booking.getStatus());
+        }
+
+        // Calculate days until start date
+        LocalDate today = LocalDate.now();
+        long daysUntilStart = ChronoUnit.DAYS.between(today, booking.getStartDate());
+
+        // Calculate refund based on cancellation policy
+        int refundPercentage = calculateRefundPercentage(daysUntilStart);
+        Double totalPrice = booking.getTotalPrice() != null ? booking.getTotalPrice() : 0.0;
+        Double refundAmount = totalPrice * refundPercentage / 100.0;
+        Double ownerCompensation = totalPrice - refundAmount;
+
+        // Update booking status
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancelledAt(LocalDateTime.now());
+        booking.setRefundAmount(refundAmount);
+
+        // Update payment status if refund is applied
+        if (refundPercentage > 0 && booking.getPaymentStatus() == PaymentStatus.COMPLETED) {
+            booking.setPaymentStatus(PaymentStatus.REFUNDED);
+        }
+
+        // Re-activate the tool if it was within the booking window
+        Tool tool = booking.getTool();
+        if (tool != null && !tool.isActive()) {
+            tool.setActive(true);
+            toolRepository.save(tool);
+        }
+
+        // Credit owner's wallet with non-refunded amount (cancellation fee)
+        User owner = booking.getOwner();
+        if (ownerCompensation > 0 && owner != null) {
+            Double currentBalance = owner.getWalletBalance() != null ? owner.getWalletBalance() : 0.0;
+            owner.setWalletBalance(currentBalance + ownerCompensation);
+            userRepository.save(owner);
+
+            // Create income record for wallet history
+            String renterName = booking.getRenter() != null
+                    ? (booking.getRenter().getFirstName() + " " + booking.getRenter().getLastName()).trim()
+                    : "Unknown renter";
+
+            Payout incomeRecord = Payout.builder()
+                    .owner(owner)
+                    .amount(ownerCompensation)
+                    .status(PayoutStatus.COMPLETED)
+                    .description("Cancellation fee from " + renterName)
+                    .isIncome(true)
+                    .requestedAt(LocalDateTime.now())
+                    .completedAt(LocalDateTime.now())
+                    .build();
+            payoutRepository.save(incomeRecord);
+        }
+
+        Booking saved = bookingRepository.save(booking);
+
+        // Build response message
+        String message;
+        if (refundPercentage == 100) {
+            message = "Booking cancelled. Full refund processed.";
+        } else if (refundPercentage > 0) {
+            message = String.format("Booking cancelled. %d%% refund (€%.2f) processed. Owner receives €%.2f.",
+                    refundPercentage, refundAmount, ownerCompensation);
+        } else {
+            message = String.format("Booking cancelled. No refund applicable. Owner receives €%.2f.",
+                    ownerCompensation);
+        }
+
+        return CancelBookingResponse.builder()
+                .bookingId(saved.getId())
+                .status(saved.getStatus().name())
+                .refundAmount(refundAmount)
+                .refundPercentage(refundPercentage)
+                .message(message)
+                .build();
+    }
+
+    /**
+     * Calculates refund percentage based on cancellation policy.
+     * - 7+ days before start: 100% refund
+     * - 3-6 days before start: 50% refund
+     * - 1-2 days before start: 25% refund
+     * - Same day or after start: 0% refund
+     */
+    private int calculateRefundPercentage(long daysUntilStart) {
+        if (daysUntilStart >= 7) {
+            return 100;
+        } else if (daysUntilStart >= 3) {
+            return 50;
+        } else if (daysUntilStart >= 1) {
+            return 25;
+        } else {
+            return 0;
+        }
     }
 
     private ReviewResponse toReviewResponse(Review review) {

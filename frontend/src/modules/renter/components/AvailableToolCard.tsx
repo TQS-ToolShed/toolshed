@@ -24,12 +24,27 @@ export const AvailableToolCard = ({
   onToggleFavorite,
 }: AvailableToolCardProps) => {
   return (
-    <Card className="h-full">
+    <Card className="h-full overflow-hidden">
+      {tool.imageUrl && (
+        <div className="w-full h-40 bg-gray-100 dark:bg-gray-800">
+          <img
+            src={tool.imageUrl}
+            alt={tool.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "https://via.placeholder.com/600x400?text=No+Image+Available";
+            }}
+          />
+        </div>
+      )}
       <CardHeader>
         <div className="flex justify-between items-start gap-2">
           <div>
             <CardTitle className="text-lg">{tool.title}</CardTitle>
-            <CardDescription className="mt-1">{tool.location}</CardDescription>
+            <CardDescription className="mt-1">
+              {tool.location || tool.district}
+            </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -61,12 +76,10 @@ export const AvailableToolCard = ({
             €{tool.pricePerDay.toFixed(2)}/day
           </div>
           <div className="flex items-center gap-1 text-muted-foreground">
-            <StarRating
-              rating={tool.overallRating}
-              showCount
-              count={tool.numRatings}
-              size={14}
-            />
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-500" />
+            <span className="text-sm">
+              {tool.overallRating.toFixed(1)} ({tool.numRatings} reviews)
+            </span>
           </div>
         </div>
       </CardContent>

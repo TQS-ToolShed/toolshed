@@ -8,6 +8,8 @@ import {
   deactivateUser,
 } from "../api/admin-api";
 import type { AdminStats } from "../api/admin-api";
+import { AdminStatsGrid } from "../components/AdminStatsGrid";
+import { AdminNavbar } from "../components/AdminNavbar";
 
 export const AdminDashboardPage = () => {
   const { user } = useAuth();
@@ -57,79 +59,26 @@ export const AdminDashboardPage = () => {
   if (error) return <div className="p-8 text-red-500">{error}</div>;
 
   return (
-    <div className="container mx-auto p-6">
+
+    <div >
+      <AdminNavbar />
+      <div className="container mx-auto p-6">
+
+
       <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
 
+
       {/* Stats Section */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-gray-500 text-sm font-medium uppercase">
-              Total Users
-            </h3>
-            <p className="text-3xl font-bold text-gray-800 mt-2">
-              {stats.totalUsers}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-gray-500 text-sm font-medium uppercase">
-              Active Users
-            </h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">
-              {stats.activeUsers}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-gray-500 text-sm font-medium uppercase">
-              Inactive Users
-            </h3>
-            <p className="text-3xl font-bold text-red-600 mt-2">
-              {stats.inactiveUsers}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-gray-500 text-sm font-medium uppercase">
-              Total Bookings
-            </h3>
-            <p className="text-3xl font-bold text-gray-800 mt-2">
-              {stats.totalBookings}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-gray-500 text-sm font-medium uppercase">
-              Active Bookings
-            </h3>
-            <p className="text-3xl font-bold text-blue-600 mt-2">
-              {stats.activeBookings}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-gray-500 text-sm font-medium uppercase">
-              Completed Bookings
-            </h3>
-            <p className="text-3xl font-bold text-green-600 mt-2">
-              {stats.completedBookings}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-            <h3 className="text-gray-500 text-sm font-medium uppercase">
-              Cancelled Bookings
-            </h3>
-            <p className="text-3xl font-bold text-red-600 mt-2">
-              {stats.cancelledBookings}
-            </p>
-          </div>
-        </div>
-      )}
+      {stats && <AdminStatsGrid stats={stats} />}
 
       {/* Users Section */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden">
+      <div className="rounded-lg shadow-md border border-gray-200 overflow-hidden">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-800">User Management</h2>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-600">
-            <thead className="bg-gray-50 text-gray-700 uppercase font-medium">
+            <thead className="text-gray-700 uppercase font-medium">
               <tr>
                 <th className="px-6 py-3">Name</th>
                 <th className="px-6 py-3">Email</th>
@@ -195,5 +144,5 @@ export const AdminDashboardPage = () => {
         </div>
       </div>
     </div>
-  );
+    </div>);
 };

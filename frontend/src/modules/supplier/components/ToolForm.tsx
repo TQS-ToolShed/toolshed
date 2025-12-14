@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import type { Tool, CreateToolInput, UpdateToolInput } from '../api/tools-api';
+import { fetchDistricts } from '@/modules/shared/api/geo-api';
 
 interface ToolFormProps {
   tool?: Tool | null;
@@ -17,36 +18,71 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [pricePerDay, setPricePerDay] = useState('');
-  const [location, setLocation] = useState('');
+  const [district, setDistrict] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [districtOptions, setDistrictOptions] = useState<string[]>([]);
+  const [isLoadingGeo, setIsLoadingGeo] = useState(false);
   const [active, setActive] = useState(true);
 
   const isEditing = !!tool;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadDistricts = async () => {
+      try {
+        setIsLoadingGeo(true);
+        const districts = await fetchDistricts();
+        if (isMounted) {
+          setDistrictOptions(districts);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingGeo(false);
+        }
+      }
+    };
+
+    loadDistricts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (tool) {
       setTitle(tool.title);
       setDescription(tool.description);
       setPricePerDay(tool.pricePerDay.toString());
-      setLocation(tool.location);
+      setDistrict(tool.location || tool.district || '');
+      setImageUrl(tool.imageUrl || '');
       setActive(tool.active);
     } else {
       setTitle('');
       setDescription('');
       setPricePerDay('');
-      setLocation('');
+      setDistrict('');
+      setImageUrl('');
       setActive(true);
     }
   }, [tool]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    const parsedPrice = parseFloat(pricePerDay);
+    if (Number.isNaN(parsedPrice)) {
+      return;
+    }
+
     if (isEditing) {
       const updateData: UpdateToolInput = {
         title,
         description,
-        pricePerDay: parseFloat(pricePerDay),
-        location,
+        pricePerDay: parsedPrice,
+        location: district,
+        district,
         active,
       };
       onSubmit(updateData);
@@ -54,8 +90,10 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
       const createData: CreateToolInput = {
         title,
         description,
-        pricePerDay: parseFloat(pricePerDay),
-        location,
+        pricePerDay: parsedPrice,
+        location: district,
+        district,
+        imageUrl: imageUrl || undefined,
         supplierId,
       };
       onSubmit(createData);
@@ -79,7 +117,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <textarea
@@ -107,14 +145,31 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
+            <Label htmlFor="imageUrl">Image URL (Optional)</Label>
             <Input
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="City, Country"
-              required
+              id="imageUrl"
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="district">District</Label>
+            <select
+              id="district"
+              value={district}
+              onChange={(e) => setDistrict(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+              required
+              disabled={isLoadingGeo || isLoading}
+            >
+              <option value="">Select a district</option>
+              {districtOptions.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
           </div>
         </CardContent>
         <CardFooter className="flex gap-2 p-4">

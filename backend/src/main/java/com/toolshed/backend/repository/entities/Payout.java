@@ -61,4 +61,16 @@ public class Payout {
     private LocalDateTime requestedAt;
 
     private LocalDateTime completedAt;
+
+    /**
+     * Description for wallet history display.
+     * For cancellation income: "Cancellation fee from [renter name]"
+     */
+    private String description;
+
+    /**
+     * True if this is income (e.g., cancellation fee), false if payout.
+     */
+    @Builder.Default
+    private Boolean isIncome = false;
 }

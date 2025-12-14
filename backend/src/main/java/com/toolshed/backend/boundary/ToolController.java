@@ -1,6 +1,5 @@
 package com.toolshed.backend.boundary;
 
-
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
@@ -42,29 +41,18 @@ public class ToolController {
     }
 
     /**
-     * Search tools by keyword and optional location.
-     * Endpoint: GET /api/tools/search?keyword=something&location=somewhere
+     * Search tools by keyword and optional district.
+     * Endpoint: GET /api/tools/search?keyword=something&district=somewhere
      */
-    @Operation(
-        summary = "Search active tools by keyword and/or location",
-        description = "Performs a case-insensitive search across tool titles and descriptions (using 'keyword'). Filters out inactive tools. Optionally filters by location (partial match, case-insensitive). Both parameters are optional; if both are empty, returns all active tools.",
-        parameters = {
+    @Operation(summary = "Search active tools by keyword, district, and/or price range", description = "Performs a case-insensitive search across tool titles and descriptions (using 'keyword'). Filters out inactive tools. Optionally filters by district (partial match, case-insensitive) and/or price range (min/max daily price). All parameters are optional; if all are empty, returns an empty list.", parameters = {
             @Parameter(name = "keyword", description = "Keyword to search for in title or description (e.g., 'drill'). Optional.", required = false),
-            @Parameter(name = "location", description = "Location filter (e.g., 'Aveiro'). Optional.", required = false)
-        },
-        responses = {
-            @ApiResponse(
-                responseCode = "200", 
-                description = "Successfully retrieved list of tools",
-                content = @Content(mediaType = "application/json", 
-                                   schema = @Schema(implementation = Tool.class))
-            ),
-            @ApiResponse(
-                responseCode = "400", 
-                description = "Invalid input or missing required parameters"
-            )
-        }
-    )
+            @Parameter(name = "district", description = "District filter (e.g., 'Aveiro'). Optional.", required = false),
+            @Parameter(name = "minPrice", description = "Minimum daily price (inclusive, e.g., 10.0). Optional.", required = false),
+            @Parameter(name = "maxPrice", description = "Maximum daily price (inclusive, e.g., 50.0). Optional.", required = false)
+    }, responses = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of tools", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Tool.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid input or missing required parameters")
+    })
 
     @GetMapping
     public ResponseEntity<List<Tool>> getAllTools() {
@@ -93,11 +81,11 @@ public class ToolController {
 
     @GetMapping("/search")
     public ResponseEntity<List<Tool>> searchTools(
-            @Parameter(description = "Keyword to search for (e.g., 'drill').")
-            @RequestParam(value = "keyword", required = false) String keyword,
-            @Parameter(description = "Filter by location (e.g., 'Aveiro'). Optional.")
-            @RequestParam(value = "location", required = false) String location) {
-        List<Tool> results = toolService.searchTools(keyword, location);
+            @Parameter(description = "Keyword to search for (e.g., 'drill').") @RequestParam(value = "keyword", required = false) String keyword,
+            @Parameter(description = "Filter by district (e.g., 'Aveiro'). Optional.") @RequestParam(value = "district", required = false) String district,
+            @Parameter(description = "Minimum price per day (inclusive). Optional.") @RequestParam(value = "minPrice", required = false) Double minPrice,
+            @Parameter(description = "Maximum price per day (inclusive). Optional.") @RequestParam(value = "maxPrice", required = false) Double maxPrice) {
+        List<Tool> results = toolService.searchTools(keyword, district, minPrice, maxPrice);
         return ResponseEntity.ok(results);
     }
 
@@ -130,7 +118,8 @@ public class ToolController {
                 .title(tool.getTitle())
                 .description(tool.getDescription())
                 .pricePerDay(tool.getPricePerDay())
-                .location(tool.getLocation())
+                .district(tool.getDistrict())
+                .imageUrl(tool.getImageUrl())
                 .active(tool.isActive())
                 .availabilityCalendar(tool.getAvailabilityCalendar())
                 .overallRating(tool.getOverallRating())
@@ -142,8 +131,7 @@ public class ToolController {
                                 .lastName(tool.getOwner().getLastName())
                                 .email(tool.getOwner().getEmail())
                                 .reputationScore(tool.getOwner().getReputationScore())
-                                .build()
-                )
+                                .build())
                 .build();
     }
 }

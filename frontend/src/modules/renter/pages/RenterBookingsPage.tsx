@@ -25,6 +25,8 @@ import { ToolAvailabilityCard } from "../components/ToolAvailabilityCard";
 import { BackToDashboardButton } from "../components/BackToDashboardButton";
 import { RenterNavbar } from "../components/RenterNavbar";
 import StarRating from "@/modules/shared/components/StarRating";
+import { getSubscriptionStatus } from "@/api/subscription-api";
+import { Crown } from "lucide-react";
 
 export const RenterBookingsPage = () => {
   const { toolId } = useParams<{ toolId: string }>();
@@ -40,6 +42,8 @@ export const RenterBookingsPage = () => {
     useState<BookingResponse | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [isPro, setIsPro] = useState(false);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
 
   const fetchTool = useCallback(async () => {
     if (!toolId) {
@@ -63,6 +67,22 @@ export const RenterBookingsPage = () => {
     fetchTool();
   }, [fetchTool]);
 
+  // Check Pro status for discount
+  useEffect(() => {
+    const checkProStatus = async () => {
+      if (user?.id) {
+        try {
+          const status = await getSubscriptionStatus(user.id);
+          setIsPro(status.active);
+          setDiscountPercentage(status.discountPercentage || 0);
+        } catch (error) {
+          console.error('Failed to check Pro status:', error);
+        }
+      }
+    };
+    checkProStatus();
+  }, [user?.id]);
+
   const rentalDays = useMemo(() => {
     if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
@@ -76,6 +96,11 @@ export const RenterBookingsPage = () => {
     if (!tool) return 0;
     return rentalDays * tool.pricePerDay;
   }, [rentalDays, tool]);
+
+  const discountedTotalPrice = useMemo(() => {
+    if (!isPro || discountPercentage === 0) return totalPrice;
+    return totalPrice * (1 - discountPercentage / 100);
+  }, [totalPrice, isPro, discountPercentage]);
 
   const datesInvalid = useMemo(() => {
     if (!startDate || !endDate) return true;
@@ -143,7 +168,9 @@ export const RenterBookingsPage = () => {
           <div>
             <p className="text-sm text-muted-foreground mb-1">Booking</p>
             <h2 className="text-3xl font-bold">{tool.title}</h2>
-            <p className="text-muted-foreground">{tool.location}</p>
+            <p className="text-muted-foreground">
+              {tool.location || tool.district}
+            </p>
           </div>
           <BackToDashboardButton />
         </div>
@@ -157,6 +184,19 @@ export const RenterBookingsPage = () => {
                 <CardDescription>What you get with this rental</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {tool.imageUrl && (
+                  <div className="w-full h-64 mb-4 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
+                    <img
+                      src={tool.imageUrl}
+                      alt={tool.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          "https://via.placeholder.com/600x400?text=No+Image+Available";
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">
                     €{tool.pricePerDay.toFixed(2)}/day
@@ -166,11 +206,10 @@ export const RenterBookingsPage = () => {
                     <span className="text-xs">({tool.numRatings})</span>
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full ${
-                      tool.active
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
+                    className={`px-3 py-1 rounded-full ${tool.active
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-gray-100 text-gray-800"
+                      }`}
                   >
                     {tool.active ? "Available" : "Unavailable"}
                   </span>
@@ -220,9 +259,30 @@ export const RenterBookingsPage = () => {
                         {rentalDays || "-"}
                       </span>
                     </div>
+                    {isPro && discountPercentage > 0 && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span>Subtotal</span>
+                          <span className="text-foreground line-through">
+                            €{totalPrice.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-yellow-600">
+                          <span className="flex items-center gap-1">
+                            <Crown className="h-4 w-4" />
+                            Pro discount ({discountPercentage}%)
+                          </span>
+                          <span className="font-semibold">
+                            -€{(totalPrice - discountedTotalPrice).toFixed(2)}
+                          </span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex items-center justify-between text-foreground font-semibold text-lg">
                       <span>Total</span>
-                      <span>€{totalPrice.toFixed(2)}</span>
+                      <span className={isPro && discountPercentage > 0 ? "text-yellow-600" : ""}>
+                        €{discountedTotalPrice.toFixed(2)}
+                      </span>
                     </div>
                   </div>
 

@@ -10,6 +10,8 @@ export interface PayoutResponse {
   stripeTransferId: string;
   requestedAt: string;
   completedAt: string | null;
+  description?: string;
+  isIncome?: boolean;
 }
 
 export interface WalletResponse {
@@ -61,6 +63,27 @@ export async function requestPayout(ownerId: string, amount: number): Promise<Pa
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       throw new Error(error.response.data.message || 'Failed to process payout');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+}
+
+export interface MonthlyEarnings {
+  month: string;
+  year: number;
+  amount: number;
+}
+
+/**
+ * Get monthly earnings for an owner.
+ */
+export async function getMonthlyEarnings(ownerId: string): Promise<MonthlyEarnings[]> {
+  try {
+    const response = await axios.get<MonthlyEarnings[]>(`${API_URL}/wallet/${ownerId}/earnings`);
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to fetch earnings');
     }
     throw new Error('Network error or unknown issue');
   }
