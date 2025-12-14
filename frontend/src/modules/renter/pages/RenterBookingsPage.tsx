@@ -159,6 +159,19 @@ export const RenterBookingsPage = () => {
                 <CardDescription>What you get with this rental</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {tool.imageUrl && (
+                  <div className="w-full h-64 mb-4 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800">
+                    <img
+                      src={tool.imageUrl}
+                      alt={tool.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src =
+                          "https://via.placeholder.com/600x400?text=No+Image+Available";
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center gap-3">
                   <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">
                     €{tool.pricePerDay.toFixed(2)}/day
@@ -168,11 +181,10 @@ export const RenterBookingsPage = () => {
                     <span className="text-xs">({tool.numRatings})</span>
                   </div>
                   <span
-                    className={`px-3 py-1 rounded-full ${
-                      tool.active
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-gray-100 text-gray-800"
-                    }`}
+                    className={`px-3 py-1 rounded-full ${tool.active
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-gray-100 text-gray-800"
+                      }`}
                   >
                     {tool.active ? "Available" : "Unavailable"}
                   </span>

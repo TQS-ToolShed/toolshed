@@ -19,6 +19,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
   const [description, setDescription] = useState('');
   const [pricePerDay, setPricePerDay] = useState('');
   const [district, setDistrict] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [districtOptions, setDistrictOptions] = useState<string[]>([]);
   const [isLoadingGeo, setIsLoadingGeo] = useState(false);
   const [active, setActive] = useState(true);
@@ -55,12 +56,14 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
       setDescription(tool.description);
       setPricePerDay(tool.pricePerDay.toString());
       setDistrict(tool.location || tool.district || '');
+      setImageUrl(tool.imageUrl || '');
       setActive(tool.active);
     } else {
       setTitle('');
       setDescription('');
       setPricePerDay('');
       setDistrict('');
+      setImageUrl('');
       setActive(true);
     }
   }, [tool]);
@@ -72,7 +75,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
     if (Number.isNaN(parsedPrice)) {
       return;
     }
-    
+
     if (isEditing) {
       const updateData: UpdateToolInput = {
         title,
@@ -90,6 +93,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
         pricePerDay: parsedPrice,
         location: district,
         district,
+        imageUrl: imageUrl || undefined,
         supplierId,
       };
       onSubmit(createData);
@@ -113,7 +117,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
               required
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <textarea
@@ -137,6 +141,17 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
               onChange={(e) => setPricePerDay(e.target.value)}
               placeholder="0.00"
               required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="imageUrl">Image URL (Optional)</Label>
+            <Input
+              id="imageUrl"
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://example.com/image.jpg"
             />
           </div>
 

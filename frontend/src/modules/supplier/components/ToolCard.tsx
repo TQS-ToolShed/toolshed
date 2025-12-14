@@ -24,7 +24,20 @@ export const ToolCard = ({
   onDelete,
 }: ToolCardProps) => {
   return (
-    <Card className="w-full">
+    <Card className="w-full overflow-hidden">
+      {tool.imageUrl && (
+        <div className="w-full h-40 bg-gray-100 dark:bg-gray-800">
+          <img
+            src={tool.imageUrl}
+            alt={tool.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "https://via.placeholder.com/600x400?text=No+Image+Available";
+            }}
+          />
+        </div>
+      )}
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -34,11 +47,10 @@ export const ToolCard = ({
             </CardDescription>
           </div>
           <span
-            className={`px-2 py-1 text-xs rounded-full ${
-              tool.active
-                ? "bg-green-100 text-green-800"
-                : "bg-gray-100 text-gray-800"
-            }`}
+            className={`px-2 py-1 text-xs rounded-full ${tool.active
+              ? "bg-green-100 text-green-800"
+              : "bg-gray-100 text-gray-800"
+              }`}
           >
             {tool.active ? "Active" : "Inactive"}
           </span>
