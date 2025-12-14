@@ -54,6 +54,9 @@ class BookingServiceImplTest {
         @Mock
         private PayoutRepository payoutRepository;
 
+        @Mock
+        private SubscriptionService subscriptionService;
+
         @InjectMocks
         private BookingServiceImpl bookingService;
 
