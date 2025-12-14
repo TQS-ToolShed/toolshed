@@ -102,6 +102,12 @@ export const RenterBookingsPage = () => {
     return totalPrice * (1 - discountPercentage / 100);
   }, [totalPrice, isPro, discountPercentage]);
 
+  // Security deposit - refundable if tool returned in good condition
+  const SECURITY_DEPOSIT = 8.0;
+  const grandTotal = useMemo(() => {
+    return discountedTotalPrice + SECURITY_DEPOSIT;
+  }, [discountedTotalPrice]);
+
   const datesInvalid = useMemo(() => {
     if (!startDate || !endDate) return true;
     const start = new Date(startDate);
@@ -278,10 +284,26 @@ export const RenterBookingsPage = () => {
                         </div>
                       </>
                     )}
-                    <div className="flex items-center justify-between text-foreground font-semibold text-lg">
-                      <span>Total</span>
-                      <span className={isPro && discountPercentage > 0 ? "text-yellow-600" : ""}>
+                    <div className="flex items-center justify-between">
+                      <span>Rental {isPro && discountPercentage > 0 ? "(after discount)" : "subtotal"}</span>
+                      <span className={`text-foreground font-semibold ${isPro && discountPercentage > 0 ? "text-yellow-600" : ""}`}>
                         €{discountedTotalPrice.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        Security deposit
+                        <span className="text-xs text-muted-foreground">(refundable)</span>
+                      </span>
+                      <span className="text-foreground font-semibold">
+                        €{SECURITY_DEPOSIT.toFixed(2)}
+                      </span>
+                    </div>
+                    <Separator className="my-2" />
+                    <div className="flex items-center justify-between text-foreground font-semibold text-lg">
+                      <span>Total at checkout</span>
+                      <span>
+                        €{grandTotal.toFixed(2)}
                       </span>
                     </div>
                   </div>

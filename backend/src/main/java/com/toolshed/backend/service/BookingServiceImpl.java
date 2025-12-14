@@ -108,6 +108,7 @@ public class BookingServiceImpl implements BookingService {
     /**
      * task to mark finished bookings as completed and free tools if they are no
      * longer rented.
+     * Also removes security deposit from owner's wallet (returns to renter).
      */
     @Scheduled(cron = "0 * * * * *")
     @Transactional
@@ -118,6 +119,14 @@ public class BookingServiceImpl implements BookingService {
         for (Booking booking : expired) {
             booking.setStatus(BookingStatus.COMPLETED);
             bookingRepository.save(booking);
+
+            // Remove security deposit from owner's wallet (return to renter)
+            User owner = booking.getOwner();
+            if (owner != null && booking.getDepositAmount() != null && booking.getDepositAmount() > 0) {
+                Double currentBalance = owner.getWalletBalance() != null ? owner.getWalletBalance() : 0.0;
+                owner.setWalletBalance(currentBalance - booking.getDepositAmount());
+                userRepository.save(owner);
+            }
 
             Tool tool = booking.getTool();
             if (tool != null) {
@@ -198,7 +207,7 @@ public class BookingServiceImpl implements BookingService {
         return toBookingResponse(saved);
     }
 
-    private static final Double DEPOSIT_AMOUNT = 50.0;
+    private static final Double DEPOSIT_AMOUNT = 8.0;
 
     @Override
     @Transactional
