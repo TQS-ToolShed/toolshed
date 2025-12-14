@@ -6,7 +6,22 @@ import { ActiveRentals } from '../components/ActiveRentals';
 import { SupplierNavbar } from '../components/SupplierNavbar';
 import { WalletSection } from '../components/WalletSection';
 
+import { EarningsChart } from '../components/EarningsChart';
+import { useAuth } from '@/modules/auth/context/AuthContext';
+import { useEffect, useState } from 'react';
+import { getMonthlyEarnings, type MonthlyEarnings } from '../api/payoutApi';
+
 export const SupplierDashboardPage = () => {
+  const { user } = useAuth();
+  const [earnings, setEarnings] = useState<MonthlyEarnings[]>([]);
+
+  useEffect(() => {
+    if (user?.id) {
+      getMonthlyEarnings(user.id)
+        .then(setEarnings)
+        .catch(console.error);
+    }
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -42,10 +57,14 @@ export const SupplierDashboardPage = () => {
           <ActiveRentals />
         </div>
 
+        <div className="mt-6">
+          <EarningsChart data={earnings} />
+        </div>
+
         <div className="mt-10">
           <ToolBookingRequests />
         </div>
-      </main>
-    </div>
+      </main >
+    </div >
   );
 };
