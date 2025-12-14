@@ -30,7 +30,7 @@ public class TestDataSeeder implements CommandLineRunner {
     private final ToolRepository toolRepository;
     private final BookingRepository bookingRepository;
 
-    private final Random rand = new Random();
+    private final Random rand = new java.security.SecureRandom();
 
     @Override
     public void run(String... args) throws Exception {
