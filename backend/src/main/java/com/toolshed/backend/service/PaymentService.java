@@ -5,7 +5,6 @@ import java.util.UUID;
 
 import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
-import com.toolshed.backend.dto.MonthlyEarningsResponse;
 import com.toolshed.backend.dto.PayoutResponse;
 import com.toolshed.backend.dto.WalletResponse;
 import com.toolshed.backend.repository.entities.Booking;
@@ -106,12 +105,4 @@ public interface PaymentService {
      * @return PayoutResponse with payout details
      */
     PayoutResponse requestPayout(UUID ownerId, Double amount);
-
-    /**
-     * Gets the monthly earnings for an owner.
-     *
-     * @param ownerId The ID of the owner
-     * @return List of monthly earnings
-     */
-    List<MonthlyEarningsResponse> getMonthlyEarnings(UUID ownerId);
 }
