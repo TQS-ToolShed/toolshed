@@ -47,12 +47,10 @@ export const AvailableToolCard = ({ tool, isFavorite = false, onToggleFavorite }
             €{tool.pricePerDay.toFixed(2)}/day
           </div>
           <div className="flex items-center gap-1 text-muted-foreground">
-            <StarRating
-              rating={tool.overallRating}
-              showCount
-              count={tool.numRatings}
-              size={14}
-            />
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-500" />
+            <span className="text-sm">
+              {tool.overallRating.toFixed(1)} ({tool.numRatings} reviews)
+            </span>
           </div>
         </div>
       </CardContent>
