@@ -41,15 +41,18 @@ public class BookingServiceImpl implements BookingService {
     private final ToolRepository toolRepository;
     private final UserRepository userRepository;
     private final PayoutRepository payoutRepository;
+    private final SubscriptionService subscriptionService;
 
     public BookingServiceImpl(BookingRepository bookingRepository,
             ToolRepository toolRepository,
             UserRepository userRepository,
-            PayoutRepository payoutRepository) {
+            PayoutRepository payoutRepository,
+            SubscriptionService subscriptionService) {
         this.bookingRepository = bookingRepository;
         this.toolRepository = toolRepository;
         this.userRepository = userRepository;
         this.payoutRepository = payoutRepository;
+        this.subscriptionService = subscriptionService;
     }
 
     @Override
@@ -81,6 +84,11 @@ public class BookingServiceImpl implements BookingService {
 
         long days = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) + 1;
         double totalPrice = days * tool.getPricePerDay();
+
+        // Apply Pro Member discount (5% off for Pro subscribers)
+        double discountPercentage = subscriptionService.getDiscountPercentage(renter);
+        double discountAmount = totalPrice * (discountPercentage / 100);
+        totalPrice = totalPrice - discountAmount;
 
         Booking booking = new Booking();
         booking.setTool(tool);
