@@ -27,7 +27,7 @@ import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
 @ActiveProfiles("test")
 @DisplayName("AuthController Register Integration Tests")
 class AuthControllerRegisterIT {

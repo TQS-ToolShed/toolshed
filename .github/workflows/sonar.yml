@@ -41,7 +41,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
-            -Dtest='!**/functional/**' \
+            -Dtest='!**/functional/**,!**/e2e/**' \
             -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.organization=tqs-toolshed \
