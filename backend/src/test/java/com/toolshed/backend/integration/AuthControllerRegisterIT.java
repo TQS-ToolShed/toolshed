@@ -27,7 +27,7 @@ import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 @DisplayName("AuthController Register Integration Tests")
 class AuthControllerRegisterIT {
@@ -58,7 +58,7 @@ class AuthControllerRegisterIT {
         baseUrl = "http://localhost:" + port + "/api/auth/register";
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        
+
         // Clear database before each test (order matters for foreign key constraints)
         reviewRepository.deleteAll();
         bookingRepository.deleteAll();
@@ -102,7 +102,7 @@ class AuthControllerRegisterIT {
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull();
-            
+
             User responseUser = response.getBody();
             assertThat(responseUser.getFirstName()).isEqualTo("John");
             assertThat(responseUser.getLastName()).isEqualTo("Doe");
@@ -137,7 +137,7 @@ class AuthControllerRegisterIT {
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull();
-            
+
             User responseUser = response.getBody();
             assertThat(responseUser.getRole()).isEqualTo(UserRole.SUPPLIER);
             assertThat(responseUser.getEmail()).isEqualTo("jane.smith@toolsupply.com");
@@ -178,7 +178,7 @@ class AuthControllerRegisterIT {
         void shouldReturn400WhenEmailAlreadyExists() {
             // Arrange
             createExistingUser("existing@example.com");
-            
+
             RegisterRequest registerRequest = RegisterRequest.builder()
                     .firstName("New")
                     .lastName("User")
@@ -202,11 +202,11 @@ class AuthControllerRegisterIT {
         void shouldHandleCaseSensitivityInEmailDuplicationCheck() {
             // Arrange
             createExistingUser("user@example.com");
-            
+
             RegisterRequest registerRequest = RegisterRequest.builder()
                     .firstName("New")
                     .lastName("User")
-                    .email("USER@EXAMPLE.COM")  // Different case
+                    .email("USER@EXAMPLE.COM") // Different case
                     .password("password123")
                     .role(UserRole.RENTER)
                     .build();
@@ -216,7 +216,8 @@ class AuthControllerRegisterIT {
             // Act
             ResponseEntity<User> response = restTemplate.postForEntity(baseUrl, request, User.class);
 
-            // Assert - Should succeed because emails are case sensitive in this implementation
+            // Assert - Should succeed because emails are case sensitive in this
+            // implementation
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getEmail()).isEqualTo("USER@EXAMPLE.COM");
@@ -227,10 +228,10 @@ class AuthControllerRegisterIT {
         void shouldAcceptValidEmailFormats() {
             // Arrange
             String[] validEmails = {
-                "user@domain.com",
-                "user.name@domain.co.uk",
-                "user+tag@domain.org",
-                "123@domain.net"
+                    "user@domain.com",
+                    "user.name@domain.co.uk",
+                    "user+tag@domain.org",
+                    "123@domain.net"
             };
 
             for (int i = 0; i < validEmails.length; i++) {
@@ -423,7 +424,7 @@ class AuthControllerRegisterIT {
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull();
-            
+
             User user = response.getBody();
             assertThat(user.getFirstName()).isEqualTo("Alice");
             assertThat(user.getLastName()).isEqualTo("Johnson");
@@ -452,11 +453,11 @@ class AuthControllerRegisterIT {
             // Assert
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull();
-            
+
             User user = response.getBody();
-            assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE);  // Default status
-            assertThat(user.getReputationScore()).isEqualTo(0.0);       // Default reputation
-            assertThat(user.getId()).isNotNull();                       // ID should be generated
+            assertThat(user.getStatus()).isEqualTo(UserStatus.ACTIVE); // Default status
+            assertThat(user.getReputationScore()).isEqualTo(0.0); // Default reputation
+            assertThat(user.getId()).isNotNull(); // ID should be generated
         }
     }
 
@@ -470,7 +471,7 @@ class AuthControllerRegisterIT {
             // Arrange
             String longFirstName = "VeryLongFirstNameThatExceedsNormalLength";
             String longLastName = "VeryLongLastNameThatExceedsNormalLengthToo";
-            
+
             RegisterRequest registerRequest = RegisterRequest.builder()
                     .firstName(longFirstName)
                     .lastName(longLastName)
@@ -496,7 +497,7 @@ class AuthControllerRegisterIT {
         void shouldHandleRegistrationWithSpecialCharactersInPassword() {
             // Arrange
             String specialPassword = "P@ssw0rd!@#$%^&*()_+-=[]{}|;:,.<>?";
-            
+
             RegisterRequest registerRequest = RegisterRequest.builder()
                     .firstName("Special")
                     .lastName("User")
