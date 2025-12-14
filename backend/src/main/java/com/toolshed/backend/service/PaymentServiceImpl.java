@@ -117,6 +117,8 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    private static final Double SECURITY_DEPOSIT = 8.0;
+
     @Override
     @Transactional
     public Booking markBookingAsPaid(UUID bookingId) {
@@ -125,11 +127,16 @@ public class PaymentServiceImpl implements PaymentService {
 
         booking.setPaymentStatus(PaymentStatus.COMPLETED);
 
-        // Credit the owner's wallet
+        // Set deposit amount on booking for tracking
+        booking.setDepositAmount(SECURITY_DEPOSIT);
+
+        // Credit the owner's wallet with rental price + security deposit
         User owner = booking.getOwner();
         if (owner != null && booking.getTotalPrice() != null) {
             Double currentBalance = owner.getWalletBalance() != null ? owner.getWalletBalance() : 0.0;
-            owner.setWalletBalance(currentBalance + booking.getTotalPrice());
+            // Owner receives rental price + deposit (deposit will be removed when booking
+            // ends)
+            owner.setWalletBalance(currentBalance + booking.getTotalPrice() + SECURITY_DEPOSIT);
             userRepository.save(owner);
         }
 

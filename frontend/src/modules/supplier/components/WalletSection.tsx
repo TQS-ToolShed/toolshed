@@ -125,6 +125,19 @@ export const WalletSection = () => {
           </p>
         </div>
 
+        {/* Security Deposit Info */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+          <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium text-amber-800">About Security Deposits</p>
+            <p className="text-amber-700">
+              Your balance includes €8 security deposits from active rentals. 
+              These deposits are automatically returned to renters when their rentals end 
+              (if tool is returned in good condition).
+            </p>
+          </div>
+        </div>
+
         {/* Status Messages */}
         {errorMessage && (
           <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
