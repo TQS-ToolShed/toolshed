@@ -1,6 +1,7 @@
 package com.toolshed.backend.service;
 
 import com.toolshed.backend.dto.BookingResponse;
+import com.toolshed.backend.dto.CancelBookingResponse;
 import com.toolshed.backend.dto.ConditionReportRequest;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
@@ -24,4 +25,7 @@ public interface BookingService {
     BookingResponse submitConditionReport(UUID bookingId, ConditionReportRequest request);
 
     BookingResponse payDeposit(UUID bookingId, UUID renterId);
+
+    // Cancellation & Refunds
+    CancelBookingResponse cancelBooking(UUID bookingId, UUID renterId);
 }

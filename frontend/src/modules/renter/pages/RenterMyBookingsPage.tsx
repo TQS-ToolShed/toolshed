@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { RenterNavbar } from '../components/RenterNavbar';
 import { BackToDashboardButton } from '../components/BackToDashboardButton';
 import { RenterBookingList } from '../components/RenterBookingList';
@@ -12,26 +12,27 @@ export const RenterMyBookingsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      if (!user?.id) {
-        setError('You need to be logged in to view your bookings.');
-        setIsLoading(false);
-        return;
-      }
-      try {
-        setError(null);
-        setIsLoading(true);
-        const data = await getBookingsForRenter(user.id);
-        setBookings(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load bookings');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
+  const loadBookings = useCallback(async () => {
+    if (!user?.id) {
+      setError('You need to be logged in to view your bookings.');
+      setIsLoading(false);
+      return;
+    }
+    try {
+      setError(null);
+      setIsLoading(true);
+      const data = await getBookingsForRenter(user.id);
+      setBookings(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load bookings');
+    } finally {
+      setIsLoading(false);
+    }
   }, [user?.id]);
+
+  useEffect(() => {
+    loadBookings();
+  }, [loadBookings]);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -110,6 +111,8 @@ export const RenterMyBookingsPage = () => {
             maxHeight="18rem"
             className="h-full lg:col-span-1"
             showPayButton={true}
+            showCancelButton={true}
+            onBookingCancelled={loadBookings}
           />
         </div>
 
@@ -122,6 +125,8 @@ export const RenterMyBookingsPage = () => {
           emptyLabel="No pending booking requests."
           maxHeight="18rem"
           className="lg:col-span-2"
+          showCancelButton={true}
+          onBookingCancelled={loadBookings}
         />
 
         {/* Rental History Section - inline display of past bookings */}
@@ -130,4 +135,3 @@ export const RenterMyBookingsPage = () => {
     </div>
   );
 };
-
