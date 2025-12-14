@@ -87,7 +87,7 @@ public class ConditionReportSteps {
         tool.setTitle("Condition Report Test Tool");
         tool.setDescription("Tool for condition report testing");
         tool.setPricePerDay(20.0);
-        tool.setLocation("Test Location");
+        tool.setDistrict("Test Location");
         tool.setOwner(owner);
         tool.setActive(true);
         tool.setOverallRating(0.0);

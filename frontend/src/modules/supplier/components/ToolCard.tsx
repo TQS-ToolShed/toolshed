@@ -29,7 +29,9 @@ export const ToolCard = ({
         <div className="flex justify-between items-start">
           <div>
             <CardTitle className="text-lg">{tool.title}</CardTitle>
-            <CardDescription className="mt-1">{tool.location}</CardDescription>
+            <CardDescription className="mt-1">
+              {tool.district}
+            </CardDescription>
           </div>
           <span
             className={`px-2 py-1 text-xs rounded-full ${

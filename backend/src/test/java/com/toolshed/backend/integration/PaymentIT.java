@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.PayoutRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
@@ -42,6 +43,9 @@ class PaymentIT {
     private UserRepository userRepository;
 
     @Autowired
+    private PayoutRepository payoutRepository;
+
+    @Autowired
     private ToolRepository toolRepository;
 
     @Autowired
@@ -54,6 +58,7 @@ class PaymentIT {
 
     @BeforeEach
     void setUp() {
+        payoutRepository.deleteAll();
         bookingRepository.deleteAll();
         toolRepository.deleteAll();
         userRepository.deleteAll();
@@ -82,7 +87,7 @@ class PaymentIT {
         tool.setTitle("Payment Test Tool");
         tool.setDescription("Tool for payment testing");
         tool.setPricePerDay(25.0);
-        tool.setLocation("Test Location");
+        tool.setDistrict("Test Location");
         tool.setOwner(owner);
         tool.setActive(true);
         tool.setOverallRating(0.0);
