@@ -15,6 +15,7 @@ export interface Tool {
   availabilityCalendar?: string;
   overallRating: number;
   numRatings: number;
+  imageUrl?: string;
 }
 
 export interface ToolOwnerSummary {
@@ -37,6 +38,7 @@ export interface CreateToolInput {
   supplierId: string;
   location: string;
   district?: string;
+  imageUrl?: string;
 }
 
 // UpdateToolInput - matches backend DTO
@@ -109,7 +111,7 @@ export const searchTools = async (filters: ToolSearchFilters): Promise<Tool[]> =
 
     if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
     if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
-    
+
     const response = await axios.get<Tool[]>(`${API_URL}/search`, { params });
     return response.data;
   } catch (error) {

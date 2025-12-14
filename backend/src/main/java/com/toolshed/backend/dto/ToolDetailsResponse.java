@@ -17,6 +17,7 @@ public class ToolDetailsResponse {
     private String description;
     private Double pricePerDay;
     private String district;
+    private String imageUrl;
     private boolean active;
     private String availabilityCalendar;
     private Double overallRating;
