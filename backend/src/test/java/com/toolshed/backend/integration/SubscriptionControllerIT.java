@@ -2,9 +2,10 @@ package com.toolshed.backend.integration;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.toolshed.backend.dto.SubscriptionStatusResponse;
+import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.PayoutRepository;
+import com.toolshed.backend.repository.ReviewRepository;
+import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.User;
 import com.toolshed.backend.repository.enums.SubscriptionTier;
@@ -39,15 +40,24 @@ class SubscriptionControllerIT {
     private UserRepository userRepository;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private BookingRepository bookingRepository;
+
+    @Autowired
+    private ToolRepository toolRepository;
+
+    @Autowired
+    private ReviewRepository reviewRepository;
+
+    @Autowired
+    private PayoutRepository payoutRepository;
 
     private User freeUser;
     private User proUser;
 
     @BeforeEach
     void setUp() {
-        // Clean up any existing test data
-        userRepository.deleteAll();
+        // Clean up in correct order to avoid FK constraint violations
+        cleanupDatabase();
 
         freeUser = User.builder()
                 .firstName("Free")
@@ -81,6 +91,15 @@ class SubscriptionControllerIT {
 
     @AfterEach
     void tearDown() {
+        cleanupDatabase();
+    }
+
+    private void cleanupDatabase() {
+        // Delete in correct order: dependent entities first
+        payoutRepository.deleteAll();
+        reviewRepository.deleteAll();
+        bookingRepository.deleteAll();
+        toolRepository.deleteAll();
         userRepository.deleteAll();
     }
 
