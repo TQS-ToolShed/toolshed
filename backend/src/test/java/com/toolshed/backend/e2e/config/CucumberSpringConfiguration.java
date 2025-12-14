@@ -12,7 +12,16 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
  * This configuration uses the "local" profile which connects to PostgreSQL on
  * localhost:5432.
  * 
- * Before running these tests, make sure:
+ * To run E2E tests with automatic frontend and database startup, use:
+ * mvn verify -Pe2e
+ * 
+ * This will automatically:
+ * 1. Start the PostgreSQL database via docker-compose
+ * 2. Install frontend dependencies and start the Vite dev server
+ * 3. Run the Cucumber E2E tests with Spring Boot
+ * 4. Stop the frontend after tests complete
+ * 
+ * For manual setup, make sure:
  * 1. Database is running (docker compose up db -d)
  * 2. Frontend is running (npm run dev in frontend directory)
  * 
