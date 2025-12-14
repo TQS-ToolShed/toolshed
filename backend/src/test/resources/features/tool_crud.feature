@@ -6,7 +6,7 @@ Feature: Tool Management
 
   Scenario: Create a new tool
     Given I am on the create tool page
-    When I fill in the tool details with title "BDD Drill", description "Powerful BDD Drill", price "20.0", location "BDD City"
+    When I fill in the tool details with title "BDD Drill", description "Powerful BDD Drill", price "20.0", district "Aveiro"
     And I submit the form
     Then I should see "BDD Drill" in the tool list
 

@@ -15,6 +15,7 @@ import com.toolshed.backend.dto.CreateReviewRequest;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ReviewRepository;
 import com.toolshed.backend.repository.ToolRepository;
+import com.toolshed.backend.repository.PayoutRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
 import com.toolshed.backend.repository.entities.Tool;
@@ -47,6 +48,9 @@ public class ReviewSteps {
     private ReviewRepository reviewRepository;
 
     @Autowired
+    private PayoutRepository payoutRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private User renter;
@@ -57,6 +61,7 @@ public class ReviewSteps {
 
     @Before("@review")
     public void setUp() {
+        payoutRepository.deleteAll();
         reviewRepository.deleteAll();
         bookingRepository.deleteAll();
         toolRepository.deleteAll();
@@ -86,7 +91,7 @@ public class ReviewSteps {
         tool.setTitle("Test Tool");
         tool.setDescription("Description");
         tool.setPricePerDay(10.0);
-        tool.setLocation("Location");
+        tool.setDistrict("Lisboa");
         tool.setOwner(owner);
         tool.setActive(true);
         tool.setOverallRating(0.0);
@@ -159,5 +164,18 @@ public class ReviewSteps {
         resultActions
                 .andExpect(jsonPath("$.rating").value(rating))
                 .andExpect(jsonPath("$.comment").value(comment));
+    }
+
+    @Then("the owner reputation should be {double}")
+    public void the_owner_reputation_should_be(Double expectedScore) {
+        User updatedOwner = userRepository.findById(owner.getId()).orElseThrow();
+        // Use assertive tolerance for floating point
+        org.assertj.core.api.Assertions.assertThat(updatedOwner.getReputationScore()).isEqualTo(expectedScore);
+    }
+
+    @Then("the tool rating should be {double}")
+    public void the_tool_rating_should_be(Double expectedRating) {
+        Tool updatedTool = toolRepository.findById(tool.getId()).orElseThrow();
+        org.assertj.core.api.Assertions.assertThat(updatedTool.getOverallRating()).isEqualTo(expectedRating);
     }
 }

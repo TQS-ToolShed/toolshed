@@ -7,5 +7,8 @@ import com.toolshed.backend.dto.ReviewResponse;
 
 public interface ReviewService {
     ReviewResponse createReview(CreateReviewRequest request);
+
     ReviewResponse updateReview(UUID reviewId, CreateReviewRequest request);
+
+    void recalculateAllReputations();
 }

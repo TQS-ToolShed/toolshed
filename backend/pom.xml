@@ -151,6 +151,10 @@
             <version>1.10.1</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents.client5</groupId>
+            <artifactId>httpclient5</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
@@ -159,7 +163,6 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-
             <!-- Maven Surefire Plugin for functional tests -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
