@@ -195,15 +195,24 @@ export const router = createBrowserRouter([
     path: "/renter/subscription",
     element: (
       <Suspense fallback={<Loading />}>
-        <PaymentSuccessPage />
+        <SubscriptionPage />
       </Suspense>
     ),
   },
   {
-    path: "/payment-cancelled",
+    path: "/renter/subscription/success",
     element: (
       <Suspense fallback={<Loading />}>
-        <PaymentCancelledPage />
+        <SubscriptionSuccessPage />
+      </Suspense>
+    ),
+  },
+  // Friendly alias if Stripe returns to /subscription/success without /renter prefix
+  {
+    path: "/subscription/success",
+    element: (
+      <Suspense fallback={<Loading />}>
+        <SubscriptionSuccessPage />
       </Suspense>
     ),
   },
