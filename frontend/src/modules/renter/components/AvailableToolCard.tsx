@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import StarRating from "@/modules/shared/components/StarRating";
 import {
   Card,
   CardContent,
