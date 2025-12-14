@@ -3,8 +3,12 @@ package com.toolshed.backend.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -15,7 +19,9 @@ import org.springframework.web.server.ResponseStatusException;
 import com.toolshed.backend.dto.BookingResponse;
 import com.toolshed.backend.dto.ConditionReportRequest;
 import com.toolshed.backend.dto.CreateBookingRequest;
+import com.toolshed.backend.dto.MonthlyEarnings;
 import com.toolshed.backend.dto.OwnerBookingResponse;
+import com.toolshed.backend.dto.OwnerEarningsResponse;
 import com.toolshed.backend.dto.ReviewResponse;
 import com.toolshed.backend.repository.BookingRepository;
 import com.toolshed.backend.repository.ToolRepository;
@@ -356,6 +362,60 @@ public class BookingServiceImpl implements BookingService {
                 .depositStatus(booking.getDepositStatus())
                 .depositAmount(booking.getDepositAmount())
                 .depositPaidAt(booking.getDepositPaidAt())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OwnerEarningsResponse getOwnerEarnings(UUID ownerId) {
+        List<Booking> completedBookings = bookingRepository.findCompletedBookingsByOwnerId(ownerId);
+
+        // Group bookings by year and month, calculate earnings
+        Map<String, List<Booking>> bookingsByMonth = completedBookings.stream()
+                .filter(b -> b.getTotalPrice() != null)
+                .collect(Collectors.groupingBy(b -> {
+                    LocalDate endDate = b.getEndDate();
+                    return endDate.getYear() + "-" + endDate.getMonthValue();
+                }));
+
+        // Create MonthlyEarnings DTOs
+        List<MonthlyEarnings> monthlyEarningsList = new ArrayList<>();
+        
+        for (Map.Entry<String, List<Booking>> entry : bookingsByMonth.entrySet()) {
+            List<Booking> bookingsInMonth = entry.getValue();
+            
+            // Use the first booking's endDate to get year and month
+            LocalDate sampleDate = bookingsInMonth.get(0).getEndDate();
+            int year = sampleDate.getYear();
+            int month = sampleDate.getMonthValue();
+            
+            double totalEarnings = bookingsInMonth.stream()
+                    .mapToDouble(Booking::getTotalPrice)
+                    .sum();
+            
+            monthlyEarningsList.add(MonthlyEarnings.builder()
+                    .year(year)
+                    .month(month)
+                    .totalEarnings(totalEarnings)
+                    .bookingCount((long) bookingsInMonth.size())
+                    .build());
+        }
+
+        // Sort by year and month descending (most recent first)
+        monthlyEarningsList.sort(Comparator
+                .comparing(MonthlyEarnings::getYear)
+                .thenComparing(MonthlyEarnings::getMonth)
+                .reversed());
+
+        // Calculate total earnings
+        double totalEarnings = completedBookings.stream()
+                .filter(b -> b.getTotalPrice() != null)
+                .mapToDouble(Booking::getTotalPrice)
+                .sum();
+
+        return OwnerEarningsResponse.builder()
+                .monthlyEarnings(monthlyEarningsList)
+                .totalEarnings(totalEarnings)
                 .build();
     }
 }

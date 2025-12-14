@@ -4,6 +4,7 @@ import com.toolshed.backend.dto.BookingResponse;
 import com.toolshed.backend.dto.ConditionReportRequest;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
+import com.toolshed.backend.dto.OwnerEarningsResponse;
 import com.toolshed.backend.dto.UpdateBookingStatusRequest;
 import com.toolshed.backend.service.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -80,6 +81,13 @@ public class BookingController {
             @PathVariable UUID bookingId,
             @RequestParam UUID renterId) {
         BookingResponse response = bookingService.payDeposit(bookingId, renterId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Get owner earnings", description = "Get earnings breakdown by month for a specific owner")
+    @GetMapping("/earnings")
+    public ResponseEntity<OwnerEarningsResponse> getOwnerEarnings(@RequestParam UUID ownerId) {
+        OwnerEarningsResponse response = bookingService.getOwnerEarnings(ownerId);
         return ResponseEntity.ok(response);
     }
 }

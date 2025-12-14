@@ -4,6 +4,7 @@ import com.toolshed.backend.dto.BookingResponse;
 import com.toolshed.backend.dto.ConditionReportRequest;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
+import com.toolshed.backend.dto.OwnerEarningsResponse;
 import com.toolshed.backend.repository.enums.BookingStatus;
 
 import java.util.List;
@@ -24,4 +25,7 @@ public interface BookingService {
     BookingResponse submitConditionReport(UUID bookingId, ConditionReportRequest request);
 
     BookingResponse payDeposit(UUID bookingId, UUID renterId);
+
+    // Earnings
+    OwnerEarningsResponse getOwnerEarnings(UUID ownerId);
 }
