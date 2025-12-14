@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { Suspense, lazy } from "react";
 import { LoginPage } from "@/modules/auth/pages/LoginPage";
 import { RegisterPage } from "@/modules/auth/pages/RegisterPage";
 import { RenterDashboardPage } from "@/modules/renter/pages/RenterDashboardPage";
@@ -15,6 +16,74 @@ import { SupplierRentalsPage } from "@/modules/supplier/pages/SupplierRentalsPag
 import { AdminDashboardPage } from "@/modules/admin/pages/AdminDashboardPage";
 import { ProtectedRoute } from "@/modules/shared/components/ProtectedRoute";
 
+// Lazy load pages
+const LoginPage = lazy(() =>
+  import("@/modules/auth/pages/LoginPage").then((module) => ({
+    default: module.LoginPage,
+  }))
+);
+const RegisterPage = lazy(() =>
+  import("@/modules/auth/pages/RegisterPage").then((module) => ({
+    default: module.RegisterPage,
+  }))
+);
+const RenterDashboardPage = lazy(() =>
+  import("@/modules/renter/pages/RenterDashboardPage").then((module) => ({
+    default: module.RenterDashboardPage,
+  }))
+);
+const RenterBookingsPage = lazy(() =>
+  import("@/modules/renter/pages/RenterBookingsPage").then((module) => ({
+    default: module.RenterBookingsPage,
+  }))
+);
+const RenterProfilePage = lazy(() =>
+  import("@/modules/renter/pages/RenterProfilePage").then((module) => ({
+    default: module.RenterProfilePage,
+  }))
+);
+const RenterMyBookingsPage = lazy(() =>
+  import("@/modules/renter/pages/RenterMyBookingsPage").then((module) => ({
+    default: module.RenterMyBookingsPage,
+  }))
+);
+const PaymentSuccessPage = lazy(() =>
+  import("@/modules/renter/pages/PaymentSuccessPage").then((module) => ({
+    default: module.PaymentSuccessPage,
+  }))
+);
+const PaymentCancelledPage = lazy(() =>
+  import("@/modules/renter/pages/PaymentCancelledPage").then((module) => ({
+    default: module.PaymentCancelledPage,
+  }))
+);
+const SupplierDashboardPage = lazy(() =>
+  import("@/modules/supplier/pages/SupplierDashboardPage").then((module) => ({
+    default: module.SupplierDashboardPage,
+  }))
+);
+const SupplierToolsPage = lazy(() =>
+  import("@/modules/supplier/pages/SupplierToolsPage").then((module) => ({
+    default: module.SupplierToolsPage,
+  }))
+);
+const SupplierRentalsPage = lazy(() =>
+  import("@/modules/supplier/pages/SupplierRentalsPage").then((module) => ({
+    default: module.SupplierRentalsPage,
+  }))
+);
+const AdminDashboardPage = lazy(() =>
+  import("@/modules/admin/pages/AdminDashboardPage").then((module) => ({
+    default: module.AdminDashboardPage,
+  }))
+);
+
+const Loading = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
+
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -22,17 +91,27 @@ export const router = createBrowserRouter([
   },
   {
     path: "/login",
-    element: <LoginPage />,
+    element: (
+      <Suspense fallback={<Loading />}>
+        <LoginPage />
+      </Suspense>
+    ),
   },
   {
     path: "/register",
-    element: <RegisterPage />,
+    element: (
+      <Suspense fallback={<Loading />}>
+        <RegisterPage />
+      </Suspense>
+    ),
   },
   {
     path: "/renter",
     element: (
       <ProtectedRoute allowedRoles={["RENTER"]}>
-        <RenterDashboardPage />
+        <Suspense fallback={<Loading />}>
+          <RenterDashboardPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -40,7 +119,9 @@ export const router = createBrowserRouter([
     path: "/renter/bookings/:toolId",
     element: (
       <ProtectedRoute allowedRoles={["RENTER"]}>
-        <RenterBookingsPage />
+        <Suspense fallback={<Loading />}>
+          <RenterBookingsPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -48,7 +129,9 @@ export const router = createBrowserRouter([
     path: "/renter/my-bookings",
     element: (
       <ProtectedRoute allowedRoles={["RENTER"]}>
-        <RenterMyBookingsPage />
+        <Suspense fallback={<Loading />}>
+          <RenterMyBookingsPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -56,7 +139,9 @@ export const router = createBrowserRouter([
     path: "/renter/profile",
     element: (
       <ProtectedRoute allowedRoles={["RENTER"]}>
-        <RenterProfilePage />
+        <Suspense fallback={<Loading />}>
+          <RenterProfilePage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -64,7 +149,9 @@ export const router = createBrowserRouter([
     path: "/supplier",
     element: (
       <ProtectedRoute allowedRoles={["SUPPLIER"]}>
-        <SupplierDashboardPage />
+        <Suspense fallback={<Loading />}>
+          <SupplierDashboardPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -72,7 +159,9 @@ export const router = createBrowserRouter([
     path: "/supplier/tools",
     element: (
       <ProtectedRoute allowedRoles={["SUPPLIER"]}>
-        <SupplierToolsPage />
+        <Suspense fallback={<Loading />}>
+          <SupplierToolsPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -80,7 +169,9 @@ export const router = createBrowserRouter([
     path: "/supplier/rentals",
     element: (
       <ProtectedRoute allowedRoles={["SUPPLIER"]}>
-        <SupplierRentalsPage />
+        <Suspense fallback={<Loading />}>
+          <SupplierRentalsPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
@@ -88,38 +179,27 @@ export const router = createBrowserRouter([
     path: "/admin",
     element: (
       <ProtectedRoute allowedRoles={["ADMIN"]}>
-        <AdminDashboardPage />
+        <Suspense fallback={<Loading />}>
+          <AdminDashboardPage />
+        </Suspense>
       </ProtectedRoute>
     ),
   },
   // Payment result pages (accessible after Stripe checkout redirect)
   {
     path: "/payment-success",
-    element: <PaymentSuccessPage />,
-  },
-  {
-    path: "/payment-cancelled",
-    element: <PaymentCancelledPage />,
-  },
-  // Subscription pages
-  {
-    path: "/renter/subscription",
     element: (
-      <ProtectedRoute allowedRoles={["RENTER"]}>
-        <SubscriptionPage />
-      </ProtectedRoute>
+      <Suspense fallback={<Loading />}>
+        <PaymentSuccessPage />
+      </Suspense>
     ),
   },
   {
-    path: "/subscription/success",
-    element: <SubscriptionSuccessPage />,
-  },
-  {
-    path: "/subscription/cancel",
+    path: "/payment-cancelled",
     element: (
-      <ProtectedRoute allowedRoles={["RENTER"]}>
-        <SubscriptionPage />
-      </ProtectedRoute>
+      <Suspense fallback={<Loading />}>
+        <PaymentCancelledPage />
+      </Suspense>
     ),
   },
 ]);
