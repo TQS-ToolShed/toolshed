@@ -1,6 +1,7 @@
 package com.toolshed.backend.boundary;
 
 import com.toolshed.backend.dto.BookingResponse;
+import com.toolshed.backend.dto.CancelBookingResponse;
 import com.toolshed.backend.dto.ConditionReportRequest;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
@@ -80,6 +81,15 @@ public class BookingController {
             @PathVariable UUID bookingId,
             @RequestParam UUID renterId) {
         BookingResponse response = bookingService.payDeposit(bookingId, renterId);
+        return ResponseEntity.ok(response);
+    }
+
+    @Operation(summary = "Cancel booking", description = "Renter cancels a booking. Refund is automatically calculated based on cancellation policy: 7+ days = 100%, 3-6 days = 50%, 1-2 days = 25%, same day = 0%.")
+    @PostMapping("/{bookingId}/cancel")
+    public ResponseEntity<CancelBookingResponse> cancelBooking(
+            @PathVariable UUID bookingId,
+            @RequestParam UUID renterId) {
+        CancelBookingResponse response = bookingService.cancelBooking(bookingId, renterId);
         return ResponseEntity.ok(response);
     }
 }

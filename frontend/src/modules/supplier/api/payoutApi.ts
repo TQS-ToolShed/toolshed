@@ -10,6 +10,8 @@ export interface PayoutResponse {
   stripeTransferId: string;
   requestedAt: string;
   completedAt: string | null;
+  description?: string;
+  isIncome?: boolean;
 }
 
 export interface WalletResponse {

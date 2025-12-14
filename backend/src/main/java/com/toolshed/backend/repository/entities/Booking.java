@@ -85,4 +85,9 @@ public class Booking {
     private Double depositAmount;
 
     private LocalDateTime depositPaidAt;
+
+    // Refund Fields
+    private Double refundAmount;
+
+    private LocalDateTime cancelledAt;
 }
