@@ -37,7 +37,7 @@ Feature: Pro Member Subscription
   Scenario: Cancel Pro subscription
     Given I have an active Pro subscription
     When I cancel my subscription
-    Then my subscription cancellation should fail with error
+    Then my subscription should be cancelled successfully
 
   Scenario: Cannot subscribe when already Pro
     Given I have an active Pro subscription

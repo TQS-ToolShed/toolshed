@@ -88,7 +88,7 @@ class AuthServiceTest {
                 .satisfies(ex -> {
                     ResponseStatusException rse = (ResponseStatusException) ex;
                     assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-                    assertThat(rse.getReason()).isEqualTo("Email already in use");
+                    assertThat(rse.getReason()).isEqualTo("Email already exists");
                 });
 
         verify(userRepository, never()).save(any(User.class));
@@ -115,7 +115,7 @@ class AuthServiceTest {
                 .satisfies(ex -> {
                     ResponseStatusException rse = (ResponseStatusException) ex;
                     assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-                    assertThat(rse.getReason()).isEqualTo("Invalid email or password");
+                    assertThat(rse.getReason()).isEqualTo("Invalid credentials");
                 });
     }
 
@@ -133,7 +133,7 @@ class AuthServiceTest {
                 .satisfies(ex -> {
                     ResponseStatusException rse = (ResponseStatusException) ex;
                     assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-                    assertThat(rse.getReason()).isEqualTo("Invalid email or password");
+                    assertThat(rse.getReason()).isEqualTo("Invalid credentials");
                 });
     }
 
@@ -161,7 +161,7 @@ class AuthServiceTest {
                 .satisfies(ex -> {
                     ResponseStatusException rse = (ResponseStatusException) ex;
                     assertThat(rse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-                    assertThat(rse.getReason()).isEqualTo("Account is not active");
+                    assertThat(rse.getReason()).isEqualTo("Account is suspended");
                 });
     }
 

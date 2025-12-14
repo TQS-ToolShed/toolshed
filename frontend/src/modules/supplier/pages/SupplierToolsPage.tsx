@@ -1,11 +1,18 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/modules/auth/context/AuthContext';
-import { Button } from '@/components/ui/button';
-import { ToolCard } from '../components/ToolCard';
-import { ToolForm } from '../components/ToolForm';
-import { createTool, updateTool, deleteTool, getToolsBySupplier } from '../api/tools-api';
-import type { Tool, CreateToolInput, UpdateToolInput } from '../api/tools-api';
-import { SupplierNavbar } from '../components/SupplierNavbar';
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/modules/auth/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { ToolCard } from "../components/ToolCard";
+import { ToolForm } from "../components/ToolForm";
+import {
+  createTool,
+  updateTool,
+  deleteTool,
+  getToolsBySupplier,
+  setMaintenance,
+} from "../api/tools-api";
+import { ToolMaintenanceDialog } from "../components/ToolMaintenanceDialog";
+import type { Tool, CreateToolInput, UpdateToolInput } from "../api/tools-api";
+import { SupplierNavbar } from "../components/SupplierNavbar";
 
 export const SupplierToolsPage = () => {
   const { user } = useAuth();
@@ -14,10 +21,12 @@ export const SupplierToolsPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showMaintenance, setShowMaintenance] = useState(false);
   const [editingTool, setEditingTool] = useState<Tool | null>(null);
+  const [maintenanceTool, setMaintenanceTool] = useState<Tool | null>(null);
 
   // The supplier's ID is used as the owner ID for tools
-  const supplierId = user?.id || '';
+  const supplierId = user?.id || "";
 
   const loadTools = useCallback(async () => {
     if (!supplierId) return;
@@ -27,7 +36,7 @@ export const SupplierToolsPage = () => {
       const supplierTools = await getToolsBySupplier(supplierId);
       setTools(supplierTools);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load tools');
+      setError(err instanceof Error ? err.message : "Failed to load tools");
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +54,7 @@ export const SupplierToolsPage = () => {
       setShowForm(false);
       await loadTools();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create tool');
+      setError(err instanceof Error ? err.message : "Failed to create tool");
     } finally {
       setIsSubmitting(false);
     }
@@ -53,7 +62,7 @@ export const SupplierToolsPage = () => {
 
   const handleUpdateTool = async (data: CreateToolInput | UpdateToolInput) => {
     if (!editingTool) return;
-    
+
     try {
       setIsSubmitting(true);
       setError(null);
@@ -62,21 +71,21 @@ export const SupplierToolsPage = () => {
       setShowForm(false);
       await loadTools();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update tool');
+      setError(err instanceof Error ? err.message : "Failed to update tool");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteTool = async (toolId: string) => {
-    if (!confirm('Are you sure you want to delete this tool?')) return;
-    
+    if (!confirm("Are you sure you want to delete this tool?")) return;
+
     try {
       setError(null);
       await deleteTool(toolId);
       await loadTools();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete tool');
+      setError(err instanceof Error ? err.message : "Failed to delete tool");
     }
   };
 
@@ -87,7 +96,9 @@ export const SupplierToolsPage = () => {
       await updateTool(tool.id, { active: !tool.active });
       await loadTools();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update tool status');
+      setError(
+        err instanceof Error ? err.message : "Failed to update tool status"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -108,6 +119,31 @@ export const SupplierToolsPage = () => {
     setShowForm(true);
   };
 
+  const handleMaintenance = (tool: Tool) => {
+    setMaintenanceTool(tool);
+    setShowMaintenance(true);
+  };
+
+  const handleCloseMaintenance = () => {
+    setShowMaintenance(false);
+    setMaintenanceTool(null);
+  };
+
+  const handleSaveMaintenance = async (
+    toolId: string,
+    availableDate: string | null
+  ) => {
+    try {
+      setError(null);
+      await setMaintenance(toolId, availableDate);
+      await loadTools();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to set maintenance"
+      );
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -118,55 +154,63 @@ export const SupplierToolsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-    <SupplierNavbar />
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">My Tools</h1>
-          <p className="text-muted-foreground">Manage your tool listings</p>
+      <SupplierNavbar />
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">My Tools</h1>
+            <p className="text-muted-foreground">Manage your tool listings</p>
+          </div>
+          {!showForm && <Button onClick={handleAddNew}>Add New Tool</Button>}
         </div>
-        {!showForm && (
-          <Button onClick={handleAddNew}>Add New Tool</Button>
+
+        {error && (
+          <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
         )}
-      </div>
 
-      {error && (
-        <div className="bg-destructive/10 border border-destructive text-destructive px-4 py-3 rounded-lg mb-6">
-          {error}
-        </div>
-      )}
+        {showForm ? (
+          <ToolForm
+            tool={editingTool}
+            supplierId={supplierId}
+            onSubmit={editingTool ? handleUpdateTool : handleCreateTool}
+            onCancel={handleCancel}
+            isLoading={isSubmitting}
+          />
+        ) : (
+          <>
+            {tools.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground mb-4">
+                  You haven't added any tools yet.
+                </p>
+                <Button onClick={handleAddNew}>Add Your First Tool</Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {tools.map((tool) => (
+                  <ToolCard
+                    key={tool.id}
+                    tool={tool}
+                    onEdit={handleEdit}
+                    onToggleActive={handleToggleActive}
+                    onMaintenance={handleMaintenance}
+                    onDelete={handleDeleteTool}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
-      {showForm ? (
-        <ToolForm
-          tool={editingTool}
-          supplierId={supplierId}
-          onSubmit={editingTool ? handleUpdateTool : handleCreateTool}
-          onCancel={handleCancel}
-          isLoading={isSubmitting}
+        <ToolMaintenanceDialog
+          tool={maintenanceTool}
+          isOpen={showMaintenance}
+          onClose={handleCloseMaintenance}
+          onSave={handleSaveMaintenance}
         />
-      ) : (
-        <>
-          {tools.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground mb-4">You haven't added any tools yet.</p>
-              <Button onClick={handleAddNew}>Add Your First Tool</Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {tools.map((tool) => (
-                <ToolCard
-                  key={tool.id}
-                  tool={tool}
-                  onEdit={handleEdit}
-                  onToggleActive={handleToggleActive}
-                  onDelete={handleDeleteTool}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+      </div>
     </div>
   );
 };

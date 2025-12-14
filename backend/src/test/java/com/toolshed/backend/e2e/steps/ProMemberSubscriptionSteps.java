@@ -1,4 +1,4 @@
-package com.toolshed.backend.functional.steps;
+package com.toolshed.backend.e2e.steps;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -187,11 +187,11 @@ public class ProMemberSubscriptionSteps {
         assertThat(bookingResponse.getTotalPrice()).isEqualTo((double) expectedPrice);
     }
 
-    @Then("my subscription cancellation should fail with error")
-    public void verifyCancellationFails() {
-        // In this test environment Stripe is stubbed, so simply assert the call did not throw
-        // If cancellation fails in real flow, caughtException would be populated.
+    @Then("my subscription should be cancelled successfully")
+    public void verifyCancellationSuccess() {
         assertThat(caughtException).isNull();
+        User updatedRenter = userRepository.findById(renter.getId()).orElseThrow();
+        assertThat(updatedRenter.getSubscriptionTier()).isEqualTo(SubscriptionTier.FREE);
     }
 
     @Then("I should see an error about already being a Pro member")

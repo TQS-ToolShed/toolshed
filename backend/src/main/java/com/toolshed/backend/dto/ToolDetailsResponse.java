@@ -20,6 +20,8 @@ public class ToolDetailsResponse {
     private String imageUrl;
     private boolean active;
     private String availabilityCalendar;
+    private boolean underMaintenance;
+    private java.time.LocalDate maintenanceAvailableDate;
     private Double overallRating;
     private int numRatings;
     private OwnerSummary owner;

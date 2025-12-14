@@ -1,19 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { Suspense, lazy } from "react";
-import { LoginPage } from "@/modules/auth/pages/LoginPage";
-import { RegisterPage } from "@/modules/auth/pages/RegisterPage";
-import { RenterDashboardPage } from "@/modules/renter/pages/RenterDashboardPage";
-import { RenterBookingsPage } from "@/modules/renter/pages/RenterBookingsPage";
-import { RenterProfilePage } from "@/modules/renter/pages/RenterProfilePage";
-import { RenterMyBookingsPage } from "@/modules/renter/pages/RenterMyBookingsPage";
-import { PaymentSuccessPage } from "@/modules/renter/pages/PaymentSuccessPage";
-import { PaymentCancelledPage } from "@/modules/renter/pages/PaymentCancelledPage";
 import { SubscriptionPage } from "@/modules/renter/pages/SubscriptionPage";
 import { SubscriptionSuccessPage } from "@/modules/renter/pages/SubscriptionSuccessPage";
-import { SupplierDashboardPage } from "@/modules/supplier/pages/SupplierDashboardPage";
-import { SupplierToolsPage } from "@/modules/supplier/pages/SupplierToolsPage";
-import { SupplierRentalsPage } from "@/modules/supplier/pages/SupplierRentalsPage";
-import { AdminDashboardPage } from "@/modules/admin/pages/AdminDashboardPage";
 import { ProtectedRoute } from "@/modules/shared/components/ProtectedRoute";
 
 // Lazy load pages

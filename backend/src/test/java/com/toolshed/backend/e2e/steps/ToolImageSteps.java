@@ -1,4 +1,4 @@
-package com.toolshed.backend.functional.steps;
+package com.toolshed.backend.e2e.steps;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;

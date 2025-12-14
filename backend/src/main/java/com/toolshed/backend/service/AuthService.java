@@ -21,7 +21,7 @@ public class AuthService {
 
     public User register(RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already in use");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
 
         var user = User.builder()
@@ -39,13 +39,21 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
-        // In a real app, use passwordEncoder.matches(request.getPassword(), user.getPassword())
+        // In a real app, use passwordEncoder.matches(request.getPassword(),
+        // user.getPassword())
         if (!user.getPassword().equals(request.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
+        // Check account status with specific messages
+        if (user.getStatus() == UserStatus.SUSPENDED) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is suspended");
+        }
+        if (user.getStatus() == UserStatus.PENDING_VERIFICATION) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is not verified");
+        }
         if (user.getStatus() != UserStatus.ACTIVE) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is not active");
         }

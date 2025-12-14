@@ -1,4 +1,4 @@
-package com.toolshed.backend.functional.steps;
+package com.toolshed.backend.e2e.steps;
 
 import com.toolshed.backend.dto.PayoutResponse;
 import com.toolshed.backend.dto.WalletResponse;
@@ -159,7 +159,7 @@ public class OwnerPayoutSteps {
                 .title("Test Tool")
                 .description("A test tool")
                 .pricePerDay(25.0)
-            .district("Test Location")
+                .district("Test Location")
                 .owner(owner)
                 .active(true)
                 .overallRating(0.0)

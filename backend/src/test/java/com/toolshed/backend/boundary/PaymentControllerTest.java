@@ -1,6 +1,6 @@
 package com.toolshed.backend.boundary;
 
-import com.toolshed.backend.controller.PaymentController;
+import com.toolshed.backend.boundary.PaymentController;
 import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
 import com.toolshed.backend.dto.PayoutRequest;

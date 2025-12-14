@@ -35,5 +35,5 @@ jobs:
         working-directory: backend
 
       - name: Run backend tests
-        run: ./mvnw test -Dtest='!**/functional/**'
+        run: ./mvnw test -Dtest='!**/functional/**,!**/e2e/**'
         working-directory: backend
