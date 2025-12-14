@@ -7,6 +7,8 @@ import { RenterProfilePage } from "@/modules/renter/pages/RenterProfilePage";
 import { RenterMyBookingsPage } from "@/modules/renter/pages/RenterMyBookingsPage";
 import { PaymentSuccessPage } from "@/modules/renter/pages/PaymentSuccessPage";
 import { PaymentCancelledPage } from "@/modules/renter/pages/PaymentCancelledPage";
+import { SubscriptionPage } from "@/modules/renter/pages/SubscriptionPage";
+import { SubscriptionSuccessPage } from "@/modules/renter/pages/SubscriptionSuccessPage";
 import { SupplierDashboardPage } from "@/modules/supplier/pages/SupplierDashboardPage";
 import { SupplierToolsPage } from "@/modules/supplier/pages/SupplierToolsPage";
 import { SupplierRentalsPage } from "@/modules/supplier/pages/SupplierRentalsPage";
@@ -98,5 +100,26 @@ export const router = createBrowserRouter([
   {
     path: "/payment-cancelled",
     element: <PaymentCancelledPage />,
+  },
+  // Subscription pages
+  {
+    path: "/renter/subscription",
+    element: (
+      <ProtectedRoute allowedRoles={["RENTER"]}>
+        <SubscriptionPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/subscription/success",
+    element: <SubscriptionSuccessPage />,
+  },
+  {
+    path: "/subscription/cancel",
+    element: (
+      <ProtectedRoute allowedRoles={["RENTER"]}>
+        <SubscriptionPage />
+      </ProtectedRoute>
+    ),
   },
 ]);
