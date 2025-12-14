@@ -2,6 +2,7 @@ package com.toolshed.backend.boundary;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toolshed.backend.dto.BookingResponse;
+import com.toolshed.backend.dto.CancelBookingResponse;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.OwnerBookingResponse;
 import com.toolshed.backend.repository.enums.BookingStatus;
@@ -299,6 +300,78 @@ class BookingControllerTest {
                 mockMvc.perform(post("/api/bookings/{bookingId}/condition-report", bookingId)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(requestBody))
+                                .andExpect(status().isBadRequest());
+        }
+
+        // ============== Cancel Booking Tests ==============
+
+        @Test
+        @DisplayName("Should cancel booking and return refund details")
+        void cancelBookingSuccess() throws Exception {
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = UUID.randomUUID();
+
+                CancelBookingResponse cancelResponse = CancelBookingResponse.builder()
+                                .bookingId(bookingId)
+                                .status("CANCELLED")
+                                .refundAmount(50.0)
+                                .refundPercentage(50)
+                                .message("Booking cancelled. 50% refund (€50.00) processed.")
+                                .build();
+
+                when(bookingService.cancelBooking(bookingId, renterId)).thenReturn(cancelResponse);
+
+                mockMvc.perform(post("/api/bookings/{bookingId}/cancel", bookingId)
+                                .param("renterId", renterId.toString()))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.bookingId", is(bookingId.toString())))
+                                .andExpect(jsonPath("$.status", is("CANCELLED")))
+                                .andExpect(jsonPath("$.refundPercentage", is(50)))
+                                .andExpect(jsonPath("$.refundAmount", is(50.0)));
+        }
+
+        @Test
+        @DisplayName("Should return 404 when cancelling non-existent booking")
+        void cancelBookingNotFound() throws Exception {
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = UUID.randomUUID();
+
+                when(bookingService.cancelBooking(bookingId, renterId))
+                                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.NOT_FOUND,
+                                                "Booking not found"));
+
+                mockMvc.perform(post("/api/bookings/{bookingId}/cancel", bookingId)
+                                .param("renterId", renterId.toString()))
+                                .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @DisplayName("Should return 403 when wrong renter tries to cancel")
+        void cancelBookingForbidden() throws Exception {
+                UUID bookingId = UUID.randomUUID();
+                UUID wrongRenterId = UUID.randomUUID();
+
+                when(bookingService.cancelBooking(bookingId, wrongRenterId))
+                                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.FORBIDDEN,
+                                                "Only the renter can cancel the booking"));
+
+                mockMvc.perform(post("/api/bookings/{bookingId}/cancel", bookingId)
+                                .param("renterId", wrongRenterId.toString()))
+                                .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("Should return 400 when cancelling already cancelled booking")
+        void cancelBookingBadRequest() throws Exception {
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = UUID.randomUUID();
+
+                when(bookingService.cancelBooking(bookingId, renterId))
+                                .thenThrow(new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                                                "Cannot cancel booking with status: CANCELLED"));
+
+                mockMvc.perform(post("/api/bookings/{bookingId}/cancel", bookingId)
+                                .param("renterId", renterId.toString()))
                                 .andExpect(status().isBadRequest());
         }
 }

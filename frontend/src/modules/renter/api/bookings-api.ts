@@ -99,3 +99,32 @@ export const submitConditionReport = async (
     throw new Error('Network error or unknown issue');
   }
 };
+
+// Cancel Booking types
+export interface CancelBookingResponse {
+  bookingId: string;
+  status: string;
+  refundAmount: number;
+  refundPercentage: number;
+  message: string;
+}
+
+export const cancelBooking = async (
+  bookingId: string,
+  renterId: string
+): Promise<CancelBookingResponse> => {
+  try {
+    const response = await axios.post<CancelBookingResponse>(
+      `${API_URL}/${bookingId}/cancel`,
+      null,
+      { params: { renterId } }
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to cancel booking');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+
