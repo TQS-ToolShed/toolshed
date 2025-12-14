@@ -120,6 +120,9 @@ export const RenterBookingList = ({
     );
   };
 
+  const canReportIssue = (booking: BookingResponse) =>
+    booking.paymentStatus === 'COMPLETED' && booking.status !== 'CANCELLED';
+
   const canCancel = (booking: BookingResponse) => {
     return (
       showCancelButton &&
@@ -279,20 +282,22 @@ export const RenterBookingList = ({
                           Cancel
                         </button>
                       )}
-                      <button
-                        className="px-3 py-2 bg-amber-50 text-amber-800 rounded-md text-sm font-medium border border-amber-200 hover:bg-amber-100 transition-colors"
-                        onClick={() =>
-                          setReportingBookingId(
-                            reportingBookingId === booking.id ? null : booking.id
-                          )
-                        }
-                      >
-                        {reportingBookingId === booking.id ? "Close Report" : "Report issue"}
-                      </button>
+                      {canReportIssue(booking) && (
+                        <button
+                          className="px-3 py-2 bg-amber-50 text-amber-800 rounded-md text-sm font-medium border border-amber-200 hover:bg-amber-100 transition-colors"
+                          onClick={() =>
+                            setReportingBookingId(
+                              reportingBookingId === booking.id ? null : booking.id
+                            )
+                          }
+                        >
+                          {reportingBookingId === booking.id ? "Close Report" : "Report issue"}
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  {reportingBookingId === booking.id && (
+                  {reportingBookingId === booking.id && canReportIssue(booking) && (
                     <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
                       <input
                         type="text"
