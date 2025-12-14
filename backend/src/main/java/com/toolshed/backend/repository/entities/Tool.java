@@ -62,6 +62,10 @@ public class Tool {
 
     private String imageUrl;
 
+    private boolean underMaintenance;
+
+    private java.time.LocalDate maintenanceAvailableDate;
+
     public UUID getId() {
         return id;
     }
@@ -148,5 +152,21 @@ public class Tool {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
+    }
+
+    public boolean isUnderMaintenance() {
+        return underMaintenance;
+    }
+
+    public void setUnderMaintenance(boolean underMaintenance) {
+        this.underMaintenance = underMaintenance;
+    }
+
+    public java.time.LocalDate getMaintenanceAvailableDate() {
+        return maintenanceAvailableDate;
+    }
+
+    public void setMaintenanceAvailableDate(java.time.LocalDate maintenanceAvailableDate) {
+        this.maintenanceAvailableDate = maintenanceAvailableDate;
     }
 }

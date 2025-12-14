@@ -14,6 +14,7 @@ interface ToolCardProps {
   tool: Tool;
   onEdit: (tool: Tool) => void;
   onToggleActive: (tool: Tool) => void;
+  onMaintenance: (tool: Tool) => void;
   onDelete: (toolId: string) => void;
 }
 
@@ -21,6 +22,7 @@ export const ToolCard = ({
   tool,
   onEdit,
   onToggleActive,
+  onMaintenance,
   onDelete,
 }: ToolCardProps) => {
   return (
@@ -47,10 +49,11 @@ export const ToolCard = ({
             </CardDescription>
           </div>
           <span
-            className={`px-2 py-1 text-xs rounded-full ${tool.active
-              ? "bg-green-100 text-green-800"
-              : "bg-gray-100 text-gray-800"
-              }`}
+            className={`px-2 py-1 text-xs rounded-full ${
+              tool.active
+                ? "bg-green-100 text-green-800"
+                : "bg-gray-100 text-gray-800"
+            }`}
           >
             {tool.active ? "Active" : "Inactive"}
           </span>
@@ -74,31 +77,43 @@ export const ToolCard = ({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex gap-2">
-        <Button
-          variant={tool.active ? "secondary" : "default"}
-          size="sm"
-          onClick={() => onToggleActive(tool)}
-          className="flex-1"
-        >
-          {tool.active ? "Set Inactive" : "Set Active"}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onEdit(tool)}
-          className="flex-1"
-        >
-          Edit
-        </Button>
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={() => onDelete(tool.id)}
-          className="flex-1"
-        >
-          Delete
-        </Button>
+      <CardFooter className="flex flex-col gap-2">
+        <div className="flex w-full gap-2">
+          <Button
+            variant={tool.active ? "secondary" : "default"}
+            size="sm"
+            onClick={() => onToggleActive(tool)}
+            className="flex-1"
+          >
+            {tool.active ? "Set Inactive" : "Set Active"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onMaintenance(tool)}
+            className="flex-1"
+          >
+            Maintenance
+          </Button>
+        </div>
+        <div className="flex w-full gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit(tool)}
+            className="flex-1"
+          >
+            Edit
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() => onDelete(tool.id)}
+            className="flex-1"
+          >
+            Delete
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );

@@ -56,6 +56,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    @Transactional
     public BookingResponse createBooking(CreateBookingRequest request) {
         LocalDate today = LocalDate.now();
         if (request.getStartDate().isBefore(today) || request.getEndDate().isBefore(today)) {
@@ -74,6 +75,13 @@ public class BookingServiceImpl implements BookingService {
         User owner = tool.getOwner();
         if (owner == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tool owner is missing");
+        }
+
+        if (tool.isUnderMaintenance() && tool.getMaintenanceAvailableDate() != null) {
+            if (request.getStartDate().isBefore(tool.getMaintenanceAvailableDate())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Tool is under maintenance until " + tool.getMaintenanceAvailableDate());
+            }
         }
 
         List<Booking> overlaps = bookingRepository.findOverlappingBookings(

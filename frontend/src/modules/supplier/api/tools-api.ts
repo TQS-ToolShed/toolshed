@@ -16,6 +16,8 @@ export interface Tool {
   overallRating: number;
   numRatings: number;
   imageUrl?: string;
+  underMaintenance?: boolean;
+  maintenanceAvailableDate?: string;
 }
 
 export interface ToolOwnerSummary {
@@ -191,3 +193,16 @@ export const deleteTool = async (toolId: string): Promise<void> => {
     throw new Error('Network error or unknown issue');
   }
 };
+
+// Set maintenance schedule
+export const setMaintenance = async (toolId: string, availableDate: string | null): Promise<void> => {
+  try {
+    await axios.post(`${API_URL}/${toolId}/maintenance`, { availableDate });
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to set maintenance schedule');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+

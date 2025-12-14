@@ -175,6 +175,66 @@ class BookingServiceImplTest {
                                 .isInstanceOf(ResponseStatusException.class)
                                 .extracting("statusCode")
                                 .isEqualTo(HttpStatus.CONFLICT);
+
+        }
+
+        @Test
+        @DisplayName("Should reject booking when tool is under maintenance and start date is before available date")
+        void createBookingUnderMaintenance_Rejects() {
+                tool.setUnderMaintenance(true);
+                tool.setMaintenanceAvailableDate(LocalDate.now().plusDays(5));
+
+                when(toolRepository.findById(tool.getId())).thenReturn(Optional.of(tool));
+                when(userRepository.findById(renter.getId())).thenReturn(Optional.of(renter));
+
+                CreateBookingRequest request = CreateBookingRequest.builder()
+                                .toolId(tool.getId())
+                                .renterId(renter.getId())
+                                .startDate(LocalDate.now().plusDays(2))
+                                .endDate(LocalDate.now().plusDays(3))
+                                .build();
+
+                assertThatThrownBy(() -> bookingService.createBooking(request))
+                                .isInstanceOf(ResponseStatusException.class)
+                                .extracting("statusCode")
+                                .isEqualTo(HttpStatus.CONFLICT);
+        }
+
+        @Test
+        @DisplayName("Should allow booking when start date is after maintenance available date")
+        void createBookingAfterMaintenance_Success() {
+                tool.setUnderMaintenance(true);
+                tool.setMaintenanceAvailableDate(LocalDate.now().plusDays(5));
+
+                LocalDate start = LocalDate.now().plusDays(6);
+                LocalDate end = start.plusDays(2);
+
+                when(toolRepository.findById(tool.getId())).thenReturn(Optional.of(tool));
+                when(userRepository.findById(renter.getId())).thenReturn(Optional.of(renter));
+                when(bookingRepository.findOverlappingBookings(tool.getId(), start, end))
+                                .thenReturn(Collections.emptyList());
+
+                Booking saved = new Booking();
+                saved.setId(UUID.randomUUID());
+                saved.setTool(tool);
+                saved.setRenter(renter);
+                saved.setOwner(tool.getOwner());
+                saved.setStartDate(start);
+                saved.setEndDate(end);
+                saved.setStatus(BookingStatus.PENDING);
+                saved.setPaymentStatus(PaymentStatus.PENDING);
+                saved.setTotalPrice(30.0);
+
+                when(bookingRepository.save(any(Booking.class))).thenReturn(saved);
+
+                var response = bookingService.createBooking(CreateBookingRequest.builder()
+                                .toolId(tool.getId())
+                                .renterId(renter.getId())
+                                .startDate(start)
+                                .endDate(end)
+                                .build());
+
+                assertThat(response.getId()).isEqualTo(saved.getId());
         }
 
         @Test

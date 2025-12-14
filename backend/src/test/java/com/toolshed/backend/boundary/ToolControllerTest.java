@@ -37,14 +37,14 @@ import com.toolshed.backend.service.ToolService;
 
 @WebMvcTest(ToolController.class) //
 class ToolControllerTest {
-    
+
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean 
+    @MockitoBean
     private ToolService toolService;
 
     private Tool createSampleTool(String title) {
@@ -83,7 +83,7 @@ class ToolControllerTest {
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
                 .param("keyword", keyword)
-                .param("district", district) 
+                .param("district", district)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -107,11 +107,11 @@ class ToolControllerTest {
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/supplier/{supplierId}", supplierId)
-            .contentType(MediaType.APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$", hasSize(2)))
-            .andExpect(jsonPath("$[0].title", is("Tool 1")))
-            .andExpect(jsonPath("$[1].title", is("Tool 2")));
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].title", is("Tool 1")))
+                .andExpect(jsonPath("$[1].title", is("Tool 2")));
 
         // Verification
         verify(toolService, times(1)).getByOwner(supplierId);
@@ -252,7 +252,7 @@ class ToolControllerTest {
         UpdateToolInput input = UpdateToolInput.builder()
                 .title("Updated Tool")
                 .build();
-        
+
         String toolId = UUID.randomUUID().toString();
 
         mockMvc.perform(put("/api/tools/{toolId}", toolId)
@@ -283,7 +283,7 @@ class ToolControllerTest {
         // Arrange
         Tool tool = createSampleTool("Budget Drill");
         tool.setPricePerDay(25.0);
-        
+
         when(toolService.searchTools(null, null, 10.0, 50.0)).thenReturn(List.of(tool));
 
         // Act & Assert
@@ -315,7 +315,7 @@ class ToolControllerTest {
         // Arrange
         Tool tool = createSampleTool("Porto Drill");
         tool.setPricePerDay(30.0);
-        
+
         when(toolService.searchTools("drill", "Porto", 10.0, 50.0)).thenReturn(List.of(tool));
 
         // Act & Assert
@@ -338,7 +338,7 @@ class ToolControllerTest {
         // Arrange
         Tool tool = createSampleTool("Premium Hammer");
         tool.setPricePerDay(100.0);
-        
+
         when(toolService.searchTools(null, null, 50.0, null)).thenReturn(List.of(tool));
 
         // Act & Assert
@@ -357,7 +357,7 @@ class ToolControllerTest {
         // Arrange
         Tool tool = createSampleTool("Budget Saw");
         tool.setPricePerDay(15.0);
-        
+
         when(toolService.searchTools(null, null, null, 20.0)).thenReturn(List.of(tool));
 
         // Act & Assert
@@ -368,5 +368,21 @@ class ToolControllerTest {
                 .andExpect(jsonPath("$", hasSize(1)));
 
         verify(toolService).searchTools(null, null, null, 20.0);
+    }
+
+    @Test
+    @DisplayName("Should set maintenance schedule and return 204")
+    void testSetMaintenance() throws Exception {
+        String toolId = UUID.randomUUID().toString();
+        java.time.LocalDate availableDate = java.time.LocalDate.now().plusDays(5);
+        com.toolshed.backend.dto.SetMaintenanceRequest request = new com.toolshed.backend.dto.SetMaintenanceRequest(
+                availableDate);
+
+        mockMvc.perform(post("/api/tools/{toolId}/maintenance", toolId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(toolService).setMaintenance(toolId, availableDate);
     }
 }

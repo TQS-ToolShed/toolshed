@@ -653,4 +653,37 @@ class ToolServiceTest {
         Tool saved = captor.getValue();
         assertThat(saved.getImageUrl()).isEqualTo(imageUrl);
     }
+
+    @Test
+    @DisplayName("Should set active to false and update maintenance date when maintenance is set")
+    void testSetMaintenance_SetsFieldsAndInactive() {
+        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
+        when(toolRepo.save(sampleTool)).thenReturn(sampleTool);
+
+        LocalDate maintenanceDate = LocalDate.now().plusDays(5);
+        toolService.setMaintenance(sampleTool.getId().toString(), maintenanceDate);
+
+        assertThat(sampleTool.isUnderMaintenance()).isTrue();
+        assertThat(sampleTool.getMaintenanceAvailableDate()).isEqualTo(maintenanceDate);
+        assertThat(sampleTool.isActive()).isFalse();
+        verify(toolRepo).save(sampleTool);
+    }
+
+    @Test
+    @DisplayName("Should set active to true and clear maintenance date when maintenance is cleared")
+    void testSetMaintenance_ClearsFieldsAndActive() {
+        sampleTool.setUnderMaintenance(true);
+        sampleTool.setMaintenanceAvailableDate(LocalDate.now().plusDays(5));
+        sampleTool.setActive(false);
+
+        when(toolRepo.findById(sampleTool.getId())).thenReturn(Optional.of(sampleTool));
+        when(toolRepo.save(sampleTool)).thenReturn(sampleTool);
+
+        toolService.setMaintenance(sampleTool.getId().toString(), null);
+
+        assertThat(sampleTool.isUnderMaintenance()).isFalse();
+        assertThat(sampleTool.getMaintenanceAvailableDate()).isNull();
+        assertThat(sampleTool.isActive()).isTrue();
+        verify(toolRepo).save(sampleTool);
+    }
 }

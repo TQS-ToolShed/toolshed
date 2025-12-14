@@ -112,6 +112,13 @@ public class ToolController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{toolId}/maintenance")
+    public ResponseEntity<Void> setMaintenance(@PathVariable String toolId,
+            @RequestBody com.toolshed.backend.dto.SetMaintenanceRequest request) {
+        toolService.setMaintenance(toolId, request.getAvailableDate());
+        return ResponseEntity.noContent().build();
+    }
+
     private ToolDetailsResponse mapToToolDetails(Tool tool) {
         return ToolDetailsResponse.builder()
                 .id(tool.getId())
@@ -122,6 +129,8 @@ public class ToolController {
                 .imageUrl(tool.getImageUrl())
                 .active(tool.isActive())
                 .availabilityCalendar(tool.getAvailabilityCalendar())
+                .underMaintenance(tool.isUnderMaintenance())
+                .maintenanceAvailableDate(tool.getMaintenanceAvailableDate())
                 .overallRating(tool.getOverallRating())
                 .numRatings(tool.getNumRatings())
                 .owner(

@@ -187,11 +187,11 @@ public class ProMemberSubscriptionSteps {
         assertThat(bookingResponse.getTotalPrice()).isEqualTo((double) expectedPrice);
     }
 
-    @Then("my subscription cancellation should fail with error")
-    public void verifyCancellationFails() {
-        // Note: cancellation fails because Stripe API is not configured in tests
-        // In real tests with Stripe mock, this would verify the behavior
-        assertThat(caughtException).isNotNull();
+    @Then("my subscription should be cancelled successfully")
+    public void verifyCancellationSuccess() {
+        assertThat(caughtException).isNull();
+        User updatedRenter = userRepository.findById(renter.getId()).orElseThrow();
+        assertThat(updatedRenter.getSubscriptionTier()).isEqualTo(SubscriptionTier.FREE);
     }
 
     @Then("I should see an error about already being a Pro member")

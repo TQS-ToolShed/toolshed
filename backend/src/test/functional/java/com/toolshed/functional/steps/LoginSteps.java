@@ -34,7 +34,7 @@ public class LoginSteps {
 
     private static Playwright playwright;
     private static Browser browser;
-    private static Page page;
+    public static Page page;
 
     @Before("@login")
     public void setUp() {
@@ -45,9 +45,12 @@ public class LoginSteps {
 
     @After("@login")
     public void tearDown() {
-        if (page != null) page.close();
-        if (browser != null) browser.close();
-        if (playwright != null) playwright.close();
+        if (page != null)
+            page.close();
+        if (browser != null)
+            browser.close();
+        if (playwright != null)
+            playwright.close();
     }
 
     @Given("the ToolShed application is running")
@@ -55,9 +58,9 @@ public class LoginSteps {
         // Verify the application is accessible
         page.navigate(BASE_URL);
         page.waitForLoadState(LoadState.NETWORKIDLE);
-        assertTrue(page.title().contains("ToolShed") || 
-                  page.url().contains("localhost"), 
-                  "Application should be running and accessible");
+        assertTrue(page.title().contains("ToolShed") ||
+                page.url().contains("localhost"),
+                "Application should be running and accessible");
     }
 
     @And("I am on the login page")
@@ -67,8 +70,8 @@ public class LoginSteps {
         // Wait for login form to be visible
         page.waitForSelector(EMAIL_INPUT);
         page.waitForSelector(PASSWORD_INPUT);
-        assertTrue(page.url().contains("login"), 
-                  "Should be on login page");
+        assertTrue(page.url().contains("login"),
+                "Should be on login page");
     }
 
     @When("I enter email {string} and password {string}")
@@ -89,17 +92,17 @@ public class LoginSteps {
         // Wait for navigation
         page.waitForTimeout(2000);
         String currentUrl = page.url();
-        assertTrue(currentUrl.contains("dashboard") || currentUrl.contains("home") || 
-                  !currentUrl.contains("login"), 
-                  "Should be redirected away from login page to dashboard");
+        assertTrue(currentUrl.contains("dashboard") || currentUrl.contains("home") ||
+                !currentUrl.contains("login"),
+                "Should be redirected away from login page to dashboard");
     }
 
     @And("I should see a welcome message")
     public void iShouldSeeAWelcomeMessage() {
         // Check for various possible welcome message formats
         boolean hasWelcome = page.isVisible(WELCOME_MESSAGE) ||
-                           page.content().toLowerCase().contains("welcome") ||
-                           page.content().toLowerCase().contains("dashboard");
+                page.content().toLowerCase().contains("welcome") ||
+                page.content().toLowerCase().contains("dashboard");
         assertTrue(hasWelcome, "Should display welcome message on successful login");
     }
 
@@ -109,38 +112,40 @@ public class LoginSteps {
         String errorText = page.textContent(ERROR_MESSAGE);
         assertNotNull(errorText, "Error message should be present");
         assertTrue(errorText.toLowerCase().contains(expectedMessage.toLowerCase()) ||
-                  page.content().toLowerCase().contains(expectedMessage.toLowerCase()),
-                  "Error message should contain: " + expectedMessage);
+                page.content().toLowerCase().contains(expectedMessage.toLowerCase()),
+                "Error message should contain: " + expectedMessage);
     }
 
     @And("I should remain on the login page")
     public void iShouldRemainOnTheLoginPage() {
-        assertTrue(page.url().contains("login"), 
-                  "Should remain on login page after error");
+        assertTrue(page.url().contains("login"),
+                "Should remain on login page after error");
     }
 
     @Then("I should see a validation error {string}")
     public void iShouldSeeAValidationError(String expectedError) {
         // Check for validation error in various possible locations
         boolean hasValidationError = page.isVisible(VALIDATION_ERROR) ||
-                                   page.content().toLowerCase().contains(expectedError.toLowerCase());
+                page.content().toLowerCase().contains(expectedError.toLowerCase());
         assertTrue(hasValidationError, "Should display validation error: " + expectedError);
     }
 
     @Given("a user with email {string} has status {string}")
     public void aUserWithEmailHasStatus(String email, String status) {
         // This would typically involve setting up test data in the database
-        // For functional tests, we assume this data exists or we set it up through API calls
-        // Implementation depends on your backend setup and test data management strategy
-        
+        // For functional tests, we assume this data exists or we set it up through API
+        // calls
+        // Implementation depends on your backend setup and test data management
+        // strategy
+
         // Example API call to create test user (adjust based on your API):
         // RestAssured.given()
-        //     .contentType(ContentType.JSON)
-        //     .body(new CreateUserRequest(email, "password", status))
-        //     .post("/api/test/users")
-        //     .then()
-        //     .statusCode(201);
-        
+        // .contentType(ContentType.JSON)
+        // .body(new CreateUserRequest(email, "password", status))
+        // .post("/api/test/users")
+        // .then()
+        // .statusCode(201);
+
         // For now, we'll assume the test data is managed externally
         System.out.println("Test setup: User " + email + " should have status " + status);
     }

@@ -181,4 +181,33 @@ public class ToolServiceImpl implements ToolService {
         return toolRepo.findByOwnerId(ownerId);
     }
 
+    @Override
+    @Transactional
+    public void setMaintenance(String toolId, LocalDate availableDate) {
+        UUID id = UUID.fromString(toolId);
+        Tool tool = toolRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tool not found"));
+
+        if (availableDate != null) {
+            tool.setUnderMaintenance(true);
+            tool.setMaintenanceAvailableDate(availableDate);
+            tool.setActive(false); // Also mark as inactive in the general search sense
+        } else {
+            tool.setUnderMaintenance(false);
+            tool.setMaintenanceAvailableDate(null);
+            // We don't automatically set active=true here as the owner might want it
+            // inactive for other reasons,
+            // or we could defaults it to true. Let's stick to just clearing the maintenance
+            // flag.
+            // However, to make it "rentable" again, it should probably be active if it was
+            // only inactive due to maintenance.
+            // Let's assume the owner will toggle active separately or we can set it true.
+            // The prompt says "can rent it after the schedule", implying it will be
+            // available.
+            // Let's play safe and set active=true if clearing maintenance.
+            tool.setActive(true);
+        }
+        toolRepo.save(tool);
+    }
+
 }
