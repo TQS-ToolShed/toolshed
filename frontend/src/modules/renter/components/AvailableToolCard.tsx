@@ -1,8 +1,15 @@
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Star } from 'lucide-react';
-import type { Tool } from '@/modules/supplier/api/tools-api';
+import { Link } from "react-router-dom";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
+import type { Tool } from "@/modules/supplier/api/tools-api";
 
 interface AvailableToolCardProps {
   tool: Tool;
@@ -10,7 +17,11 @@ interface AvailableToolCardProps {
   onToggleFavorite?: (toolId: string) => void;
 }
 
-export const AvailableToolCard = ({ tool, isFavorite = false, onToggleFavorite }: AvailableToolCardProps) => {
+export const AvailableToolCard = ({
+  tool,
+  isFavorite = false,
+  onToggleFavorite,
+}: AvailableToolCardProps) => {
   return (
     <Card className="h-full">
       <CardHeader>
@@ -23,7 +34,9 @@ export const AvailableToolCard = ({ tool, isFavorite = false, onToggleFavorite }
             <button
               type="button"
               onClick={() => onToggleFavorite?.(tool.id)}
-              aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+              aria-label={
+                isFavorite ? "Remove from favorites" : "Add to favorites"
+              }
               className="rounded-full p-2 hover:bg-muted transition-colors"
             >
               {isFavorite ? (
