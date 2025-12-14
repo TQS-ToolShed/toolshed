@@ -108,7 +108,7 @@ class PaymentServiceTest {
                 .title("Test Tool")
                 .description("A test tool")
                 .pricePerDay(25.0)
-            .district("Test Location")
+                .district("Test Location")
                 .owner(owner)
                 .active(true)
                 .overallRating(4.5)
@@ -1313,6 +1313,100 @@ class PaymentServiceTest {
             // Act & Assert
             assertThatThrownBy(() -> paymentService.getPayoutHistory(unknownId))
                     .isInstanceOf(UserNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Get Monthly Earnings Tests")
+    class GetMonthlyEarningsTests {
+
+        @Test
+        @DisplayName("Should get monthly earnings successfully with correct grouping")
+        void shouldGetMonthlyEarningsSuccessfully() {
+            // Arrange
+            UUID ownerId = owner.getId();
+
+            // Booking 1: March 2024, 100.0
+            Booking b1 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .paymentStatus(PaymentStatus.COMPLETED)
+                    .endDate(LocalDate.of(2024, 3, 10))
+                    .totalPrice(100.0)
+                    .build();
+
+            // Booking 2: March 2024, 50.0 (Should sum with b1)
+            Booking b2 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .paymentStatus(PaymentStatus.COMPLETED)
+                    .endDate(LocalDate.of(2024, 3, 20))
+                    .totalPrice(50.0)
+                    .build();
+
+            // Booking 3: February 2024, 200.0
+            Booking b3 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .paymentStatus(PaymentStatus.COMPLETED)
+                    .endDate(LocalDate.of(2024, 2, 15))
+                    .totalPrice(200.0)
+                    .build();
+
+            // Irrelevant bookings
+            Booking b4 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(renter) // Wrong owner
+                    .paymentStatus(PaymentStatus.COMPLETED)
+                    .endDate(LocalDate.of(2024, 3, 10))
+                    .totalPrice(500.0)
+                    .build();
+
+            Booking b5 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .paymentStatus(PaymentStatus.PENDING) // Not completed
+                    .endDate(LocalDate.of(2024, 3, 10))
+                    .totalPrice(1000.0)
+                    .build();
+
+            when(bookingRepository.findAll()).thenReturn(Arrays.asList(b1, b2, b3, b4, b5));
+            when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+
+            // Act
+            List<com.toolshed.backend.dto.MonthlyEarningsResponse> result = paymentService.getMonthlyEarnings(ownerId);
+
+            // Assert
+            assertThat(result).hasSize(2);
+
+            // Check March 2024 (100 + 50 = 150)
+            Optional<com.toolshed.backend.dto.MonthlyEarningsResponse> march = result.stream()
+                    .filter(r -> r.getMonth().equals("MARCH") && r.getYear() == 2024)
+                    .findFirst();
+            assertThat(march).isPresent();
+            assertThat(march.get().getAmount()).isEqualTo(150.0);
+
+            // Check February 2024 (200)
+            Optional<com.toolshed.backend.dto.MonthlyEarningsResponse> feb = result.stream()
+                    .filter(r -> r.getMonth().equals("FEBRUARY") && r.getYear() == 2024)
+                    .findFirst();
+            assertThat(feb).isPresent();
+            assertThat(feb.get().getAmount()).isEqualTo(200.0);
+        }
+
+        @Test
+        @DisplayName("Should return empty list when no earnings")
+        void shouldReturnEmptyListWhenNoEarnings() {
+            // Arrange
+            when(bookingRepository.findAll()).thenReturn(Collections.emptyList());
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+
+            // Act
+            List<com.toolshed.backend.dto.MonthlyEarningsResponse> result = paymentService
+                    .getMonthlyEarnings(owner.getId());
+
+            // Assert
+            assertThat(result).isEmpty();
         }
     }
 }

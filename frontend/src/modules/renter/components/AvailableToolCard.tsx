@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Star } from 'lucide-react';
-import StarRating from '@/modules/shared/components/StarRating';
 import type { Tool } from '@/modules/supplier/api/tools-api';
 
 interface AvailableToolCardProps {

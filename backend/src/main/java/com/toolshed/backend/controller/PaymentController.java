@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
+import com.toolshed.backend.dto.MonthlyEarningsResponse;
 import com.toolshed.backend.dto.PayoutRequest;
 import com.toolshed.backend.dto.PayoutResponse;
 import com.toolshed.backend.dto.WalletResponse;
@@ -151,6 +152,19 @@ public class PaymentController {
     public ResponseEntity<WalletResponse> getOwnerWallet(@PathVariable UUID ownerId) {
         try {
             WalletResponse response = paymentService.getOwnerWallet(ownerId);
+            return ResponseEntity.ok(response);
+        } catch (UserNotFoundException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    /**
+     * Gets the monthly earnings for an owner.
+     */
+    @GetMapping("/wallet/{ownerId}/earnings")
+    public ResponseEntity<List<MonthlyEarningsResponse>> getOwnerEarnings(@PathVariable UUID ownerId) {
+        try {
+            List<MonthlyEarningsResponse> response = paymentService.getMonthlyEarnings(ownerId);
             return ResponseEntity.ok(response);
         } catch (UserNotFoundException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());

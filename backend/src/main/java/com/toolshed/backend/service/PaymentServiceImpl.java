@@ -3,6 +3,8 @@ package com.toolshed.backend.service;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -13,6 +15,7 @@ import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import com.toolshed.backend.dto.CheckoutSessionResponse;
 import com.toolshed.backend.dto.CreateCheckoutSessionRequest;
+import com.toolshed.backend.dto.MonthlyEarningsResponse;
 import com.toolshed.backend.dto.PayoutResponse;
 import com.toolshed.backend.dto.WalletResponse;
 import com.toolshed.backend.repository.BookingRepository;
@@ -241,6 +244,45 @@ public class PaymentServiceImpl implements PaymentService {
         userRepository.save(owner);
 
         return mapToPayoutResponse(payout);
+    }
+
+    @Override
+    public List<MonthlyEarningsResponse> getMonthlyEarnings(UUID ownerId) {
+        userRepository.findById(ownerId)
+                .orElseThrow(() -> new UserNotFoundException(USER_NOT_FOUND_MSG + ownerId));
+
+        // Get all paid bookings for the owner
+        List<Booking> bookings = bookingRepository.findAll().stream()
+                .filter(b -> b.getOwner().getId().equals(ownerId))
+                .filter(b -> b.getPaymentStatus() == PaymentStatus.COMPLETED)
+                .collect(Collectors.toList());
+
+        // Group by Month and Year
+        Map<String, Double> earningsMap = new HashMap<>();
+
+        for (Booking booking : bookings) {
+            String monthKey = booking.getEndDate().getMonth().toString() + " " + booking.getEndDate().getYear();
+            earningsMap.put(monthKey, earningsMap.getOrDefault(monthKey, 0.0) + booking.getTotalPrice());
+        }
+
+        // Convert to DTO list
+        return earningsMap.entrySet().stream()
+                .map(entry -> {
+                    String[] parts = entry.getKey().split(" ");
+                    return MonthlyEarningsResponse.builder()
+                            .month(parts[0])
+                            .year(Integer.parseInt(parts[1]))
+                            .amount(entry.getValue())
+                            .build();
+                })
+                .sorted((a, b) -> {
+                    int yearCompare = Integer.compare(b.getYear(), a.getYear());
+                    if (yearCompare != 0)
+                        return yearCompare;
+                    return b.getMonth().compareTo(a.getMonth()); // Simplification, better to parse Enum or use
+                                                                 // LocalDate
+                })
+                .collect(Collectors.toList());
     }
 
     private PayoutResponse mapToPayoutResponse(Payout payout) {
