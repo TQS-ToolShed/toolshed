@@ -102,7 +102,7 @@ public class BookingRefundSteps {
                 .active(true)
                 .overallRating(0.0)
                 .numRatings(0)
-                .location("Test Location")
+                .district("Test District")
                 .build();
         tool = toolRepository.save(tool);
     }
