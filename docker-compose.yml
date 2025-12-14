@@ -24,6 +24,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/toolshed
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=password
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - GEO_CACHE_PATH=/data/geo-cache.json
       - GEO_WARM_CACHE=true
       - GEO_WARM_CACHE_DELAY_MS=250
@@ -31,7 +32,6 @@ services:
       - GEO_WARM_CACHE_BACKOFF_MS=1000
     volumes:
       - geo_cache:/data
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
 
   db:
     image: postgres:15
