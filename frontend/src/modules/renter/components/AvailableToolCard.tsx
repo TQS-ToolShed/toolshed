@@ -18,7 +18,7 @@ export const AvailableToolCard = ({ tool, isFavorite = false, onToggleFavorite }
           <div>
             <CardTitle className="text-lg">{tool.title}</CardTitle>
             <CardDescription className="mt-1">
-              {tool.district}
+              {tool.location || tool.district}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
