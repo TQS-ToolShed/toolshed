@@ -384,19 +384,15 @@ public class BookingServiceImpl implements BookingService {
         for (Map.Entry<String, List<Booking>> entry : bookingsByMonth.entrySet()) {
             List<Booking> bookingsInMonth = entry.getValue();
             
-            // Skip if empty (defensive programming)
-            if (bookingsInMonth.isEmpty()) {
-                continue;
-            }
-            
             // Use the first booking's endDate to get year and month
+            // (groupingBy collector guarantees non-empty lists)
             LocalDate sampleDate = bookingsInMonth.get(0).getEndDate();
             int year = sampleDate.getYear();
             int month = sampleDate.getMonthValue();
             
-            // Calculate total earnings (totalPrice is guaranteed non-null due to filter above)
+            // Calculate total earnings
+            // (all bookings already filtered for non-null totalPrice)
             double totalEarnings = bookingsInMonth.stream()
-                    .filter(b -> b.getTotalPrice() != null)
                     .mapToDouble(Booking::getTotalPrice)
                     .sum();
             
