@@ -239,6 +239,20 @@ class SubscriptionServiceImplTest {
             assertThatThrownBy(() -> subscriptionService.cancelSubscription(unknownId))
                     .isInstanceOf(UserNotFoundException.class);
         }
+
+        @Test
+        @DisplayName("Should cancel Pro subscription and reset user to FREE tier")
+        void cancelSubscription_proUser_resetsToFree() {
+            when(userRepository.findById(proUserId)).thenReturn(Optional.of(proUser));
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            subscriptionService.cancelSubscription(proUserId);
+
+            verify(userRepository).save(any(User.class));
+            assertThat(proUser.getSubscriptionTier()).isEqualTo(SubscriptionTier.FREE);
+            assertThat(proUser.getSubscriptionEnd()).isNotNull();
+            assertThat(proUser.getStripeSubscriptionId()).isNull();
+        }
     }
 
     @Nested
@@ -269,6 +283,47 @@ class SubscriptionServiceImplTest {
 
             assertThatThrownBy(() -> subscriptionService.activateProSubscription(unknownId, "sub_test"))
                     .isInstanceOf(UserNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("handleSubscriptionWebhook tests")
+    class HandleSubscriptionWebhookTests {
+
+        @Test
+        @DisplayName("Should handle webhook without throwing exception")
+        void handleSubscriptionWebhook_doesNotThrow() {
+            // Webhook handling is a no-op for now, just verify it doesn't throw
+            subscriptionService.handleSubscriptionWebhook("{\"type\":\"test\"}", "sig_test");
+            // If we reach here, the method executed successfully
+        }
+    }
+
+    @Nested
+    @DisplayName("createProSubscription with stripeEnabled=false tests")
+    class CreateProSubscriptionDevModeTests {
+
+        @Test
+        @DisplayName("Should activate subscription directly when Stripe is disabled")
+        void createProSubscription_devMode_activatesDirectly() {
+            // Create a new instance with stripeEnabled=false (default)
+            SubscriptionServiceImpl devService = new SubscriptionServiceImpl(userRepository);
+            // stripeEnabled defaults to false in @Value annotation
+
+            when(userRepository.findById(freeUserId)).thenReturn(Optional.of(freeUser));
+            when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            CheckoutSessionResponse response = devService.createProSubscription(
+                    freeUserId, "http://success", "http://cancel");
+
+            // Verify dev mode response
+            assertThat(response.getSessionId()).isEqualTo("dev_session");
+            assertThat(response.getCheckoutUrl()).contains("http://success");
+            assertThat(response.getCheckoutUrl()).contains("dev_activated");
+
+            // Verify user was activated directly
+            verify(userRepository).save(any(User.class));
+            assertThat(freeUser.getSubscriptionTier()).isEqualTo(SubscriptionTier.PRO);
         }
     }
 }
