@@ -202,4 +202,21 @@ export const router = createBrowserRouter([
       </Suspense>
     ),
   },
+  // Subscription pages
+  {
+    path: "/renter/subscription",
+    element: (
+      <Suspense fallback={<Loading />}>
+        <PaymentSuccessPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: "/payment-cancelled",
+    element: (
+      <Suspense fallback={<Loading />}>
+        <PaymentCancelledPage />
+      </Suspense>
+    ),
+  },
 ]);
