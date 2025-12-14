@@ -16,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import com.toolshed.backend.dto.CreateToolInput;
 import com.toolshed.backend.dto.UpdateToolInput;
 import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.PayoutRepository;
 import com.toolshed.backend.repository.ReviewRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
@@ -46,10 +47,14 @@ class ToolIT {
     @Autowired
     private ReviewRepository reviewRepository;
 
+    @Autowired
+    private PayoutRepository payoutRepository;
+
     private User supplier;
 
     @BeforeEach
     void setUp() {
+        payoutRepository.deleteAll();
         reviewRepository.deleteAll();
         bookingRepository.deleteAll();
         toolRepository.deleteAll();
@@ -72,7 +77,7 @@ class ToolIT {
                 .title("Integration Drill")
                 .description("A drill for integration testing")
                 .pricePerDay(15.0)
-                .location("Integration City")
+                .district("Aveiro")
                 .supplierId(supplier.getId())
                 .build();
 
@@ -101,7 +106,7 @@ class ToolIT {
                 .title("Hammer")
                 .description("Heavy hammer")
                 .pricePerDay(5.0)
-                .location("City A")
+                .district("Lisboa")
                 .owner(supplier)
                 .active(true)
                 .overallRating(0.0)
@@ -113,7 +118,7 @@ class ToolIT {
                 .title("Screwdriver")
                 .description("Small screwdriver")
                 .pricePerDay(2.0)
-                .location("City B")
+                .district("Porto")
                 .owner(supplier)
                 .active(true)
                 .overallRating(0.0)
@@ -135,7 +140,7 @@ class ToolIT {
                 .title("Old Title")
                 .description("Old Desc")
                 .pricePerDay(10.0)
-                .location("Old Loc")
+                .district("Aveiro")
                 .owner(supplier)
                 .active(true)
                 .overallRating(0.0)
@@ -167,7 +172,7 @@ class ToolIT {
                 .title("To Delete")
                 .description("Desc")
                 .pricePerDay(10.0)
-                .location("Loc")
+                .district("Lisboa")
                 .owner(supplier)
                 .active(true)
                 .overallRating(0.0)

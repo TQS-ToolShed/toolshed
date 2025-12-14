@@ -75,12 +75,12 @@ public class ToolSteps {
         // No-op for API test
     }
 
-    @When("I fill in the tool details with title {string}, description {string}, price {string}, location {string}")
-    public void i_fill_in_the_tool_details(String title, String description, String price, String location) {
+    @When("I fill in the tool details with title {string}, description {string}, price {string}, district {string}")
+    public void i_fill_in_the_tool_details(String title, String description, String price, String district) {
         toolRequest.setTitle(title);
         toolRequest.setDescription(description);
         toolRequest.setPricePerDay(Double.parseDouble(price));
-        toolRequest.setLocation(location);
+        toolRequest.setDistrict(district.trim());
         toolRequest.setSupplierId(testUser.getId());
     }
 
@@ -104,7 +104,7 @@ public class ToolSteps {
         tool.setTitle(title);
         tool.setDescription("Seeded tool");
         tool.setPricePerDay(10.0);
-        tool.setLocation("Seed City");
+        tool.setDistrict("Porto");
         tool.setOwner(testUser);
         tool.setActive(true);
         tool.setOverallRating(0.0);

@@ -108,7 +108,7 @@ class PaymentServiceTest {
                 .title("Test Tool")
                 .description("A test tool")
                 .pricePerDay(25.0)
-                .location("Test Location")
+            .district("Test Location")
                 .owner(owner)
                 .active(true)
                 .overallRating(4.5)

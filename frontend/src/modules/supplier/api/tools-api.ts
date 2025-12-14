@@ -9,7 +9,7 @@ export interface Tool {
   title: string;
   description: string;
   pricePerDay: number;
-  location: string;
+  district: string;
   active: boolean;
   availabilityCalendar?: string;
   overallRating: number;
@@ -34,7 +34,7 @@ export interface CreateToolInput {
   description: string;
   pricePerDay: number;
   supplierId: string;
-  location: string;
+  district: string;
 }
 
 // UpdateToolInput - matches backend DTO
@@ -42,7 +42,7 @@ export interface UpdateToolInput {
   title?: string;
   description?: string;
   pricePerDay?: number;
-  location?: string;
+  district?: string;
   ownerId?: string;
   active?: boolean;
   availabilityCalendar?: string;
@@ -90,11 +90,22 @@ export const getToolDetails = async (toolId: string): Promise<ToolDetails> => {
 };
 
 // Search tools
-export const searchTools = async (keyword?: string, location?: string): Promise<Tool[]> => {
+export interface ToolSearchFilters {
+  keyword?: string;
+  district?: string;
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+export const searchTools = async (filters: ToolSearchFilters): Promise<Tool[]> => {
   try {
     const params = new URLSearchParams();
-    if (keyword) params.append('keyword', keyword);
-    if (location) params.append('location', location);
+    if (filters.keyword) params.append('keyword', filters.keyword);
+
+    if (filters.district) params.append('district', filters.district);
+
+    if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
     
     const response = await axios.get<Tool[]>(`${API_URL}/search`, { params });
     return response.data;

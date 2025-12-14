@@ -20,9 +20,13 @@ public interface ToolRepository extends JpaRepository<Tool, UUID> {
            "AND (:keyword IS NULL OR :keyword = '' OR " +
            "    (LOWER(t.title) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
            "     LOWER(t.description) LIKE LOWER(CONCAT('%', :keyword, '%')))) " +
-           "AND (:location IS NULL OR :location = '' OR " +
-           "    LOWER(t.location) LIKE LOWER(CONCAT('%', :location, '%')))")
+           "AND (:district IS NULL OR :district = '' OR " +
+           "    LOWER(t.district) LIKE LOWER(CONCAT('%', :district, '%'))) " +
+           "AND (:minPrice IS NULL OR t.pricePerDay >= :minPrice) " +
+           "AND (:maxPrice IS NULL OR t.pricePerDay <= :maxPrice)")
     List<Tool> searchTools(@Param("keyword") String keyword, 
-                           @Param("location") String location);
+                           @Param("district") String district,
+                           @Param("minPrice") Double minPrice,
+                           @Param("maxPrice") Double maxPrice);
 
 }
