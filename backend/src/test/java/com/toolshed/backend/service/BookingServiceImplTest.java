@@ -426,6 +426,86 @@ class BookingServiceImplTest {
         }
 
         @Test
+        @DisplayName("Should remove security deposit from owner wallet when booking completes")
+        void completeExpiredBookingsRemovesDepositFromOwnerWallet() {
+                // Arrange
+                Tool rentedTool = new Tool();
+                rentedTool.setId(UUID.randomUUID());
+                rentedTool.setActive(false);
+
+                User owner = new User();
+                owner.setId(UUID.randomUUID());
+                owner.setWalletBalance(108.0); // €100 rental + €8 deposit
+
+                User renterUser = new User();
+                renterUser.setId(UUID.randomUUID());
+
+                Booking expired = new Booking();
+                expired.setId(UUID.randomUUID());
+                expired.setTool(rentedTool);
+                expired.setOwner(owner);
+                expired.setRenter(renterUser);
+                expired.setStartDate(LocalDate.now().minusDays(5));
+                expired.setEndDate(LocalDate.now().minusDays(1));
+                expired.setStatus(BookingStatus.APPROVED);
+                expired.setPaymentStatus(PaymentStatus.COMPLETED);
+                expired.setDepositAmount(8.0); // €8 deposit
+
+                when(bookingRepository.findByStatusAndEndDateBefore(eq(BookingStatus.APPROVED), any(LocalDate.class)))
+                                .thenReturn(List.of(expired));
+                when(bookingRepository.countActiveApprovedBookingsForToolOnDate(eq(rentedTool.getId()),
+                                any(LocalDate.class)))
+                                .thenReturn(0L);
+
+                // Act
+                bookingService.completeExpiredBookings();
+
+                // Assert - deposit should be removed from owner wallet
+                assertThat(owner.getWalletBalance()).isEqualTo(100.0); // 108 - 8 = 100
+                verify(userRepository).save(owner);
+        }
+
+        @Test
+        @DisplayName("Should not remove deposit if booking has no deposit amount")
+        void completeExpiredBookingsNoDepositToRemove() {
+                // Arrange
+                Tool rentedTool = new Tool();
+                rentedTool.setId(UUID.randomUUID());
+                rentedTool.setActive(false);
+
+                User owner = new User();
+                owner.setId(UUID.randomUUID());
+                owner.setWalletBalance(100.0);
+
+                User renterUser = new User();
+                renterUser.setId(UUID.randomUUID());
+
+                Booking expired = new Booking();
+                expired.setId(UUID.randomUUID());
+                expired.setTool(rentedTool);
+                expired.setOwner(owner);
+                expired.setRenter(renterUser);
+                expired.setStartDate(LocalDate.now().minusDays(5));
+                expired.setEndDate(LocalDate.now().minusDays(1));
+                expired.setStatus(BookingStatus.APPROVED);
+                expired.setPaymentStatus(PaymentStatus.COMPLETED);
+                expired.setDepositAmount(null); // No deposit
+
+                when(bookingRepository.findByStatusAndEndDateBefore(eq(BookingStatus.APPROVED), any(LocalDate.class)))
+                                .thenReturn(List.of(expired));
+                when(bookingRepository.countActiveApprovedBookingsForToolOnDate(eq(rentedTool.getId()),
+                                any(LocalDate.class)))
+                                .thenReturn(0L);
+
+                // Act
+                bookingService.completeExpiredBookings();
+
+                // Assert - wallet balance unchanged, user not saved for wallet update
+                assertThat(owner.getWalletBalance()).isEqualTo(100.0);
+                verify(userRepository, never()).save(owner);
+        }
+
+        @Test
         @DisplayName("Should reject past end date")
         void createBookingPastEndDate() {
                 LocalDate start = LocalDate.now().plusDays(1);
@@ -821,7 +901,7 @@ class BookingServiceImplTest {
                                 .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.BROKEN);
                 assertThat(response.getDepositStatus())
                                 .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-                assertThat(response.getDepositAmount()).isEqualTo(50.0);
+                assertThat(response.getDepositAmount()).isEqualTo(8.0);
                 verify(bookingRepository).save(any(Booking.class));
         }
 
@@ -855,7 +935,7 @@ class BookingServiceImplTest {
                                 .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.MINOR_DAMAGE);
                 assertThat(response.getDepositStatus())
                                 .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-                assertThat(response.getDepositAmount()).isEqualTo(50.0);
+                assertThat(response.getDepositAmount()).isEqualTo(8.0);
         }
 
         @Test
@@ -957,7 +1037,7 @@ class BookingServiceImplTest {
                                 .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.MISSING_PARTS);
                 assertThat(response.getDepositStatus())
                                 .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-                assertThat(response.getDepositAmount()).isEqualTo(50.0);
+                assertThat(response.getDepositAmount()).isEqualTo(8.0);
         }
 
         @Test

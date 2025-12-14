@@ -193,6 +193,55 @@ class PaymentServiceTest {
             // Assert
             assertThat(result.getPaymentStatus()).isEqualTo(PaymentStatus.COMPLETED);
         }
+
+        @Test
+        @DisplayName("Should add security deposit to owner wallet when payment is marked as paid")
+        void shouldAddSecurityDepositToOwnerWallet() {
+            // Arrange - owner has €100 in wallet, booking costs €50
+            owner.setWalletBalance(100.0);
+            booking.setTotalPrice(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            paymentService.markBookingAsPaid(bookingId);
+
+            // Assert - owner should get €50 rental + €8 deposit = €58, total €158
+            verify(userRepository).save(owner);
+            assertThat(owner.getWalletBalance()).isEqualTo(158.0); // 100 + 50 + 8
+        }
+
+        @Test
+        @DisplayName("Should set deposit amount on booking when payment is marked as paid")
+        void shouldSetDepositAmountOnBooking() {
+            // Arrange
+            booking.setTotalPrice(50.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            Booking result = paymentService.markBookingAsPaid(bookingId);
+
+            // Assert - deposit should be €8
+            assertThat(result.getDepositAmount()).isEqualTo(8.0);
+        }
+
+        @Test
+        @DisplayName("Should credit owner wallet with rental price plus deposit")
+        void shouldCreditOwnerWalletWithRentalPlusDeposit() {
+            // Arrange - owner starts with €0, booking costs €25
+            owner.setWalletBalance(0.0);
+            booking.setTotalPrice(25.0);
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            paymentService.markBookingAsPaid(bookingId);
+
+            // Assert - owner should get €25 rental + €8 deposit = €33
+            assertThat(owner.getWalletBalance()).isEqualTo(33.0);
+            verify(userRepository).save(owner);
+        }
     }
 
     @Nested

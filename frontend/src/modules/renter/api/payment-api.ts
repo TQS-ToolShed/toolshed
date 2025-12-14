@@ -47,14 +47,16 @@ export const handlePayBooking = async (booking: PayableBooking): Promise<void> =
   }
 
   // Convert price to cents (Stripe uses smallest currency unit)
-  const amountInCents = Math.round(booking.totalPrice * 100);
+  const SECURITY_DEPOSIT_CENTS = 800; // €8.00 security deposit
+  const rentalAmountInCents = Math.round(booking.totalPrice * 100);
+  const amountInCents = rentalAmountInCents + SECURITY_DEPOSIT_CENTS;
 
   const request: CreateCheckoutSessionRequest = {
     bookingId: booking.id,
     amountInCents: amountInCents,
     description: booking.toolTitle 
-      ? `Reserva: ${booking.toolTitle}` 
-      : `Reserva #${booking.id.slice(0, 8)}`,
+      ? `Rental: ${booking.toolTitle} + €8 security deposit` 
+      : `Booking #${booking.id.slice(0, 8)} + €8 security deposit`,
   };
 
   try {
