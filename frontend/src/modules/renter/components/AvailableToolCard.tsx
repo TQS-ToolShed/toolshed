@@ -12,7 +12,20 @@ interface AvailableToolCardProps {
 
 export const AvailableToolCard = ({ tool, isFavorite = false, onToggleFavorite }: AvailableToolCardProps) => {
   return (
-    <Card className="h-full">
+    <Card className="h-full overflow-hidden">
+      {tool.imageUrl && (
+        <div className="w-full h-40 bg-gray-100 dark:bg-gray-800">
+          <img
+            src={tool.imageUrl}
+            alt={tool.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "https://via.placeholder.com/600x400?text=No+Image+Available";
+            }}
+          />
+        </div>
+      )}
       <CardHeader>
         <div className="flex justify-between items-start gap-2">
           <div>

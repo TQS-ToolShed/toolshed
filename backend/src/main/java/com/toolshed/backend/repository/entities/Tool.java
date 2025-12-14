@@ -32,7 +32,7 @@ public class Tool {
 
     @Column(nullable = false)
     private String title;
-    
+
     @Column(length = 1000)
     private String description;
 
@@ -60,6 +60,7 @@ public class Tool {
     @Column(nullable = false)
     private int numRatings;
 
+    private String imageUrl;
 
     public UUID getId() {
         return id;
@@ -139,5 +140,13 @@ public class Tool {
 
     public void setNumRatings(int numRatings) {
         this.numRatings = numRatings;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

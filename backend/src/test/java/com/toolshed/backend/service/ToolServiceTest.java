@@ -97,7 +97,7 @@ class ToolServiceTest {
         // Arrange: User enters " Drill "
         String dirtyKeyword = "  Drill  ";
         String cleanedKeyword = "Drill";
-        
+
         when(toolRepo.searchTools(cleanedKeyword, null, null, null)).thenReturn(List.of(sampleTool));
 
         // Act
@@ -165,7 +165,7 @@ class ToolServiceTest {
         // Assert
         // Verify that the specific method designed for filtering was called
         verify(toolRepo, times(1)).searchTools(keyword, null, null, null);
-        
+
         // Safety check: Verify that a generic, unfiltered method was NOT called
         verify(toolRepo, never()).findAll();
     }
@@ -182,8 +182,9 @@ class ToolServiceTest {
         // Assert
         // Verify the repository was called exactly with the mixed-case string
         verify(toolRepo).searchTools(mixedCaseKeyword, null, null, null);
-        
-        // Safety check: Verify the service did NOT try to change the keyword to lowercase itself
+
+        // Safety check: Verify the service did NOT try to change the keyword to
+        // lowercase itself
         verify(toolRepo, never()).searchTools(mixedCaseKeyword.toLowerCase(), null, null, null);
     }
 
@@ -558,7 +559,8 @@ class ToolServiceTest {
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.BAD_REQUEST);
-        }
+    }
+
     @Test
     @DisplayName("Should return empty list when keyword is empty string")
     void testSearchToolsWithEmptyKeyword() {
@@ -620,5 +622,35 @@ class ToolServiceTest {
 
         assertThat(result).containsExactly(sampleTool);
         verify(toolRepo).findByOwnerId(supplier.getId());
+    }
+
+    @Test
+    @DisplayName("Should create tool with image URL")
+    void testCreateToolWithImage() {
+        when(userRepo.findById(supplier.getId())).thenReturn(Optional.of(supplier));
+        when(geoApiService.districtExists("Aveiro")).thenReturn(true);
+        when(toolRepo.save(any(Tool.class))).thenAnswer(invocation -> {
+            Tool t = invocation.getArgument(0);
+            t.setId(UUID.randomUUID());
+            return t;
+        });
+
+        String imageUrl = "http://example.com/drill.jpg";
+        CreateToolInput input = CreateToolInput.builder()
+                .title("Saw")
+                .description("Sharp saw")
+                .pricePerDay(12.0)
+                .district("Aveiro")
+                .supplierId(supplier.getId())
+                .imageUrl(imageUrl)
+                .build();
+
+        String newId = toolService.createTool(input);
+
+        assertThat(newId).isNotBlank();
+        ArgumentCaptor<Tool> captor = ArgumentCaptor.forClass(Tool.class);
+        verify(toolRepo).save(captor.capture());
+        Tool saved = captor.getValue();
+        assertThat(saved.getImageUrl()).isEqualTo(imageUrl);
     }
 }

@@ -29,7 +29,8 @@ public class ToolServiceImpl implements ToolService {
     private final BookingRepository bookingRepo;
     private final IGeoApiService geoApiService;
 
-    public ToolServiceImpl(ToolRepository toolRepo, UserRepository userRepo, BookingRepository bookingRepo, IGeoApiService geoApiService) {
+    public ToolServiceImpl(ToolRepository toolRepo, UserRepository userRepo, BookingRepository bookingRepo,
+            IGeoApiService geoApiService) {
         this.toolRepo = toolRepo;
         this.userRepo = userRepo;
         this.bookingRepo = bookingRepo;
@@ -38,13 +39,14 @@ public class ToolServiceImpl implements ToolService {
 
     /**
      * Implements the search functionality based on US1 criteria.
-     * Handles input validation (null/whitespace) before delegating to the repository.
+     * Handles input validation (null/whitespace) before delegating to the
+     * repository.
      */
     @Override
     public List<Tool> searchTools(String keyword, String district, Double minPrice, Double maxPrice) {
         String trimmedKeyword = keyword == null ? null : keyword.trim();
         String trimmedDistrict = district == null ? null : district.trim();
-        
+
         // Sanitize negative prices
         if (minPrice != null && minPrice < 0) {
             minPrice = 0.0;
@@ -54,10 +56,10 @@ public class ToolServiceImpl implements ToolService {
         }
 
         // If all filters are empty/null, return empty list (no search criteria)
-        if ((trimmedKeyword == null || trimmedKeyword.isEmpty()) 
-            && (trimmedDistrict == null || trimmedDistrict.isEmpty())
-            && minPrice == null 
-            && maxPrice == null) {
+        if ((trimmedKeyword == null || trimmedKeyword.isEmpty())
+                && (trimmedDistrict == null || trimmedDistrict.isEmpty())
+                && minPrice == null
+                && maxPrice == null) {
             return Collections.emptyList();
         }
 
@@ -97,6 +99,7 @@ public class ToolServiceImpl implements ToolService {
         tool.setDistrict(input.getDistrict());
         tool.setOwner(supplier);
         tool.setActive(true);
+        tool.setImageUrl(input.getImageUrl());
         tool.setOverallRating(0.0);
         tool.setNumRatings(0);
 
@@ -132,7 +135,7 @@ public class ToolServiceImpl implements ToolService {
         if (input.getPricePerDay() != null) {
             tool.setPricePerDay(input.getPricePerDay());
         }
-        
+
         // Validate district if it is being updated
         if (input.getDistrict() != null) {
             if (!geoApiService.districtExists(input.getDistrict())) {
@@ -140,7 +143,7 @@ public class ToolServiceImpl implements ToolService {
             }
             tool.setDistrict(input.getDistrict());
         }
-        
+
         if (input.getActive() != null) {
             boolean requestedActive = input.getActive();
             if (requestedActive && !tool.isActive()) {
@@ -148,8 +151,7 @@ public class ToolServiceImpl implements ToolService {
                 if (activeRentals > 0) {
                     throw new ResponseStatusException(
                             HttpStatus.CONFLICT,
-                            "Tool is currently rented and cannot be marked as available"
-                    );
+                            "Tool is currently rented and cannot be marked as available");
                 }
             }
             tool.setActive(requestedActive);

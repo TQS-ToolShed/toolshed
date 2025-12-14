@@ -33,6 +33,8 @@ public class CreateToolInput {
     @NotBlank
     private String district;
 
+    private String imageUrl;
+
     public String getTitle() {
         return title;
     }
@@ -71,5 +73,13 @@ public class CreateToolInput {
 
     public void setDistrict(String district) {
         this.district = district;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }
