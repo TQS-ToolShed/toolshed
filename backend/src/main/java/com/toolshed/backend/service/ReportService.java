@@ -87,10 +87,11 @@ public class ReportService {
     }
 
     private ReportResponse toResponse(Report report) {
+        User resolvedReporter = resolveUser(report.getReporter());
         return ReportResponse.builder()
                 .id(report.getId())
-                .reporterId(report.getReporter() != null ? report.getReporter().getId() : null)
-                .reporterEmail(report.getReporter() != null ? report.getReporter().getEmail() : null)
+                .reporterId(resolvedReporter != null ? resolvedReporter.getId() : null)
+                .reporterEmail(resolvedReporter != null ? resolvedReporter.getEmail() : null)
                 .toolId(report.getTool() != null ? report.getTool().getId() : null)
                 .toolTitle(report.getTool() != null ? report.getTool().getTitle() : null)
                 .bookingId(report.getBooking() != null ? report.getBooking().getId() : null)
@@ -100,5 +101,16 @@ public class ReportService {
                 .createdAt(report.getCreatedAt())
                 .updatedAt(report.getUpdatedAt())
                 .build();
+    }
+
+    private User resolveUser(User user) {
+        if (user == null) {
+            return null;
+        }
+        UUID id = user.getId();
+        if (id == null) {
+            return user;
+        }
+        return userRepository.findById(id).orElse(user);
     }
 }
