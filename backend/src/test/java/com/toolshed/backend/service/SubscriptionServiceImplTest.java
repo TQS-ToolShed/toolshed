@@ -326,4 +326,27 @@ class SubscriptionServiceImplTest {
             assertThat(freeUser.getSubscriptionTier()).isEqualTo(SubscriptionTier.PRO);
         }
     }
+
+    @Nested
+    @DisplayName("createProSubscription with stripeEnabled=true tests")
+    class CreateProSubscriptionStripeModeTests {
+
+        @Test
+        @DisplayName("Should throw SubscriptionException when Stripe API call fails")
+        void createProSubscription_stripeMode_throwsExceptionOnStripeError() {
+            // Create a new instance and enable Stripe mode via reflection
+            SubscriptionServiceImpl stripeService = new SubscriptionServiceImpl(userRepository);
+            org.springframework.test.util.ReflectionTestUtils.setField(stripeService, "stripeEnabled", true);
+
+            when(userRepository.findById(freeUserId)).thenReturn(Optional.of(freeUser));
+
+            // When Stripe is enabled but not properly configured, it will throw
+            // StripeException
+            // which gets wrapped in SubscriptionException
+            assertThatThrownBy(() -> stripeService.createProSubscription(
+                    freeUserId, "http://success", "http://cancel"))
+                    .isInstanceOf(SubscriptionException.class)
+                    .hasMessageContaining("Failed to create payment session");
+        }
+    }
 }
