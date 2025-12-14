@@ -5,6 +5,7 @@ import { ToolBookingRequests } from '../components/ToolBookingRequests';
 import { ActiveRentals } from '../components/ActiveRentals';
 import { SupplierNavbar } from '../components/SupplierNavbar';
 import { WalletSection } from '../components/WalletSection';
+import { OwnerEarnings } from '../components/OwnerEarnings';
 
 export const SupplierDashboardPage = () => {
 
@@ -40,6 +41,11 @@ export const SupplierDashboardPage = () => {
 
           {/* Rentals Card */}
           <ActiveRentals />
+        </div>
+
+        {/* Earnings Section */}
+        <div className="mt-10">
+          <OwnerEarnings />
         </div>
 
         <div className="mt-10">
