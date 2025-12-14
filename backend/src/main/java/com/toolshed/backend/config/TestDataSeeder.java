@@ -11,6 +11,7 @@ import com.toolshed.backend.repository.enums.PaymentStatus;
 import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -22,11 +23,14 @@ import java.util.Random;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class TestDataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final ToolRepository toolRepository;
     private final BookingRepository bookingRepository;
+
+    private final Random rand = new Random();
 
     @Override
     public void run(String... args) throws Exception {
@@ -35,11 +39,11 @@ public class TestDataSeeder implements CommandLineRunner {
         String renterEmail = "chalica2@ua.pt";
 
         if (bookingRepository.count() > 0) {
-            System.out.println("Data likely already seeded (bookings exist). Skipping seeding.");
+            log.info("Data likely already seeded (bookings exist). Skipping seeding.");
             return;
         }
 
-        System.out.println("Seeding Test Data for Earnings Feature...");
+        log.info("Seeding Test Data for Earnings Feature...");
 
         // 1. Ensure Users Exist
         User supplier = findOrCreateUser(supplierEmail, "Chalica", "Supplier", UserRole.SUPPLIER);
@@ -53,7 +57,6 @@ public class TestDataSeeder implements CommandLineRunner {
         tools.add(createTool(supplier, "Pressure Washer", "3000 PSI", 30.0));
 
         // 3. Create Past Bookings (Completed Payments)
-        Random rand = new Random();
         int bookingsCreated = 0;
 
         // Generate bookings for the last 6 months
@@ -83,7 +86,7 @@ public class TestDataSeeder implements CommandLineRunner {
             bookingsCreated++;
         }
 
-        System.out.println("Seeded " + bookingsCreated + " completed bookings for " + supplierEmail);
+        log.info("Seeded {} completed bookings for {}", bookingsCreated, supplierEmail);
     }
 
     private User findOrCreateUser(String email, String firstName, String lastName, UserRole role) {

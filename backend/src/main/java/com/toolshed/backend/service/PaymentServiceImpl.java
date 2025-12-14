@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -189,7 +188,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .stream()
                 .limit(10)
                 .map(this::mapToPayoutResponse)
-                .collect(Collectors.toList());
+                .toList();
 
         return WalletResponse.builder()
                 .balance(owner.getWalletBalance() != null ? owner.getWalletBalance() : 0.0)
@@ -205,7 +204,7 @@ public class PaymentServiceImpl implements PaymentService {
         return payoutRepository.findByOwnerIdOrderByRequestedAtDesc(ownerId)
                 .stream()
                 .map(this::mapToPayoutResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -255,7 +254,7 @@ public class PaymentServiceImpl implements PaymentService {
         List<Booking> bookings = bookingRepository.findAll().stream()
                 .filter(b -> b.getOwner().getId().equals(ownerId))
                 .filter(b -> b.getPaymentStatus() == PaymentStatus.COMPLETED)
-                .collect(Collectors.toList());
+                .toList();
 
         // Group by Month and Year
         Map<String, Double> earningsMap = new HashMap<>();
@@ -282,7 +281,7 @@ public class PaymentServiceImpl implements PaymentService {
                     return b.getMonth().compareTo(a.getMonth()); // Simplification, better to parse Enum or use
                                                                  // LocalDate
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private PayoutResponse mapToPayoutResponse(Payout payout) {
