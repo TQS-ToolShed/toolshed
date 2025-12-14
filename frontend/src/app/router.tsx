@@ -194,21 +194,17 @@ export const router = createBrowserRouter([
   {
     path: "/renter/subscription",
     element: (
-      <ProtectedRoute allowedRoles={["RENTER"]}>
-        <SubscriptionPage />
-      </ProtectedRoute>
+      <Suspense fallback={<Loading />}>
+        <PaymentSuccessPage />
+      </Suspense>
     ),
   },
   {
-    path: "/subscription/success",
-    element: <SubscriptionSuccessPage />,
-  },
-  {
-    path: "/subscription/cancel",
+    path: "/payment-cancelled",
     element: (
-      <ProtectedRoute allowedRoles={["RENTER"]}>
-        <SubscriptionPage />
-      </ProtectedRoute>
+      <Suspense fallback={<Loading />}>
+        <PaymentCancelledPage />
+      </Suspense>
     ),
   },
 ]);

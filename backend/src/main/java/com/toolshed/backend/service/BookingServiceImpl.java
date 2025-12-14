@@ -463,9 +463,35 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingResponse toBookingResponse(Booking booking) {
-        String ownerName = booking.getOwner() != null
-                ? (booking.getOwner().getFirstName() + " " + booking.getOwner().getLastName()).trim()
-                : null;
+        if (booking.getTool() == null) {
+            throw new NullPointerException("Booking tool is required");
+        }
+        if (booking.getOwner() == null) {
+            throw new NullPointerException("Booking owner is required");
+        }
+
+        UUID ownerId = booking.getOwner().getId();
+        UUID renterId = booking.getRenter() != null ? booking.getRenter().getId() : null;
+        UUID toolId = booking.getTool().getId();
+
+        String ownerName = userRepository.findById(ownerId)
+                .map(u -> (u.getFirstName() + " " + u.getLastName()).trim())
+                .orElse(null);
+
+        String conditionReportedByName = null;
+        if (booking.getConditionReportedBy() != null) {
+            UUID reporterId = booking.getConditionReportedBy().getId();
+            conditionReportedByName = userRepository.findById(reporterId)
+                    .map(u -> (u.getFirstName() + " " + u.getLastName()).trim())
+                    .orElse(null);
+        }
+
+        String toolTitle = booking.getTool().getTitle();
+        if (toolTitle == null) {
+            toolTitle = toolRepository.findById(toolId)
+                    .map(Tool::getTitle)
+                    .orElse(null);
+        }
 
         Review renterReview = getReviewByType(booking.getReviews(), ReviewType.RENTER_TO_OWNER);
         Review ownerReview = getReviewByType(booking.getReviews(), ReviewType.OWNER_TO_RENTER);
@@ -473,11 +499,11 @@ public class BookingServiceImpl implements BookingService {
 
         return BookingResponse.builder()
                 .id(booking.getId())
-                .toolId(booking.getTool().getId())
-                .renterId(booking.getRenter().getId())
-                .ownerId(booking.getOwner().getId())
+                .toolId(toolId)
+                .renterId(renterId)
+                .ownerId(ownerId)
                 .ownerName(ownerName)
-                .toolTitle(booking.getTool().getTitle() != null ? booking.getTool().getTitle() : null)
+                .toolTitle(toolTitle)
                 .startDate(booking.getStartDate())
                 .endDate(booking.getEndDate())
                 .status(booking.getStatus())
@@ -490,10 +516,7 @@ public class BookingServiceImpl implements BookingService {
                 .conditionStatus(booking.getConditionStatus())
                 .conditionDescription(booking.getConditionDescription())
                 .conditionReportedAt(booking.getConditionReportedAt())
-                .conditionReportedByName(booking.getConditionReportedBy() != null
-                        ? (booking.getConditionReportedBy().getFirstName() + " "
-                                + booking.getConditionReportedBy().getLastName()).trim()
-                        : null)
+                .conditionReportedByName(conditionReportedByName)
                 // Deposit Fields
                 .depositStatus(booking.getDepositStatus())
                 .depositAmount(booking.getDepositAmount())
