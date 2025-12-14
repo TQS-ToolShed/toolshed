@@ -56,7 +56,7 @@ public class ToolSteps {
         bookingRepository.deleteAll();
         toolRepository.deleteAll();
         userRepository.deleteAll();
-        
+
         testUser = new User();
         testUser.setFirstName("Test");
         testUser.setLastName("Supplier");
@@ -66,7 +66,7 @@ public class ToolSteps {
         testUser.setStatus(UserStatus.ACTIVE);
         testUser.setReputationScore(5.0);
         testUser = userRepository.save(testUser);
-        
+
         toolRequest = new CreateToolInput();
     }
 
@@ -117,7 +117,7 @@ public class ToolSteps {
         resultActions = mockMvc.perform(get("/api/tools/search")
                 .param("keyword", keyword));
     }
-    
+
     @Then("I should see the tool details")
     public void i_should_see_the_tool_details() throws Exception {
         resultActions.andExpect(status().isOk())
