@@ -2,5 +2,6 @@ package com.toolshed.backend.repository.enums;
 
 public enum UserRole {
     SUPPLIER,
-    RENTER
+    RENTER,
+    ADMIN
 }

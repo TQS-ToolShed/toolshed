@@ -9,7 +9,8 @@ export interface Tool {
   title: string;
   description: string;
   pricePerDay: number;
-  district: string;
+  location: string;
+  district?: string; // legacy alias for UI; use location as source of truth
   active: boolean;
   availabilityCalendar?: string;
   overallRating: number;
@@ -34,7 +35,8 @@ export interface CreateToolInput {
   description: string;
   pricePerDay: number;
   supplierId: string;
-  district: string;
+  location: string;
+  district?: string;
 }
 
 // UpdateToolInput - matches backend DTO
@@ -42,6 +44,7 @@ export interface UpdateToolInput {
   title?: string;
   description?: string;
   pricePerDay?: number;
+  location?: string;
   district?: string;
   ownerId?: string;
   active?: boolean;
@@ -102,7 +105,7 @@ export const searchTools = async (filters: ToolSearchFilters): Promise<Tool[]> =
     const params = new URLSearchParams();
     if (filters.keyword) params.append('keyword', filters.keyword);
 
-    if (filters.district) params.append('district', filters.district);
+    if (filters.district) params.append('location', filters.district);
 
     if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
     if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
@@ -146,7 +149,11 @@ export const getToolsBySupplier = async (supplierId: string): Promise<Tool[]> =>
 // Create a new tool
 export const createTool = async (input: CreateToolInput): Promise<void> => {
   try {
-    await axios.post(API_URL, input);
+    const payload = {
+      ...input,
+      location: input.location || input.district || "",
+    };
+    await axios.post(API_URL, payload);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       throw new Error(error.response.data.message || 'Failed to create tool');
@@ -158,7 +165,11 @@ export const createTool = async (input: CreateToolInput): Promise<void> => {
 // Update a tool
 export const updateTool = async (toolId: string, input: UpdateToolInput): Promise<void> => {
   try {
-    await axios.put(`${API_URL}/${toolId}`, input);
+    const payload = {
+      ...input,
+      location: input.location || input.district || input.location,
+    };
+    await axios.put(`${API_URL}/${toolId}`, payload);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       throw new Error(error.response.data.message || 'Failed to update tool');

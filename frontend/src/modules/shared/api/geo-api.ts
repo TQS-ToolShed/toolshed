@@ -2,6 +2,23 @@ import axios from 'axios';
 import { API_BASE_URL } from '@/lib/api';
 
 const GEO_API_URL = `${API_BASE_URL}/api/geo`;
+const PUBLIC_FALLBACK_URL = 'https://json.geoapi.pt/distritos';
+
+// Map GeoAPI response (objects) into a string array of district names
+const normalizeDistricts = (raw: unknown): string[] => {
+  if (Array.isArray(raw) && raw.length && typeof raw[0] === 'string') {
+    return raw as string[];
+  }
+  if (Array.isArray(raw)) {
+    return (raw as Array<Record<string, unknown>>)
+      .map((item) => {
+        const distrito = item?.distrito;
+        return typeof distrito === 'string' ? distrito : null;
+      })
+      .filter((d): d is string => Boolean(d));
+  }
+  return [];
+};
 
 // --- Caches ---
 let districtCache: string[] | null = null;
@@ -76,13 +93,14 @@ export const fetchDistricts = async (): Promise<string[]> => {
   // 3. Create the fetch logic wrapped in a function (backend-only)
   const fetchLogic = async (): Promise<string[]> => {
     try {
+      // Try backend first
       const response = await withRetries(
         () => axios.get<string[]>(`${GEO_API_URL}/districts`, { timeout: GEO_BACKEND_TIMEOUT_MS }),
         3,
         800
       );
 
-      const data = Array.isArray(response.data) ? response.data : [];
+      const data = normalizeDistricts(response.data);
       if (data.length) {
         districtCache = data;
         storedDistricts = data;
@@ -90,10 +108,25 @@ export const fetchDistricts = async (): Promise<string[]> => {
         return data;
       }
 
-      console.warn('Backend returned empty districts');
-      return [];
+      console.warn('Backend returned empty districts, falling back to public GeoAPI');
     } catch (error) {
       console.warn('Backend district fetch failed', error);
+    }
+
+    // Fallback: hit public GeoAPI directly if backend is empty or failed
+    try {
+      const response = await withRetries(
+        () => axios.get<string[]>(PUBLIC_FALLBACK_URL, { timeout: GEO_BACKEND_TIMEOUT_MS }),
+        3,
+        800
+      );
+      const data = normalizeDistricts(response.data);
+      districtCache = data;
+      storedDistricts = data;
+      saveToStorage(DISTRICTS_STORAGE_KEY, data);
+      return data;
+    } catch (fallbackError) {
+      console.warn('Public GeoAPI district fetch failed', fallbackError);
       return [];
     }
   };

@@ -54,7 +54,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
       setTitle(tool.title);
       setDescription(tool.description);
       setPricePerDay(tool.pricePerDay.toString());
-      setDistrict(tool.district);
+      setDistrict(tool.location || tool.district || '');
       setActive(tool.active);
     } else {
       setTitle('');
@@ -78,6 +78,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
         title,
         description,
         pricePerDay: parsedPrice,
+        location: district,
         district,
         active,
       };
@@ -87,6 +88,7 @@ export const ToolForm = ({ tool, supplierId, onSubmit, onCancel, isLoading }: To
         title,
         description,
         pricePerDay: parsedPrice,
+        location: district,
         district,
         supplierId,
       };
