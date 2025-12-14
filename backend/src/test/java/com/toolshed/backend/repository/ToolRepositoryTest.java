@@ -43,46 +43,46 @@ class ToolRepositoryTest {
         defaultOwner.setRegisteredDate(LocalDateTime.now().minusMonths(6));
         defaultOwner = userRepo.save(defaultOwner); // Use managed entity
 
-        // 1. Direct title match
+        // 1. Cheap tool (5€) - Direct title match
         Tool drill = new Tool();
         drill.setTitle("Power Drill");
         drill.setDescription("Cordless 18V battery powered");
-        drill.setPricePerDay(4.5);
+        drill.setPricePerDay(5.0);
         drill.setActive(true);
-        drill.setLocation("Downtown Garage");
+        drill.setDistrict("Aveiro");
         drill.setOwner(defaultOwner);
         drill.setAvailabilityCalendar("{\"mon\": true, \"tue\": true, \"wed\": false}");
         drill.setOverallRating(4.8);
 
-        // 2. Description Match
+        // 2. Medium price tool (20€) - Description Match
         Tool bitSet = new Tool();
         bitSet.setTitle("Bit Set");
         bitSet.setDescription("Titanium bits for drill and driver");
-        bitSet.setPricePerDay(5.0);
+        bitSet.setPricePerDay(20.0);
         bitSet.setActive(true);
-        bitSet.setLocation("Eastside Workshop");
+        bitSet.setDistrict("Lisboa");
         bitSet.setOwner(defaultOwner);
         bitSet.setAvailabilityCalendar("{\"weekends\": true}");
         bitSet.setOverallRating(4.5);
 
-        // 3. Case Insensitivity (Upper case in DB)
+        // 3. Expensive tool (100€) - Case Insensitivity (Upper case in DB)
         Tool hammer = new Tool();
         hammer.setTitle("Heavy HAMMER");
         hammer.setDescription("Standard claw hammer");
-        hammer.setPricePerDay(10.0);
+        hammer.setPricePerDay(100.0);
         hammer.setActive(true);
-        hammer.setLocation("Westside Storage");
+        hammer.setDistrict("Porto");
         hammer.setOwner(defaultOwner);
         hammer.setAvailabilityCalendar("{\"available\": true}");
         hammer.setOverallRating(3.9);
 
-        // 4. Distractor (Should not match 'drill' or 'hammer')
+        // 4. Another medium tool (15€) - Distractor (Should not match 'drill' or 'hammer')
         Tool saw = new Tool();
         saw.setTitle("Circular Saw");
         saw.setDescription("Perfect for cutting wood");
-        saw.setPricePerDay(20.0);
+        saw.setPricePerDay(15.0);
         saw.setActive(true);
-        saw.setLocation("Eastside Shed");
+        saw.setDistrict("Lisboa");
         saw.setOwner(defaultOwner);
         saw.setAvailabilityCalendar("{\"available\": true}");
         saw.setOverallRating(5.0);
@@ -93,7 +93,7 @@ class ToolRepositoryTest {
         inactive.setDescription("Broken");
         inactive.setPricePerDay(1.0);
         inactive.setActive(false);
-        inactive.setLocation("Recycling Bin");
+        inactive.setDistrict("Aveiro");
         inactive.setOwner(defaultOwner);
         inactive.setAvailabilityCalendar("{\"available\": false}");
         inactive.setOverallRating(1.2);
@@ -105,7 +105,7 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should return tools where Title matches keyword (Case Insensitive)")
     void testSearchByTitle() {
-        List<Tool> results = toolRepo.searchTools("Power", null);
+        List<Tool> results = toolRepo.searchTools("Power", null, null, null);
         assertThat(results)
             .hasSize(1)
             .extracting(Tool::getTitle)
@@ -115,7 +115,7 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should return tools where Description matches keyword")
     void testSearchByDescription() {
-        List<Tool> results = toolRepo.searchTools("Titanium", null);
+        List<Tool> results = toolRepo.searchTools("Titanium", null, null, null);
         assertThat(results)
             .hasSize(1)
             .extracting(Tool::getTitle)
@@ -125,7 +125,7 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should return tools matching Title OR Description (Mixed Case)")
     void testSearchTitleOrDescriptionMixedCase() {
-        List<Tool> results = toolRepo.searchTools("Drill", null);
+        List<Tool> results = toolRepo.searchTools("Drill", null, null, null);
         assertThat(results)
             .hasSize(2)
             .extracting(Tool::getTitle)
@@ -136,7 +136,7 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should return tools searching with uppercase keyword against lowercase data")
     void testSearchCaseInsensitiveParams() {
-        List<Tool> results = toolRepo.searchTools("CLAW", null);
+        List<Tool> results = toolRepo.searchTools("CLAW", null, null, null);
         assertThat(results)
             .hasSize(1)
             .extracting(Tool::getTitle)
@@ -146,7 +146,7 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should return empty list when no match is found")
     void testSearchNoResults() {
-        List<Tool> results = toolRepo.searchTools("Screwdriver", null);
+        List<Tool> results = toolRepo.searchTools("Screwdriver", null, null, null);
         assertThat(results).isEmpty();
     }
 
@@ -158,14 +158,14 @@ class ToolRepositoryTest {
         inactiveTool.setTitle("Super Secret Drill");
         inactiveTool.setDescription("Hidden from public");
         inactiveTool.setPricePerDay(10.0);
-        inactiveTool.setLocation("Secret Base");
+        inactiveTool.setDistrict("Aveiro");
         inactiveTool.setActive(false); // Explicitly inactive
         inactiveTool.setOwner(userRepo.findAll().get(0)); // Use existing owner
         inactiveTool.setOverallRating(0.0);
         toolRepo.save(inactiveTool);
 
         // Act
-        List<Tool> results = toolRepo.searchTools("Secret", null);
+        List<Tool> results = toolRepo.searchTools("Secret", null, null, null);
 
         // Assert: ensure the result list is empty and also verify it does not contain the inactive title
         assertThat(results).isEmpty();
@@ -180,7 +180,7 @@ class ToolRepositoryTest {
         // We have "Power Drill" in the setup. 
         // Searching "rill" should find it if our wildcard logic (%keyword%) is correct.
         
-        List<Tool> results = toolRepo.searchTools("rill", null);
+        List<Tool> results = toolRepo.searchTools("rill", null, null, null);
 
         assertThat(results)
                 .extracting(Tool::getTitle)
@@ -195,14 +195,14 @@ class ToolRepositoryTest {
         specialTool.setTitle("Drill & Driver Set + Bits");
         specialTool.setDescription("Professional usage");
         specialTool.setPricePerDay(10.0);
-        specialTool.setLocation("Workshop");
+        specialTool.setDistrict("Porto");
         specialTool.setActive(true);
         specialTool.setOwner(userRepo.findAll().get(0));
         specialTool.setOverallRating(5.0);
         toolRepo.save(specialTool);
 
         // Act: Search using the symbol "&"
-        List<Tool> results = toolRepo.searchTools("&", null);
+        List<Tool> results = toolRepo.searchTools("&", null, null, null);
 
         // Assert
         assertThat(results)
@@ -217,7 +217,7 @@ class ToolRepositoryTest {
         // This tests that the query doesn't crash on empty input.
         // Note: The Service Layer typically validates this, but the Repo should be robust.
         
-        List<Tool> results = toolRepo.searchTools("", null);
+        List<Tool> results = toolRepo.searchTools("", null, null, null);
 
         // Assert: Should return all 4 active tools from setUp()
         assertThat(results).hasSize(4); 
@@ -233,13 +233,13 @@ class ToolRepositoryTest {
         activeTool.setTitle("Scratched Saw");
         activeTool.setDescription("Works fine but looks ugly");
         activeTool.setPricePerDay(15.0);
-        activeTool.setLocation("Garage");
+        activeTool.setDistrict("Lisboa");
         activeTool.setActive(true); // Active
         activeTool.setOwner(userRepo.findAll().get(0));
         activeTool.setOverallRating(3.5);
         toolRepo.save(activeTool);
 
-        List<Tool> results = toolRepo.searchTools("Scratched", null);
+        List<Tool> results = toolRepo.searchTools("Scratched", null, null, null);
 
         assertThat(results)
                 .extracting(Tool::getTitle)
@@ -254,14 +254,14 @@ class ToolRepositoryTest {
         nullDescTool.setTitle("Null-Test Key");
         nullDescTool.setDescription(null); 
         nullDescTool.setPricePerDay(5.0);
-        nullDescTool.setLocation("Shed");
+        nullDescTool.setDistrict("Aveiro");
         nullDescTool.setActive(true);
         nullDescTool.setOwner(userRepo.findAll().get(0));
         nullDescTool.setOverallRating(2.0);
         toolRepo.save(nullDescTool);
 
         // Act
-        List<Tool> results = toolRepo.searchTools("key", null);
+        List<Tool> results = toolRepo.searchTools("key", null, null, null);
 
         // Assert
         assertThat(results)
@@ -278,7 +278,7 @@ class ToolRepositoryTest {
         underscoreTool.setTitle("T-Square_Ruler");
         underscoreTool.setDescription("Used for 90 degree angles");
         underscoreTool.setPricePerDay(8.0);
-        underscoreTool.setLocation("Studio");
+        underscoreTool.setDistrict("Porto");
         underscoreTool.setActive(true);
         underscoreTool.setOwner(userRepo.findAll().get(0));
         underscoreTool.setOverallRating(4.0);
@@ -287,7 +287,7 @@ class ToolRepositoryTest {
         // Act
         // Note: Without explicit escaping in the repository, this effectively works 
         // because the tool contains the text.
-        List<Tool> results = toolRepo.searchTools("Square_", null); 
+        List<Tool> results = toolRepo.searchTools("Square_", null, null, null); 
 
         // Assert
         assertThat(results)
@@ -296,27 +296,27 @@ class ToolRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should ignore keywords found only in non-searchable fields (e.g., location)")
-    void testSearchExcludesLocation() {
-        // Arrange: Tool 'hammer' from setUp() has location "Westside Storage"
-        // "Westside" is NOT in the title or description.
+    @DisplayName("Should ignore keywords found only in non-searchable fields (e.g., district)")
+    void testSearchExcludesDistrict() {
+        // Arrange: Tool 'hammer' from setUp() has district "Porto"
+        // "Porto" is NOT in the title or description.
 
         // Act
-        List<Tool> results = toolRepo.searchTools("Westside", null);
+        List<Tool> results = toolRepo.searchTools("Porto", null, null, null);
 
         // Assert
         assertThat(results).isEmpty();
     }
 
     @Test
-    @DisplayName("Should filter by Keyword AND Location simultaneously")
-    void testSearchWithKeywordAndLocation() {
-        // Scenario (updated after adding explicit location filter semantics): 
-        // 1. "Power Drill" (Downtown Garage) -> Matches Keyword & Location
-        // 2. "Bit Set" (Eastside Workshop) -> Matches Keyword in description but DIFFERENT location
-        // 3. "Circular Saw" (Eastside Shed) -> Does not match keyword "Drill"
+    @DisplayName("Should filter by Keyword AND District simultaneously")
+    void testSearchWithKeywordAndDistrict() {
+        // Scenario (updated after adding explicit district filter semantics): 
+        // 1. "Power Drill" (Aveiro) -> Matches Keyword & District
+        // 2. "Bit Set" (Lisboa) -> Matches Keyword in description but DIFFERENT district
+        // 3. "Circular Saw" (Lisboa, Sintra) -> Does not match keyword "Drill"
         // Result should therefore be ONLY Power Drill.
-        List<Tool> results = toolRepo.searchTools("Drill", "Downtown Garage");
+        List<Tool> results = toolRepo.searchTools("Drill", "Aveiro", null, null);
         assertThat(results)
                 .hasSize(1)
                 .extracting(Tool::getTitle)
@@ -324,12 +324,12 @@ class ToolRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should return results matching Location only (when Keyword is null/empty)")
-    void testSearchWithLocationOnly() {
-        // Scenario: User just selects "Westside Storage" from a dropdown, no keyword typed.
+    @DisplayName("Should return results matching District only (when Keyword is null/empty)")
+    void testSearchWithDistrictOnly() {
+        // Scenario: User just searches for "Porto", no keyword typed.
         
         // Act
-        List<Tool> results = toolRepo.searchTools(null, "Westside Storage");
+        List<Tool> results = toolRepo.searchTools(null, "Porto", null, null);
 
         // Assert
         assertThat(results)
@@ -339,11 +339,11 @@ class ToolRepositoryTest {
     }
 
     @Test
-    @DisplayName("Should ignore Location filter when it is null (Backward Compatibility)")
-    void testSearchWithKeywordOnly_LocationNull() {
-        // Scenario: User types "Drill" but leaves location filter empty.
+    @DisplayName("Should ignore District filter when it is null (Backward Compatibility)")
+    void testSearchWithKeywordOnly_DistrictNull() {
+        // Scenario: User types "Drill" but leaves district filter empty.
         // Matches: "Power Drill" (title) and "Bit Set" (description). "Circular Saw" no longer matches.
-        List<Tool> results = toolRepo.searchTools("Drill", null);
+        List<Tool> results = toolRepo.searchTools("Drill", null, null, null);
         assertThat(results)
                 .hasSize(2)
                 .extracting(Tool::getTitle)
@@ -354,8 +354,8 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should be case-insensitive for Location as well")
     void testSearchLocationCaseInsensitive() {
-        // Act: Search "downtown garage" (lowercase) when DB has "Downtown Garage"
-        List<Tool> results = toolRepo.searchTools("Drill", "downtown garage");
+        // Act: Search "aveiro" (lowercase) when DB has "Aveiro"
+        List<Tool> results = toolRepo.searchTools("Drill", "aveiro", null, null);
 
         // Assert
         assertThat(results)
@@ -366,12 +366,114 @@ class ToolRepositoryTest {
     @Test
     @DisplayName("Should return empty list if Keyword matches but Location does not")
     void testSearchNoMatchForLocation() {
-        // Scenario: Searching for "Hammer" (exists in Westside) but filtering for "Downtown"
+        // Scenario: Searching for "Hammer" (exists in Porto) but filtering for "Aveiro"
         
         // Act
-        List<Tool> results = toolRepo.searchTools("Hammer", "Downtown Garage");
+        List<Tool> results = toolRepo.searchTools("Hammer", "Aveiro", null, null);
 
         // Assert
         assertThat(results).isEmpty();
+    }
+
+    // ==================== PRICE FILTERING TESTS ====================
+
+    @Test
+    @DisplayName("Should filter by minimum price (inclusive)")
+    void testSearchByMinPrice() {
+        // Arrange: Tools with prices: 5.0€ (drill), 20.0€ (bitSet), 100.0€ (hammer), 15.0€ (saw)
+        // Expected: Tools >= 10€ should return bitSet (20€), hammer (100€), and saw (15€)
+        // Should exclude drill (5€)
+
+        // Act
+        List<Tool> results = toolRepo.searchTools(null, null, 10.0, null);
+
+        // Assert
+        assertThat(results)
+                .hasSize(3)
+                .extracting(Tool::getTitle)
+                .containsExactlyInAnyOrder("Bit Set", "Heavy HAMMER", "Circular Saw")
+                .doesNotContain("Power Drill");
+    }
+
+    @Test
+    @DisplayName("Should filter by maximum price (inclusive)")
+    void testSearchByMaxPrice() {
+        // Arrange: Tools with prices: 5.0€ (drill), 20.0€ (bitSet), 100.0€ (hammer), 15.0€ (saw)
+        // Expected: Tools <= 30€ should return drill (5€), bitSet (20€), and saw (15€)
+        // Should exclude hammer (100€)
+
+        // Act
+        List<Tool> results = toolRepo.searchTools(null, null, null, 30.0);
+
+        // Assert
+        assertThat(results)
+                .hasSize(3)
+                .extracting(Tool::getTitle)
+                .containsExactlyInAnyOrder("Power Drill", "Bit Set", "Circular Saw")
+                .doesNotContain("Heavy HAMMER");
+    }
+
+    @Test
+    @DisplayName("Should filter by price range (min and max, both inclusive)")
+    void testSearchByPriceRange() {
+        // Arrange: Tools with prices: 5.0€ (drill), 20.0€ (bitSet), 100.0€ (hammer), 15.0€ (saw)
+        // Expected: Tools between 10€ and 30€ should return bitSet (20€) and saw (15€)
+        // Should exclude drill (5€) and hammer (100€)
+
+        // Act
+        List<Tool> results = toolRepo.searchTools(null, null, 10.0, 30.0);
+
+        // Assert
+        assertThat(results)
+                .hasSize(2)
+                .extracting(Tool::getTitle)
+                .containsExactlyInAnyOrder("Bit Set", "Circular Saw")
+                .doesNotContain("Power Drill", "Heavy HAMMER");
+    }
+
+    @Test
+    @DisplayName("Should combine keyword search with max price filter")
+    void testSearchCombinedFilters() {
+        // Arrange: "Drill" keyword appears in:
+        // - "Power Drill" (title, 5€)
+        // - "Bit Set" (description has "drill", 20€)
+        // With maxPrice = 50€, both should match
+
+        // Act
+        List<Tool> results = toolRepo.searchTools("Drill", null, null, 50.0);
+
+        // Assert
+        assertThat(results)
+                .hasSize(2)
+                .extracting(Tool::getTitle)
+                .containsExactlyInAnyOrder("Power Drill", "Bit Set");
+    }
+
+    @Test
+    @DisplayName("Should respect inclusive price boundaries (exactly at min)")
+    void testSearchPriceInclusiveMin() {
+        // Arrange: bitSet has exactly 20.0€
+        
+        // Act: Search for minPrice = 20.0
+        List<Tool> results = toolRepo.searchTools(null, null, 20.0, null);
+
+        // Assert: Should include bitSet (20€ matches >= 20)
+        assertThat(results)
+                .extracting(Tool::getTitle)
+                .contains("Bit Set");
+    }
+
+    @Test
+    @DisplayName("Should respect inclusive price boundaries (exactly at max)")
+    void testSearchPriceInclusiveMax() {
+        // Arrange: bitSet has exactly 20.0€
+        
+        // Act: Search for maxPrice = 20.0
+        List<Tool> results = toolRepo.searchTools(null, null, null, 20.0);
+
+        // Assert: Should include bitSet (20€ matches <= 20)
+        assertThat(results)
+                .extracting(Tool::getTitle)
+                .contains("Bit Set");
     }
 }
