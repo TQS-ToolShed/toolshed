@@ -16,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import com.toolshed.backend.dto.CreateToolInput;
 import com.toolshed.backend.dto.UpdateToolInput;
 import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.PayoutRepository;
 import com.toolshed.backend.repository.ReviewRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
@@ -46,10 +47,14 @@ class ToolIT {
     @Autowired
     private ReviewRepository reviewRepository;
 
+    @Autowired
+    private PayoutRepository payoutRepository;
+
     private User supplier;
 
     @BeforeEach
     void setUp() {
+        payoutRepository.deleteAll();
         reviewRepository.deleteAll();
         bookingRepository.deleteAll();
         toolRepository.deleteAll();

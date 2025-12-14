@@ -8,12 +8,14 @@ import {
 import type { ReactNode } from "react";
 
 // Define the shape of the user data
-interface User {
+// Define the shape of the user data
+export interface User {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   role: "ADMIN" | "SUPPLIER" | "RENTER"; // Matching backend enum and frontend expectations
+  status?: "ACTIVE" | "SUSPENDED" | "PENDING_VERIFICATION";
   reputationScore?: number;
 }
 
