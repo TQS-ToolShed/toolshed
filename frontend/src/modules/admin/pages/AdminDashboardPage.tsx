@@ -10,6 +10,7 @@ import {
 import type { AdminStats } from "../api/admin-api";
 import { AdminStatsGrid } from "../components/AdminStatsGrid";
 import { AdminNavbar } from "../components/AdminNavbar";
+import { AdminReportsPanel } from "../components/AdminReportsPanel";
 
 export const AdminDashboardPage = () => {
   const { user } = useAuth();
@@ -70,6 +71,11 @@ export const AdminDashboardPage = () => {
 
       {/* Stats Section */}
       {stats && <AdminStatsGrid stats={stats} />}
+
+      {/* Reports Section */}
+      <div className="mt-6">
+        <AdminReportsPanel />
+      </div>
 
       {/* Users Section */}
       <div className="rounded-lg shadow-md border border-gray-200 overflow-hidden">
