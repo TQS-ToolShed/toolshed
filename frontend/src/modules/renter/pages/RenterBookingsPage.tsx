@@ -25,6 +25,8 @@ import { ToolAvailabilityCard } from "../components/ToolAvailabilityCard";
 import { BackToDashboardButton } from "../components/BackToDashboardButton";
 import { RenterNavbar } from "../components/RenterNavbar";
 import StarRating from "@/modules/shared/components/StarRating";
+import { getSubscriptionStatus } from "@/api/subscription-api";
+import { Crown } from "lucide-react";
 
 export const RenterBookingsPage = () => {
   const { toolId } = useParams<{ toolId: string }>();
@@ -40,6 +42,8 @@ export const RenterBookingsPage = () => {
     useState<BookingResponse | null>(null);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [isPro, setIsPro] = useState(false);
+  const [discountPercentage, setDiscountPercentage] = useState(0);
 
   const fetchTool = useCallback(async () => {
     if (!toolId) {
@@ -63,6 +67,22 @@ export const RenterBookingsPage = () => {
     fetchTool();
   }, [fetchTool]);
 
+  // Check Pro status for discount
+  useEffect(() => {
+    const checkProStatus = async () => {
+      if (user?.id) {
+        try {
+          const status = await getSubscriptionStatus(user.id);
+          setIsPro(status.active);
+          setDiscountPercentage(status.discountPercentage || 0);
+        } catch (error) {
+          console.error('Failed to check Pro status:', error);
+        }
+      }
+    };
+    checkProStatus();
+  }, [user?.id]);
+
   const rentalDays = useMemo(() => {
     if (!startDate || !endDate) return 0;
     const start = new Date(startDate);
@@ -76,6 +96,11 @@ export const RenterBookingsPage = () => {
     if (!tool) return 0;
     return rentalDays * tool.pricePerDay;
   }, [rentalDays, tool]);
+
+  const discountedTotalPrice = useMemo(() => {
+    if (!isPro || discountPercentage === 0) return totalPrice;
+    return totalPrice * (1 - discountPercentage / 100);
+  }, [totalPrice, isPro, discountPercentage]);
 
   const datesInvalid = useMemo(() => {
     if (!startDate || !endDate) return true;
@@ -222,9 +247,30 @@ export const RenterBookingsPage = () => {
                         {rentalDays || "-"}
                       </span>
                     </div>
+                    {isPro && discountPercentage > 0 && (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <span>Subtotal</span>
+                          <span className="text-foreground line-through">
+                            €{totalPrice.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-yellow-600">
+                          <span className="flex items-center gap-1">
+                            <Crown className="h-4 w-4" />
+                            Pro discount ({discountPercentage}%)
+                          </span>
+                          <span className="font-semibold">
+                            -€{(totalPrice - discountedTotalPrice).toFixed(2)}
+                          </span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex items-center justify-between text-foreground font-semibold text-lg">
                       <span>Total</span>
-                      <span>€{totalPrice.toFixed(2)}</span>
+                      <span className={isPro && discountPercentage > 0 ? "text-yellow-600" : ""}>
+                        €{discountedTotalPrice.toFixed(2)}
+                      </span>
                     </div>
                   </div>
 

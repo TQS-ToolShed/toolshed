@@ -7,6 +7,7 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import org.hibernate.annotations.CreationTimestamp;
 
+import com.toolshed.backend.repository.enums.SubscriptionTier;
 import com.toolshed.backend.repository.enums.UserRole;
 import com.toolshed.backend.repository.enums.UserStatus;
 
@@ -65,6 +66,16 @@ public class User {
 
     @CreationTimestamp
     private LocalDateTime registeredDate;
+
+    // Subscription fields for Pro Member
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    private SubscriptionTier subscriptionTier = SubscriptionTier.FREE;
+
+    private LocalDateTime subscriptionStart;
+    private LocalDateTime subscriptionEnd;
+    private String stripeSubscriptionId;
+    private String stripeCustomerId;
 
     @OneToMany(mappedBy = "owner")
     @JsonManagedReference
