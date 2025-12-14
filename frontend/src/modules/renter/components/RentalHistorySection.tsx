@@ -8,6 +8,8 @@ import { useAuth } from "@/modules/auth/context/AuthContext";
 import { ReviewOwnerModal } from "./ReviewOwnerModal";
 import { ReviewToolModal } from "./ReviewToolModal";
 import { ConditionReportModal } from "./ConditionReportModal";
+import { createReport } from "../api/report-api";
+import { Textarea } from "@/components/ui/textarea";
 
 /**
  * RentalHistorySection - Inline section displaying past bookings
@@ -24,6 +26,11 @@ export const RentalHistorySection = () => {
   const [isToolReviewModalOpen, setIsToolReviewModalOpen] = useState(false);
   const [isConditionModalOpen, setIsConditionModalOpen] = useState(false);
   const [isPayingDeposit, setIsPayingDeposit] = useState<string | null>(null);
+  const [reportingBookingId, setReportingBookingId] = useState<string | null>(null);
+  const [reportTitle, setReportTitle] = useState("");
+  const [reportDescription, setReportDescription] = useState("");
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportSuccess, setReportSuccess] = useState<string | null>(null);
 
   const loadBookings = async () => {
     if (!user?.id) return;
@@ -92,6 +99,29 @@ export const RentalHistorySection = () => {
     }
   };
 
+  const handleReport = async (booking: BookingResponse) => {
+    if (!user?.id) return;
+    setReportError(null);
+    setReportSuccess(null);
+    try {
+      await createReport({
+        reporterId: user.id,
+        bookingId: booking.id,
+        toolId: booking.toolId,
+        title: reportTitle || `Issue with ${booking.toolTitle || "booking"}`,
+        description: reportDescription || "No description provided",
+      });
+      setReportSuccess("Report submitted to admin.");
+      setReportingBookingId(null);
+      setReportTitle("");
+      setReportDescription("");
+    } catch (err) {
+      setReportError(
+        err instanceof Error ? err.message : "Failed to submit report"
+      );
+    }
+  };
+
   return (
     <>
       <div className="bg-background border border-border rounded-xl shadow-sm">
@@ -103,6 +133,16 @@ export const RentalHistorySection = () => {
           {error && (
             <div className="bg-destructive/10 border border-destructive text-destructive px-3 py-2 rounded-md text-sm">
               {error}
+            </div>
+          )}
+          {reportError && (
+            <div className="bg-destructive/10 border border-destructive text-destructive px-3 py-2 rounded-md text-sm">
+              {reportError}
+            </div>
+          )}
+          {reportSuccess && (
+            <div className="bg-green-100 border border-green-500 text-green-800 px-3 py-2 rounded-md text-sm">
+              {reportSuccess}
             </div>
           )}
           {isLoading ? (
@@ -282,6 +322,53 @@ export const RentalHistorySection = () => {
                         >
                           {booking.toolReview ? "Edit Tool Review" : "Review Tool"}
                         </button>
+                        <button
+                          className="px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap transition-colors bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
+                          onClick={() =>
+                            setReportingBookingId(
+                              reportingBookingId === booking.id ? null : booking.id
+                            )
+                          }
+                        >
+                          {reportingBookingId === booking.id ? "Close Report" : "Report Issue"}
+                        </button>
+                        {reportingBookingId === booking.id && (
+                          <div className="rounded-md border border-border bg-muted/30 p-3 space-y-2">
+                            <input
+                              type="text"
+                              className="w-full rounded border border-input bg-background px-3 py-2 text-sm"
+                              placeholder="Title"
+                              value={reportTitle}
+                              onChange={(e) => setReportTitle(e.target.value)}
+                            />
+                            <Textarea
+                              placeholder="Describe the issue"
+                              value={reportDescription}
+                              onChange={(e) => setReportDescription(e.target.value)}
+                              className="min-h-[80px]"
+                            />
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                className="text-xs px-3 py-1.5 rounded border border-input hover:bg-muted"
+                                onClick={() => {
+                                  setReportingBookingId(null);
+                                  setReportTitle("");
+                                  setReportDescription("");
+                                }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="button"
+                                className="text-xs px-3 py-1.5 rounded bg-primary text-primary-foreground hover:opacity-90"
+                                onClick={() => handleReport(booking)}
+                              >
+                                Submit Report
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
