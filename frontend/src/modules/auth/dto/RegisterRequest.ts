@@ -1,4 +1,4 @@
-export type UserRole = 'SUPPLIER' | 'RENTER';
+export type UserRole = 'SUPPLIER' | 'RENTER' | 'ADMIN';
 
 export interface RegisterRequest {
   firstName: string;
