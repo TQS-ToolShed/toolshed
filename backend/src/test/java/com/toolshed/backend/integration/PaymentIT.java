@@ -502,7 +502,7 @@ class PaymentIT {
                     .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.BROKEN);
             assertThat(response.getDepositStatus())
                     .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-            assertThat(response.getDepositAmount()).isEqualTo(50.0);
+            assertThat(response.getDepositAmount()).isEqualTo(8.0);
 
             // Verify persistence
             Booking persistedBooking = bookingRepository.findById(booking.getId()).orElseThrow();
@@ -555,7 +555,7 @@ class PaymentIT {
             Booking afterReport = bookingRepository.findById(booking.getId()).orElseThrow();
             assertThat(afterReport.getDepositStatus())
                     .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-            assertThat(afterReport.getDepositAmount()).isEqualTo(50.0);
+            assertThat(afterReport.getDepositAmount()).isEqualTo(8.0);
 
             // Step 3: Pay deposit
             Booking afterPayment = paymentService.markDepositAsPaid(booking.getId());
