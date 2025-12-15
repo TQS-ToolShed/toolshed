@@ -25,6 +25,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=postgres
       - SPRING_DATASOURCE_PASSWORD=password
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - FRONTEND_BASE_URL=${FRONTEND_BASE_URL}
       - GEO_CACHE_PATH=/data/geo-cache.json
       - GEO_WARM_CACHE=true
       - GEO_WARM_CACHE_DELAY_MS=250
