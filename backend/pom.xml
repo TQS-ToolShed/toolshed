@@ -231,39 +231,7 @@
                         <artifactId>exec-maven-plugin</artifactId>
                         <version>3.1.0</version>
                         <executions>
-                            <!-- Start Database with Docker Compose -->
-                            <execution>
-                                <id>start-database</id>
-                                <phase>pre-integration-test</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <executable>docker</executable>
-                                    <workingDirectory>${compose.dir}</workingDirectory>
-                                    <arguments>
-                                        <argument>compose</argument>
-                                        <argument>up</argument>
-                                        <argument>-d</argument>
-                                        <argument>db</argument>
-                                    </arguments>
-                                </configuration>
-                            </execution>
-                            <!-- Wait for database to be ready -->
-                            <execution>
-                                <id>wait-for-database</id>
-                                <phase>pre-integration-test</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <executable>bash</executable>
-                                    <arguments>
-                                        <argument>-c</argument>
-                                        <argument>echo 'Waiting for database...' &amp;&amp; sleep 5</argument>
-                                    </arguments>
-                                </configuration>
-                            </execution>
+
                             <!-- Install Frontend Dependencies -->
                             <execution>
                                 <id>install-frontend-deps</id>

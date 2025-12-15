@@ -1,7 +1,6 @@
 package com.toolshed.backend.e2e.config;
 
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -29,9 +28,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
  * Playwright (testing through the frontend). Both types require the database.
  */
 @CucumberContextConfiguration
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT, properties = "server.port=8081")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT, properties = "server.port=8080")
 @AutoConfigureMockMvc
-@ActiveProfiles("local")
+
 public class CucumberSpringConfiguration {
     // Spring context configuration for Cucumber tests using local PostgreSQL
     // database
