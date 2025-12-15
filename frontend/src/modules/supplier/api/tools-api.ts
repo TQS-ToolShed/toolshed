@@ -205,4 +205,3 @@ export const setMaintenance = async (toolId: string, availableDate: string | nul
     throw new Error('Network error or unknown issue');
   }
 };
-

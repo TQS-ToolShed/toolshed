@@ -18,6 +18,9 @@ export const SupplierNavbar = () => {
           <Button variant="outline" asChild>
             <Link to="/supplier/rentals">Rentals</Link>
           </Button>
+          <Button variant="outline" asChild>
+            <Link to="/supplier/profile">Profile</Link>
+          </Button>
           <Button variant="outline" onClick={logout}>
             Logout
           </Button>

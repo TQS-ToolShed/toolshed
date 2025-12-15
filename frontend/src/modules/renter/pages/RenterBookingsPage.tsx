@@ -180,6 +180,15 @@ export const RenterBookingsPage = () => {
     [myCompletedBooking]
   );
 
+  const supplierRating = useMemo(() => {
+    const ratings = toolBookings
+      .map((b) => b.review?.rating)
+      .filter((r): r is number => typeof r === "number");
+    if (ratings.length === 0) return tool?.owner?.reputationScore ?? 0;
+    const avg = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+    return Math.round(avg * 10) / 10;
+  }, [toolBookings, tool?.owner?.reputationScore]);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!tool || !user || !toolId || datesInvalid || rentalDays === 0) return;
@@ -628,11 +637,11 @@ export const RenterBookingsPage = () => {
                   <p className="text-muted-foreground">{tool.owner.email}</p>
                 </div>
                 <div className="text-muted-foreground">
-                  Reputation score:{" "}
+                  Supplier rating:{" "}
                   <span className="font-semibold text-foreground mr-2">
-                    {tool.owner.reputationScore.toFixed(1)}
+                    {(supplierRating || 0).toFixed(1)}
                   </span>
-                  <StarRating rating={tool.owner.reputationScore} size={14} />
+                  <StarRating rating={supplierRating || 0} size={14} />
                 </div>
               </CardContent>
             </Card>

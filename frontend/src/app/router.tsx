@@ -45,6 +45,11 @@ const PaymentCancelledPage = lazy(() =>
     default: module.PaymentCancelledPage,
   }))
 );
+const SupplierProfilePage = lazy(() =>
+  import("@/modules/supplier/pages/SupplierProfilePage").then((module) => ({
+    default: module.SupplierProfilePage,
+  }))
+);
 const SupplierDashboardPage = lazy(() =>
   import("@/modules/supplier/pages/SupplierDashboardPage").then((module) => ({
     default: module.SupplierDashboardPage,
@@ -159,6 +164,16 @@ export const router = createBrowserRouter([
       <ProtectedRoute allowedRoles={["SUPPLIER"]}>
         <Suspense fallback={<Loading />}>
           <SupplierRentalsPage />
+        </Suspense>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/supplier/profile",
+    element: (
+      <ProtectedRoute allowedRoles={["SUPPLIER"]}>
+        <Suspense fallback={<Loading />}>
+          <SupplierProfilePage />
         </Suspense>
       </ProtectedRoute>
     ),
