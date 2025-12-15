@@ -9,9 +9,41 @@ import {
 import StarRating from "@/modules/shared/components/StarRating";
 import { RenterNavbar } from "../components/RenterNavbar";
 import { BackToDashboardButton } from "../components/BackToDashboardButton";
+import { useEffect, useMemo, useState } from "react";
+import { getBookingsForRenter, type BookingResponse } from "../api/bookings-api";
 
 export const RenterProfilePage = () => {
   const { user } = useAuth();
+  const [bookings, setBookings] = useState<BookingResponse[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!user?.id) return;
+      try {
+        setIsLoadingReviews(true);
+        setReviewsError(null);
+        const data = await getBookingsForRenter(user.id);
+        setBookings(data);
+      } catch (err) {
+        setReviewsError(
+          err instanceof Error ? err.message : "Failed to load your reviews"
+        );
+      } finally {
+        setIsLoadingReviews(false);
+      }
+    };
+    load();
+  }, [user?.id]);
+
+  const ownerReviews = useMemo(
+    () =>
+      bookings
+        .map((b) => b.ownerReview)
+        .filter((r): r is NonNullable<BookingResponse["ownerReview"]> => Boolean(r)),
+    [bookings]
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,6 +90,49 @@ export const RenterProfilePage = () => {
                   <StarRating rating={user?.reputationScore || 0} size={16} />
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Your reviews</CardTitle>
+              <CardDescription>
+                Feedback left by owners after your rentals.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {reviewsError && (
+                <div className="text-sm text-destructive">{reviewsError}</div>
+              )}
+              {isLoadingReviews ? (
+                <p className="text-sm text-muted-foreground">Loading reviews...</p>
+              ) : ownerReviews.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  You have no reviews yet. Complete bookings to see feedback here.
+                </p>
+              ) : (
+                <div className="grid gap-3">
+                  {ownerReviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="border border-border rounded-lg p-3 bg-muted/30"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold">{review.reviewerName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(review.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <StarRating rating={review.rating} />
+                      </div>
+                      <p className="text-sm text-foreground mt-2">
+                        {review.comment}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
