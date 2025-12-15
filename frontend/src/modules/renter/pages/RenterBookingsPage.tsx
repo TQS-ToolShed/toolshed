@@ -20,7 +20,14 @@ import {
 import {
   createBooking,
   type BookingResponse,
+  getBookingsForTool,
+  getBookingsForRenter,
 } from "@/modules/renter/api/bookings-api";
+import {
+  createReview,
+  updateReview,
+  type ReviewResponse,
+} from "@/modules/renter/api/reviews-api";
 import { ToolAvailabilityCard } from "../components/ToolAvailabilityCard";
 import { BackToDashboardButton } from "../components/BackToDashboardButton";
 import { RenterNavbar } from "../components/RenterNavbar";
@@ -40,6 +47,14 @@ export const RenterBookingsPage = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [bookingResponse, setBookingResponse] =
     useState<BookingResponse | null>(null);
+  const [toolBookings, setToolBookings] = useState<BookingResponse[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewSuccess, setReviewSuccess] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [showReviewForm, setShowReviewForm] = useState(false);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isPro, setIsPro] = useState(false);
@@ -66,6 +81,34 @@ export const RenterBookingsPage = () => {
   useEffect(() => {
     fetchTool();
   }, [fetchTool]);
+
+  // Fetch bookings for tool (reviews) and renter bookings (eligibility)
+  useEffect(() => {
+    const loadBookings = async () => {
+      if (!toolId || !user?.id) return;
+      try {
+        setIsLoadingReviews(true);
+        const toolData = await getBookingsForTool(toolId);
+        setToolBookings(toolData);
+
+        const myCompleted = toolData.find(
+          (b) => b.renterId === user.id && b.status === "COMPLETED"
+        );
+        if (myCompleted?.toolReview) {
+          setReviewRating(myCompleted.toolReview.rating);
+          setReviewComment(myCompleted.toolReview.comment);
+        } else {
+          setReviewRating(0);
+          setReviewComment("");
+        }
+      } catch (err) {
+        console.error("Failed to load bookings for reviews", err);
+      } finally {
+        setIsLoadingReviews(false);
+      }
+    };
+    loadBookings();
+  }, [toolId, user?.id]);
 
   // Check Pro status for discount
   useEffect(() => {
@@ -115,6 +158,28 @@ export const RenterBookingsPage = () => {
     return start > end;
   }, [startDate, endDate]);
 
+  const toolReviews: ReviewResponse[] = useMemo(() => {
+    return toolBookings
+      .map((b) => b.toolReview)
+      .filter((r): r is ReviewResponse => Boolean(r));
+  }, [toolBookings]);
+
+  const myCompletedBooking = useMemo(
+    () =>
+      toolBookings.find(
+        (b) =>
+          b.renterId === user?.id &&
+          b.status === "COMPLETED" &&
+          b.paymentStatus === "COMPLETED"
+      ),
+    [toolBookings, user?.id]
+  );
+
+  const myExistingReview = useMemo(
+    () => myCompletedBooking?.toolReview,
+    [myCompletedBooking]
+  );
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!tool || !user || !toolId || datesInvalid || rentalDays === 0) return;
@@ -137,6 +202,39 @@ export const RenterBookingsPage = () => {
       setError(err instanceof Error ? err.message : "Failed to submit booking");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleReviewSubmit = async () => {
+    if (!myCompletedBooking) return;
+    try {
+      setReviewSaving(true);
+      setReviewError(null);
+      setReviewSuccess(null);
+
+      const payload = {
+        bookingId: myCompletedBooking.id,
+        rating: reviewRating,
+        comment: reviewComment,
+        type: "RENTER_TO_TOOL" as const,
+      };
+
+      if (myExistingReview) {
+        await updateReview(myExistingReview.id, payload);
+        setReviewSuccess("Review updated");
+      } else {
+        await createReview(payload);
+        setReviewSuccess("Review submitted");
+      }
+
+      const toolData = await getBookingsForTool(toolId!);
+      setToolBookings(toolData);
+    } catch (err) {
+      setReviewError(
+        err instanceof Error ? err.message : "Failed to save review"
+      );
+    } finally {
+      setReviewSaving(false);
     }
   };
 
@@ -207,9 +305,11 @@ export const RenterBookingsPage = () => {
                   <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-medium">
                     €{tool.pricePerDay.toFixed(2)}/day
                   </span>
-                  <div className="flex items-center gap-1 rounded-full bg-secondary text-secondary-foreground px-3 py-1">
+                  <div className="flex items-center gap-2 rounded-full bg-secondary text-secondary-foreground px-3 py-1">
                     <StarRating rating={tool.overallRating} size={14} />
-                    <span className="text-xs">({tool.numRatings})</span>
+                    <span className="text-xs">
+                      Tool • {tool.numRatings} review{tool.numRatings === 1 ? "" : "s"}
+                    </span>
                   </div>
                   <span
                     className={`px-3 py-1 rounded-full ${tool.active
@@ -226,8 +326,134 @@ export const RenterBookingsPage = () => {
                 </p>
               </CardContent>
             </Card>
-
+              
             {toolId && <ToolAvailabilityCard toolId={toolId} />}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Reviews</CardTitle>
+                <CardDescription>What renters said about this tool</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isLoadingReviews ? (
+                  <p className="text-sm text-muted-foreground">Loading reviews...</p>
+                ) : toolReviews.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No reviews yet. Complete a booking to be the first to review.
+                  </p>
+                ) : (
+                  <div className="grid gap-3">
+                    {toolReviews.map((review) => (
+                      <div
+                        key={review.id}
+                        className="rounded-lg border border-border p-3 bg-muted/30"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold">{review.reviewerName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(review.date).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <StarRating rating={review.rating} />
+                        </div>
+                        <p className="text-sm text-foreground mt-2">{review.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-semibold">Your review</p>
+                    {myExistingReview && (
+                      <span className="text-xs text-muted-foreground">
+                        You can update your previous review
+                      </span>
+                    )}
+                  </div>
+                  {!myCompletedBooking ? (
+                    <p className="text-sm text-muted-foreground">
+                      You can leave a review after completing and paying for a booking of this tool.
+                    </p>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowReviewForm((v) => !v)}
+                      >
+                        {showReviewForm
+                          ? "Close"
+                          : myExistingReview
+                          ? "Edit your review"
+                          : "Leave a review"}
+                      </Button>
+                      {showReviewForm && (
+                        <div className="space-y-3 border border-border rounded-lg p-3 bg-muted/20">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Rating:</span>
+                            <div className="flex gap-1">
+                              {[1, 2, 3, 4, 5].map((value) => (
+                                <button
+                                  key={value}
+                                  type="button"
+                                  onClick={() => setReviewRating(value)}
+                                  className="text-2xl leading-none"
+                                  aria-label={`Rate ${value} star${value > 1 ? "s" : ""}`}
+                                >
+                                  <span
+                                    className={
+                                      reviewRating >= value
+                                        ? "text-yellow-500"
+                                        : "text-muted-foreground"
+                                    }
+                                  >
+                                    ★
+                                  </span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm text-muted-foreground"
+                              htmlFor="reviewComment"
+                            >
+                              Comment
+                            </label>
+                            <Input
+                              id="reviewComment"
+                              value={reviewComment}
+                              onChange={(e) => setReviewComment(e.target.value)}
+                              placeholder="Share your experience with this tool"
+                            />
+                          </div>
+                          {reviewError && (
+                            <p className="text-sm text-destructive">{reviewError}</p>
+                          )}
+                          {reviewSuccess && (
+                            <p className="text-sm text-green-600">{reviewSuccess}</p>
+                          )}
+                          <Button
+                            onClick={handleReviewSubmit}
+                            disabled={reviewSaving || reviewRating === 0}
+                          >
+                            {reviewSaving
+                              ? "Saving..."
+                              : myExistingReview
+                              ? "Update Review"
+                              : "Submit Review"}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
 
           {/* Booking + owner card */}
