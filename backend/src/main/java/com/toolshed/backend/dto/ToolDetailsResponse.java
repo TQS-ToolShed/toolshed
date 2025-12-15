@@ -16,9 +16,12 @@ public class ToolDetailsResponse {
     private String title;
     private String description;
     private Double pricePerDay;
-    private String location;
+    private String district;
+    private String imageUrl;
     private boolean active;
     private String availabilityCalendar;
+    private boolean underMaintenance;
+    private java.time.LocalDate maintenanceAvailableDate;
     private Double overallRating;
     private int numRatings;
     private OwnerSummary owner;

@@ -6,9 +6,11 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.toolshed.backend.dto.CancelBookingResponse;
 import com.toolshed.backend.dto.CreateBookingRequest;
 import com.toolshed.backend.dto.BookingResponse;
 import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.PayoutRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
@@ -48,6 +50,12 @@ class BookingServiceImplTest {
 
         @Mock
         private UserRepository userRepository;
+
+        @Mock
+        private PayoutRepository payoutRepository;
+
+        @Mock
+        private SubscriptionService subscriptionService;
 
         @InjectMocks
         private BookingServiceImpl bookingService;
@@ -167,6 +175,66 @@ class BookingServiceImplTest {
                                 .isInstanceOf(ResponseStatusException.class)
                                 .extracting("statusCode")
                                 .isEqualTo(HttpStatus.CONFLICT);
+
+        }
+
+        @Test
+        @DisplayName("Should reject booking when tool is under maintenance and start date is before available date")
+        void createBookingUnderMaintenance_Rejects() {
+                tool.setUnderMaintenance(true);
+                tool.setMaintenanceAvailableDate(LocalDate.now().plusDays(5));
+
+                when(toolRepository.findById(tool.getId())).thenReturn(Optional.of(tool));
+                when(userRepository.findById(renter.getId())).thenReturn(Optional.of(renter));
+
+                CreateBookingRequest request = CreateBookingRequest.builder()
+                                .toolId(tool.getId())
+                                .renterId(renter.getId())
+                                .startDate(LocalDate.now().plusDays(2))
+                                .endDate(LocalDate.now().plusDays(3))
+                                .build();
+
+                assertThatThrownBy(() -> bookingService.createBooking(request))
+                                .isInstanceOf(ResponseStatusException.class)
+                                .extracting("statusCode")
+                                .isEqualTo(HttpStatus.CONFLICT);
+        }
+
+        @Test
+        @DisplayName("Should allow booking when start date is after maintenance available date")
+        void createBookingAfterMaintenance_Success() {
+                tool.setUnderMaintenance(true);
+                tool.setMaintenanceAvailableDate(LocalDate.now().plusDays(5));
+
+                LocalDate start = LocalDate.now().plusDays(6);
+                LocalDate end = start.plusDays(2);
+
+                when(toolRepository.findById(tool.getId())).thenReturn(Optional.of(tool));
+                when(userRepository.findById(renter.getId())).thenReturn(Optional.of(renter));
+                when(bookingRepository.findOverlappingBookings(tool.getId(), start, end))
+                                .thenReturn(Collections.emptyList());
+
+                Booking saved = new Booking();
+                saved.setId(UUID.randomUUID());
+                saved.setTool(tool);
+                saved.setRenter(renter);
+                saved.setOwner(tool.getOwner());
+                saved.setStartDate(start);
+                saved.setEndDate(end);
+                saved.setStatus(BookingStatus.PENDING);
+                saved.setPaymentStatus(PaymentStatus.PENDING);
+                saved.setTotalPrice(30.0);
+
+                when(bookingRepository.save(any(Booking.class))).thenReturn(saved);
+
+                var response = bookingService.createBooking(CreateBookingRequest.builder()
+                                .toolId(tool.getId())
+                                .renterId(renter.getId())
+                                .startDate(start)
+                                .endDate(end)
+                                .build());
+
+                assertThat(response.getId()).isEqualTo(saved.getId());
         }
 
         @Test
@@ -415,6 +483,86 @@ class BookingServiceImplTest {
                 verify(bookingRepository).save(expired);
                 assertThat(rentedTool.isActive()).isTrue();
                 verify(toolRepository).save(rentedTool);
+        }
+
+        @Test
+        @DisplayName("Should remove security deposit from owner wallet when booking completes")
+        void completeExpiredBookingsRemovesDepositFromOwnerWallet() {
+                // Arrange
+                Tool rentedTool = new Tool();
+                rentedTool.setId(UUID.randomUUID());
+                rentedTool.setActive(false);
+
+                User owner = new User();
+                owner.setId(UUID.randomUUID());
+                owner.setWalletBalance(108.0); // €100 rental + €8 deposit
+
+                User renterUser = new User();
+                renterUser.setId(UUID.randomUUID());
+
+                Booking expired = new Booking();
+                expired.setId(UUID.randomUUID());
+                expired.setTool(rentedTool);
+                expired.setOwner(owner);
+                expired.setRenter(renterUser);
+                expired.setStartDate(LocalDate.now().minusDays(5));
+                expired.setEndDate(LocalDate.now().minusDays(1));
+                expired.setStatus(BookingStatus.APPROVED);
+                expired.setPaymentStatus(PaymentStatus.COMPLETED);
+                expired.setDepositAmount(8.0); // €8 deposit
+
+                when(bookingRepository.findByStatusAndEndDateBefore(eq(BookingStatus.APPROVED), any(LocalDate.class)))
+                                .thenReturn(List.of(expired));
+                when(bookingRepository.countActiveApprovedBookingsForToolOnDate(eq(rentedTool.getId()),
+                                any(LocalDate.class)))
+                                .thenReturn(0L);
+
+                // Act
+                bookingService.completeExpiredBookings();
+
+                // Assert - deposit should be removed from owner wallet
+                assertThat(owner.getWalletBalance()).isEqualTo(100.0); // 108 - 8 = 100
+                verify(userRepository).save(owner);
+        }
+
+        @Test
+        @DisplayName("Should not remove deposit if booking has no deposit amount")
+        void completeExpiredBookingsNoDepositToRemove() {
+                // Arrange
+                Tool rentedTool = new Tool();
+                rentedTool.setId(UUID.randomUUID());
+                rentedTool.setActive(false);
+
+                User owner = new User();
+                owner.setId(UUID.randomUUID());
+                owner.setWalletBalance(100.0);
+
+                User renterUser = new User();
+                renterUser.setId(UUID.randomUUID());
+
+                Booking expired = new Booking();
+                expired.setId(UUID.randomUUID());
+                expired.setTool(rentedTool);
+                expired.setOwner(owner);
+                expired.setRenter(renterUser);
+                expired.setStartDate(LocalDate.now().minusDays(5));
+                expired.setEndDate(LocalDate.now().minusDays(1));
+                expired.setStatus(BookingStatus.APPROVED);
+                expired.setPaymentStatus(PaymentStatus.COMPLETED);
+                expired.setDepositAmount(null); // No deposit
+
+                when(bookingRepository.findByStatusAndEndDateBefore(eq(BookingStatus.APPROVED), any(LocalDate.class)))
+                                .thenReturn(List.of(expired));
+                when(bookingRepository.countActiveApprovedBookingsForToolOnDate(eq(rentedTool.getId()),
+                                any(LocalDate.class)))
+                                .thenReturn(0L);
+
+                // Act
+                bookingService.completeExpiredBookings();
+
+                // Assert - wallet balance unchanged, user not saved for wallet update
+                assertThat(owner.getWalletBalance()).isEqualTo(100.0);
+                verify(userRepository, never()).save(owner);
         }
 
         @Test
@@ -813,7 +961,7 @@ class BookingServiceImplTest {
                                 .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.BROKEN);
                 assertThat(response.getDepositStatus())
                                 .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-                assertThat(response.getDepositAmount()).isEqualTo(50.0);
+                assertThat(response.getDepositAmount()).isEqualTo(8.0);
                 verify(bookingRepository).save(any(Booking.class));
         }
 
@@ -847,7 +995,7 @@ class BookingServiceImplTest {
                                 .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.MINOR_DAMAGE);
                 assertThat(response.getDepositStatus())
                                 .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-                assertThat(response.getDepositAmount()).isEqualTo(50.0);
+                assertThat(response.getDepositAmount()).isEqualTo(8.0);
         }
 
         @Test
@@ -949,7 +1097,7 @@ class BookingServiceImplTest {
                                 .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.MISSING_PARTS);
                 assertThat(response.getDepositStatus())
                                 .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-                assertThat(response.getDepositAmount()).isEqualTo(50.0);
+                assertThat(response.getDepositAmount()).isEqualTo(8.0);
         }
 
         @Test
@@ -983,5 +1131,203 @@ class BookingServiceImplTest {
                 assertThat(response.getDepositStatus())
                                 .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.NOT_REQUIRED);
                 assertThat(response.getDepositAmount()).isEqualTo(0.0);
+        }
+
+        // ============== Cancel Booking Tests ==============
+
+        @Test
+        void cancelBookingSuccess100PercentRefund() {
+                // Booking starts 10 days from now - 100% refund
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = renter.getId();
+                User owner = tool.getOwner();
+                owner.setWalletBalance(0.0);
+
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                booking.setRenter(renter);
+                booking.setOwner(owner);
+                booking.setStatus(BookingStatus.APPROVED);
+                booking.setPaymentStatus(PaymentStatus.COMPLETED);
+                booking.setTotalPrice(100.0);
+                booking.setStartDate(LocalDate.now().plusDays(10));
+                booking.setEndDate(LocalDate.now().plusDays(12));
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArguments()[0]);
+
+                CancelBookingResponse response = bookingService.cancelBooking(bookingId, renterId);
+
+                assertThat(response.getRefundPercentage()).isEqualTo(100);
+                assertThat(response.getRefundAmount()).isEqualTo(100.0);
+                assertThat(response.getStatus()).isEqualTo("CANCELLED");
+                assertThat(booking.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+                // No owner compensation for 100% refund
+                verify(payoutRepository, never()).save(any());
+        }
+
+        @Test
+        void cancelBookingSuccess50PercentRefund() {
+                // Booking starts 5 days from now - 50% refund, owner gets 50%
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = renter.getId();
+                User owner = tool.getOwner();
+                owner.setWalletBalance(100.0);
+
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                booking.setRenter(renter);
+                booking.setOwner(owner);
+                booking.setStatus(BookingStatus.APPROVED);
+                booking.setPaymentStatus(PaymentStatus.COMPLETED);
+                booking.setTotalPrice(100.0);
+                booking.setStartDate(LocalDate.now().plusDays(5));
+                booking.setEndDate(LocalDate.now().plusDays(7));
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+
+                CancelBookingResponse response = bookingService.cancelBooking(bookingId, renterId);
+
+                assertThat(response.getRefundPercentage()).isEqualTo(50);
+                assertThat(response.getRefundAmount()).isEqualTo(50.0);
+                assertThat(owner.getWalletBalance()).isEqualTo(150.0); // 100 + 50 compensation
+                verify(payoutRepository).save(any());
+        }
+
+        @Test
+        void cancelBookingSuccess25PercentRefund() {
+                // Booking starts 2 days from now - 25% refund, owner gets 75%
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = renter.getId();
+                User owner = tool.getOwner();
+                owner.setWalletBalance(0.0);
+
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                booking.setRenter(renter);
+                booking.setOwner(owner);
+                booking.setStatus(BookingStatus.PENDING);
+                booking.setTotalPrice(100.0);
+                booking.setStartDate(LocalDate.now().plusDays(2));
+                booking.setEndDate(LocalDate.now().plusDays(4));
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+
+                CancelBookingResponse response = bookingService.cancelBooking(bookingId, renterId);
+
+                assertThat(response.getRefundPercentage()).isEqualTo(25);
+                assertThat(response.getRefundAmount()).isEqualTo(25.0);
+                assertThat(owner.getWalletBalance()).isEqualTo(75.0);
+        }
+
+        @Test
+        void cancelBookingSuccess0PercentRefund() {
+                // Booking starts today - 0% refund, owner gets 100%
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = renter.getId();
+                User owner = tool.getOwner();
+                owner.setWalletBalance(50.0);
+
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                booking.setRenter(renter);
+                booking.setOwner(owner);
+                booking.setStatus(BookingStatus.APPROVED);
+                booking.setPaymentStatus(PaymentStatus.COMPLETED);
+                booking.setTotalPrice(100.0);
+                booking.setStartDate(LocalDate.now());
+                booking.setEndDate(LocalDate.now().plusDays(2));
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+
+                CancelBookingResponse response = bookingService.cancelBooking(bookingId, renterId);
+
+                assertThat(response.getRefundPercentage()).isEqualTo(0);
+                assertThat(response.getRefundAmount()).isEqualTo(0.0);
+                assertThat(owner.getWalletBalance()).isEqualTo(150.0); // 50 + 100 compensation
+        }
+
+        @Test
+        void cancelBookingNotFound() {
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = UUID.randomUUID();
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> bookingService.cancelBooking(bookingId, renterId))
+                                .isInstanceOf(ResponseStatusException.class)
+                                .hasFieldOrPropertyWithValue("status", HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        void cancelBookingWrongRenter() {
+                UUID bookingId = UUID.randomUUID();
+                UUID wrongRenterId = UUID.randomUUID();
+
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setRenter(renter);
+                booking.setStatus(BookingStatus.PENDING);
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+                assertThatThrownBy(() -> bookingService.cancelBooking(bookingId, wrongRenterId))
+                                .isInstanceOf(ResponseStatusException.class)
+                                .hasFieldOrPropertyWithValue("status", HttpStatus.FORBIDDEN);
+        }
+
+        @Test
+        void cancelBookingAlreadyCancelled() {
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = renter.getId();
+
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setRenter(renter);
+                booking.setStatus(BookingStatus.CANCELLED);
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+
+                assertThatThrownBy(() -> bookingService.cancelBooking(bookingId, renterId))
+                                .isInstanceOf(ResponseStatusException.class)
+                                .hasFieldOrPropertyWithValue("status", HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        void cancelBookingReactivatesTool() {
+                UUID bookingId = UUID.randomUUID();
+                UUID renterId = renter.getId();
+                User owner = tool.getOwner();
+                owner.setWalletBalance(0.0);
+                tool.setActive(false);
+
+                Booking booking = new Booking();
+                booking.setId(bookingId);
+                booking.setTool(tool);
+                booking.setRenter(renter);
+                booking.setOwner(owner);
+                booking.setStatus(BookingStatus.APPROVED);
+                booking.setTotalPrice(50.0);
+                booking.setStartDate(LocalDate.now().plusDays(10));
+                booking.setEndDate(LocalDate.now().plusDays(12));
+
+                when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+                when(bookingRepository.save(any(Booking.class))).thenAnswer(i -> i.getArguments()[0]);
+                when(toolRepository.save(any(Tool.class))).thenAnswer(i -> i.getArguments()[0]);
+
+                bookingService.cancelBooking(bookingId, renterId);
+
+                assertThat(tool.isActive()).isTrue();
+                verify(toolRepository).save(tool);
         }
 }

@@ -17,19 +17,19 @@ Feature: Condition Report Submission
     When the renter submits a condition report with status "BROKEN" and description "Tool is completely broken"
     Then the condition report should be submitted successfully
     And the deposit status should be "REQUIRED"
-    And the deposit amount should be 50.0
+    And the deposit amount should be 8.0
 
   Scenario: Renter reports MINOR_DAMAGE - deposit required
     When the renter submits a condition report with status "MINOR_DAMAGE" and description "Small scratch on handle"
     Then the condition report should be submitted successfully
     And the deposit status should be "REQUIRED"
-    And the deposit amount should be 50.0
+    And the deposit amount should be 8.0
 
   Scenario: Renter reports MISSING_PARTS - deposit required
     When the renter submits a condition report with status "MISSING_PARTS" and description "Drill bits are missing"
     Then the condition report should be submitted successfully
     And the deposit status should be "REQUIRED"
-    And the deposit amount should be 50.0
+    And the deposit amount should be 8.0
 
   Scenario: Renter reports tool is USED - no deposit required
     When the renter submits a condition report with status "USED" and description "Normal wear and tear"

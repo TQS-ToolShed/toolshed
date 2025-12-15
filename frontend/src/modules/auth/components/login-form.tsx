@@ -1,23 +1,23 @@
-import { useState } from "react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Link, useNavigate } from "react-router-dom"
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   Field,
   FieldDescription,
   FieldGroup,
   FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { useAuth } from "@/modules/auth/context/AuthContext"
-import { loginUser } from "@/modules/auth/api/auth.service"
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/modules/auth/context/AuthContext";
+import { loginUser } from "@/modules/auth/api/auth.service";
 
 export function LoginForm({
   className,
@@ -25,7 +25,7 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const navigate = useNavigate();
   const { login } = useAuth();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -34,21 +34,32 @@ export function LoginForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!email) {
+      setError("Email is required");
+      return;
+    }
+
+    if (!password) {
+      setError("Password is required");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const response = await loginUser({ email, password });
-      
+
       // response should contain { token: string, user: User }
       login(response.user, response.token);
-      
+
       // Redirect based on role
-      if (response.user.role === 'ADMIN') {
-        navigate('/admin');
-      } else if (response.user.role === 'SUPPLIER') {
-        navigate('/supplier');
+      if (response.user.role === "ADMIN") {
+        navigate("/admin");
+      } else if (response.user.role === "SUPPLIER") {
+        navigate("/supplier");
       } else {
-        navigate('/renter');
+        navigate("/renter");
       }
     } catch (err: any) {
       console.error(err);
@@ -68,12 +79,13 @@ export function LoginForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="m@example.com"
                   required
@@ -91,21 +103,32 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </Field>
               <Field>
-                {error && <p className="text-sm text-destructive text-center mb-2">{error}</p>}
+                {error && (
+                  <p
+                    data-testid="error-message"
+                    className="error-message text-sm text-destructive text-center mb-2"
+                  >
+                    {error}
+                  </p>
+                )}
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Logging in..." : "Login"}
                 </Button>
                 <FieldDescription className="text-center">
-                  Don&apos;t have an account? <Link to="/register" className="underline hover:text-primary">Sign up</Link>
+                  Don&apos;t have an account?{" "}
+                  <Link to="/register" className="underline hover:text-primary">
+                    Sign up
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>
@@ -113,5 +136,5 @@ export function LoginForm({
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -27,29 +27,43 @@ public class ToolServiceImpl implements ToolService {
     private final ToolRepository toolRepo;
     private final UserRepository userRepo;
     private final BookingRepository bookingRepo;
+    private final IGeoApiService geoApiService;
 
-    public ToolServiceImpl(ToolRepository toolRepo, UserRepository userRepo, BookingRepository bookingRepo) {
+    public ToolServiceImpl(ToolRepository toolRepo, UserRepository userRepo, BookingRepository bookingRepo,
+            IGeoApiService geoApiService) {
         this.toolRepo = toolRepo;
         this.userRepo = userRepo;
         this.bookingRepo = bookingRepo;
+        this.geoApiService = geoApiService;
     }
 
     /**
      * Implements the search functionality based on US1 criteria.
-     * Handles input validation (null/whitespace) before delegating to the repository.
+     * Handles input validation (null/whitespace) before delegating to the
+     * repository.
      */
     @Override
-    public List<Tool> searchTools(String keyword, String location) {
+    public List<Tool> searchTools(String keyword, String district, Double minPrice, Double maxPrice) {
         String trimmedKeyword = keyword == null ? null : keyword.trim();
-        String trimmedLocation = location == null ? null : location.trim();
+        String trimmedDistrict = district == null ? null : district.trim();
 
-        // If both are empty/null, return empty list (no search criteria)
-        if ((trimmedKeyword == null || trimmedKeyword.isEmpty()) 
-            && (trimmedLocation == null || trimmedLocation.isEmpty())) {
+        // Sanitize negative prices
+        if (minPrice != null && minPrice < 0) {
+            minPrice = 0.0;
+        }
+        if (maxPrice != null && maxPrice < 0) {
+            maxPrice = 0.0;
+        }
+
+        // If all filters are empty/null, return empty list (no search criteria)
+        if ((trimmedKeyword == null || trimmedKeyword.isEmpty())
+                && (trimmedDistrict == null || trimmedDistrict.isEmpty())
+                && minPrice == null
+                && maxPrice == null) {
             return Collections.emptyList();
         }
 
-        return toolRepo.searchTools(trimmedKeyword, trimmedLocation);
+        return toolRepo.searchTools(trimmedKeyword, trimmedDistrict, minPrice, maxPrice);
     }
 
     @Override
@@ -73,13 +87,19 @@ public class ToolServiceImpl implements ToolService {
         User supplier = userRepo.findById(input.getSupplierId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Supplier not found"));
 
+        // Validate district using GeoAPI
+        if (!geoApiService.districtExists(input.getDistrict())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid district: " + input.getDistrict());
+        }
+
         Tool tool = new Tool();
         tool.setTitle(input.getTitle());
         tool.setDescription(input.getDescription());
         tool.setPricePerDay(input.getPricePerDay());
-        tool.setLocation(input.getLocation());
+        tool.setDistrict(input.getDistrict());
         tool.setOwner(supplier);
         tool.setActive(true);
+        tool.setImageUrl(input.getImageUrl());
         tool.setOverallRating(0.0);
         tool.setNumRatings(0);
 
@@ -115,9 +135,15 @@ public class ToolServiceImpl implements ToolService {
         if (input.getPricePerDay() != null) {
             tool.setPricePerDay(input.getPricePerDay());
         }
-        if (input.getLocation() != null) {
-            tool.setLocation(input.getLocation());
+
+        // Validate district if it is being updated
+        if (input.getDistrict() != null) {
+            if (!geoApiService.districtExists(input.getDistrict())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid district: " + input.getDistrict());
+            }
+            tool.setDistrict(input.getDistrict());
         }
+
         if (input.getActive() != null) {
             boolean requestedActive = input.getActive();
             if (requestedActive && !tool.isActive()) {
@@ -125,8 +151,7 @@ public class ToolServiceImpl implements ToolService {
                 if (activeRentals > 0) {
                     throw new ResponseStatusException(
                             HttpStatus.CONFLICT,
-                            "Tool is currently rented and cannot be marked as available"
-                    );
+                            "Tool is currently rented and cannot be marked as available");
                 }
             }
             tool.setActive(requestedActive);
@@ -154,6 +179,35 @@ public class ToolServiceImpl implements ToolService {
     @Override
     public List<Tool> getByOwner(UUID ownerId) {
         return toolRepo.findByOwnerId(ownerId);
+    }
+
+    @Override
+    @Transactional
+    public void setMaintenance(String toolId, LocalDate availableDate) {
+        UUID id = UUID.fromString(toolId);
+        Tool tool = toolRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tool not found"));
+
+        if (availableDate != null) {
+            tool.setUnderMaintenance(true);
+            tool.setMaintenanceAvailableDate(availableDate);
+            tool.setActive(false); // Also mark as inactive in the general search sense
+        } else {
+            tool.setUnderMaintenance(false);
+            tool.setMaintenanceAvailableDate(null);
+            // We don't automatically set active=true here as the owner might want it
+            // inactive for other reasons,
+            // or we could defaults it to true. Let's stick to just clearing the maintenance
+            // flag.
+            // However, to make it "rentable" again, it should probably be active if it was
+            // only inactive due to maintenance.
+            // Let's assume the owner will toggle active separately or we can set it true.
+            // The prompt says "can rent it after the schedule", implying it will be
+            // available.
+            // Let's play safe and set active=true if clearing maintenance.
+            tool.setActive(true);
+        }
+        toolRepo.save(tool);
     }
 
 }

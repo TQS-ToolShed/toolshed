@@ -10,10 +10,14 @@ export interface Tool {
   description: string;
   pricePerDay: number;
   location: string;
+  district?: string; // legacy alias for UI; use location as source of truth
   active: boolean;
   availabilityCalendar?: string;
   overallRating: number;
   numRatings: number;
+  imageUrl?: string;
+  underMaintenance?: boolean;
+  maintenanceAvailableDate?: string;
 }
 
 export interface ToolOwnerSummary {
@@ -35,6 +39,8 @@ export interface CreateToolInput {
   pricePerDay: number;
   supplierId: string;
   location: string;
+  district?: string;
+  imageUrl?: string;
 }
 
 // UpdateToolInput - matches backend DTO
@@ -43,6 +49,7 @@ export interface UpdateToolInput {
   description?: string;
   pricePerDay?: number;
   location?: string;
+  district?: string;
   ownerId?: string;
   active?: boolean;
   availabilityCalendar?: string;
@@ -90,12 +97,23 @@ export const getToolDetails = async (toolId: string): Promise<ToolDetails> => {
 };
 
 // Search tools
-export const searchTools = async (keyword?: string, location?: string): Promise<Tool[]> => {
+export interface ToolSearchFilters {
+  keyword?: string;
+  district?: string;
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+export const searchTools = async (filters: ToolSearchFilters): Promise<Tool[]> => {
   try {
     const params = new URLSearchParams();
-    if (keyword) params.append('keyword', keyword);
-    if (location) params.append('location', location);
-    
+    if (filters.keyword) params.append('keyword', filters.keyword);
+
+    if (filters.district) params.append('location', filters.district);
+
+    if (filters.minPrice !== undefined) params.append('minPrice', filters.minPrice.toString());
+    if (filters.maxPrice !== undefined) params.append('maxPrice', filters.maxPrice.toString());
+
     const response = await axios.get<Tool[]>(`${API_URL}/search`, { params });
     return response.data;
   } catch (error) {
@@ -135,7 +153,11 @@ export const getToolsBySupplier = async (supplierId: string): Promise<Tool[]> =>
 // Create a new tool
 export const createTool = async (input: CreateToolInput): Promise<void> => {
   try {
-    await axios.post(API_URL, input);
+    const payload = {
+      ...input,
+      location: input.location || input.district || "",
+    };
+    await axios.post(API_URL, payload);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       throw new Error(error.response.data.message || 'Failed to create tool');
@@ -147,7 +169,11 @@ export const createTool = async (input: CreateToolInput): Promise<void> => {
 // Update a tool
 export const updateTool = async (toolId: string, input: UpdateToolInput): Promise<void> => {
   try {
-    await axios.put(`${API_URL}/${toolId}`, input);
+    const payload = {
+      ...input,
+      location: input.location || input.district || input.location,
+    };
+    await axios.put(`${API_URL}/${toolId}`, payload);
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
       throw new Error(error.response.data.message || 'Failed to update tool');
@@ -167,3 +193,16 @@ export const deleteTool = async (toolId: string): Promise<void> => {
     throw new Error('Network error or unknown issue');
   }
 };
+
+// Set maintenance schedule
+export const setMaintenance = async (toolId: string, availableDate: string | null): Promise<void> => {
+  try {
+    await axios.post(`${API_URL}/${toolId}/maintenance`, { availableDate });
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.message || 'Failed to set maintenance schedule');
+    }
+    throw new Error('Network error or unknown issue');
+  }
+};
+

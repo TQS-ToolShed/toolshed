@@ -1,0 +1,52 @@
+version: '3.8'
+
+networks:
+  toolshed_default:
+    external: true
+
+services:
+  k6:
+    image: grafana/k6:latest
+    networks:
+      - toolshed_default
+    ports:
+      - "6565:6565"
+    user: "1000:1000"
+    environment:
+      - K6_OUT=experimental-prometheus-rw
+      - K6_PROMETHEUS_RW_SERVER_URL=http://prometheus:9090/api/v1/write
+      - K6_PROMETHEUS_RW_TREND_STATS=p(95),p(99),min,max
+    volumes:
+      - ./:/scripts
+    command: run /scripts/test.js
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:latest
+    networks:
+      - toolshed_default
+    ports:
+      - "9042:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --web.enable-remote-write-receiver 
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3042:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_BASIC_ENABLED=false
+    networks:
+      - toolshed_default
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus

@@ -113,6 +113,15 @@ export const SupplierRentalsPage = () => {
           </span>
         )}
       </div>
+      
+      {/* Security Deposit Info */}
+      <div className="mt-2 flex items-center gap-2 text-xs bg-amber-50 border border-amber-200 rounded px-2 py-1">
+        <span className="text-amber-700">
+          <strong>€8.00</strong> security deposit held
+          {accent === 'active' && ' • will be returned when rental ends'}
+        </span>
+      </div>
+
       {accent === 'future' && (
         <p className="mt-2 text-xs text-muted-foreground">
           Starts in {daysUntil(booking.startDate, today)} day(s)

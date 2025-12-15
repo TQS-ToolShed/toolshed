@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.toolshed.backend.repository.BookingRepository;
+import com.toolshed.backend.repository.PayoutRepository;
 import com.toolshed.backend.repository.ToolRepository;
 import com.toolshed.backend.repository.UserRepository;
 import com.toolshed.backend.repository.entities.Booking;
@@ -42,6 +43,9 @@ class PaymentIT {
     private UserRepository userRepository;
 
     @Autowired
+    private PayoutRepository payoutRepository;
+
+    @Autowired
     private ToolRepository toolRepository;
 
     @Autowired
@@ -54,6 +58,7 @@ class PaymentIT {
 
     @BeforeEach
     void setUp() {
+        payoutRepository.deleteAll();
         bookingRepository.deleteAll();
         toolRepository.deleteAll();
         userRepository.deleteAll();
@@ -82,7 +87,7 @@ class PaymentIT {
         tool.setTitle("Payment Test Tool");
         tool.setDescription("Tool for payment testing");
         tool.setPricePerDay(25.0);
-        tool.setLocation("Test Location");
+        tool.setDistrict("Test Location");
         tool.setOwner(owner);
         tool.setActive(true);
         tool.setOverallRating(0.0);
@@ -497,7 +502,7 @@ class PaymentIT {
                     .isEqualTo(com.toolshed.backend.repository.enums.ConditionStatus.BROKEN);
             assertThat(response.getDepositStatus())
                     .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-            assertThat(response.getDepositAmount()).isEqualTo(50.0);
+            assertThat(response.getDepositAmount()).isEqualTo(8.0);
 
             // Verify persistence
             Booking persistedBooking = bookingRepository.findById(booking.getId()).orElseThrow();
@@ -550,7 +555,7 @@ class PaymentIT {
             Booking afterReport = bookingRepository.findById(booking.getId()).orElseThrow();
             assertThat(afterReport.getDepositStatus())
                     .isEqualTo(com.toolshed.backend.repository.enums.DepositStatus.REQUIRED);
-            assertThat(afterReport.getDepositAmount()).isEqualTo(50.0);
+            assertThat(afterReport.getDepositAmount()).isEqualTo(8.0);
 
             // Step 3: Pay deposit
             Booking afterPayment = paymentService.markDepositAsPaid(booking.getId());

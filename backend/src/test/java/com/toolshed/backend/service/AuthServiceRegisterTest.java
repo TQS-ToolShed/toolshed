@@ -112,7 +112,7 @@ class AuthServiceRegisterTest {
         // Act & Assert
         assertThatThrownBy(() -> authService.register(registerRequest))
                 .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Email already in use")
+                .hasMessageContaining("Email already exists")
                 .extracting(ex -> ((ResponseStatusException) ex).getStatusCode())
                 .isEqualTo(HttpStatus.CONFLICT);
 

@@ -37,14 +37,14 @@ import com.toolshed.backend.service.ToolService;
 
 @WebMvcTest(ToolController.class) //
 class ToolControllerTest {
-    
+
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean 
+    @MockitoBean
     private ToolService toolService;
 
     private Tool createSampleTool(String title) {
@@ -54,7 +54,7 @@ class ToolControllerTest {
         tool.setDescription("A basic tool");
         tool.setActive(true);
         tool.setPricePerDay(5.0);
-        tool.setLocation("Downtown");
+        tool.setDistrict("Lisboa");
         tool.setOverallRating(4.5);
         tool.setNumRatings(10);
 
@@ -70,37 +70,39 @@ class ToolControllerTest {
     }
 
     @Test
-    @DisplayName("Should pass both Keyword AND Location to service")
-    void testSearchWithKeywordAndLocation() throws Exception {
+    @DisplayName("Should pass both Keyword AND District to service")
+    void testSearchWithKeywordAndDistrict() throws Exception {
         // Arrange
         String keyword = "drill";
-        String location = "Downtown";
-        Tool drill = createSampleTool("Downtown Drill");
+        String district = "Porto";
+        Tool drill = createSampleTool("Porto Drill");
 
         // Mock the service to expect BOTH arguments
-        when(toolService.searchTools(keyword, location)).thenReturn(List.of(drill));
+        when(toolService.searchTools(keyword, district, null, null)).thenReturn(List.of(drill));
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
                 .param("keyword", keyword)
-                .param("location", location) 
+                .param("district", district)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].title", is("Downtown Drill")));
+                .andExpect(jsonPath("$[0].title", is("Porto Drill")));
 
-        // Verification: Ensure location was NOT null
-        verify(toolService, times(1)).searchTools(keyword, location);
+        // Verification: Ensure district was NOT null
+        verify(toolService, times(1)).searchTools(keyword, district, null, null);
     }
 
     @Test
-    @DisplayName("Should return 200 OK and tools for a specific supplier")
-    void testGetToolsBySupplier() throws Exception {
+    @DisplayName("Should return 200 OK and matching tools for a valid search (District is null)")
+    void testSearchTools_ValidKeyword_ReturnsResults() throws Exception {
         // Arrange
         UUID supplierId = UUID.randomUUID();
         Tool tool1 = createSampleTool("Tool 1");
+        tool1.getOwner().setId(supplierId);
         Tool tool2 = createSampleTool("Tool 2");
-        
+        tool2.getOwner().setId(supplierId);
+
         when(toolService.getByOwner(supplierId)).thenReturn(List.of(tool1, tool2));
 
         // Act & Assert
@@ -111,6 +113,7 @@ class ToolControllerTest {
                 .andExpect(jsonPath("$[0].title", is("Tool 1")))
                 .andExpect(jsonPath("$[1].title", is("Tool 2")));
 
+        // Verification
         verify(toolService, times(1)).getByOwner(supplierId);
     }
 
@@ -120,7 +123,7 @@ class ToolControllerTest {
         // Arrange
         String keyword = "unicorn";
 
-        when(toolService.searchTools(keyword, null)).thenReturn(Collections.emptyList());
+        when(toolService.searchTools(keyword, null, null, null)).thenReturn(Collections.emptyList());
 
         // Act & Assert
         mockMvc.perform(get("/api/tools/search")
@@ -130,14 +133,14 @@ class ToolControllerTest {
                 .andExpect(content().json("[]"));
 
         // Verification
-        verify(toolService, times(1)).searchTools(keyword, null);
+        verify(toolService, times(1)).searchTools(keyword, null, null, null);
     }
 
     @Test
     @DisplayName("Should handle missing keyword parameter gracefully")
     void testSearchTools_MissingParameter_ReturnsEmptyArray() throws Exception {
         // Arrange
-        when(toolService.searchTools(null, null)).thenReturn(Collections.emptyList());
+        when(toolService.searchTools(null, null, null, null)).thenReturn(Collections.emptyList());
 
         // Act & Assert
         // Calling endpoint with NO parameters
@@ -147,7 +150,7 @@ class ToolControllerTest {
                 .andExpect(content().json("[]"));
 
         // Verification: Ensure service called with nulls
-        verify(toolService, times(1)).searchTools(null, null);
+        verify(toolService, times(1)).searchTools(null, null, null, null);
     }
 
     @Test
@@ -164,7 +167,7 @@ class ToolControllerTest {
                 .andExpect(jsonPath("$.id", is(tool.getId().toString())))
                 .andExpect(jsonPath("$.title", is("Detail Drill")))
                 .andExpect(jsonPath("$.pricePerDay", is(tool.getPricePerDay())))
-                .andExpect(jsonPath("$.location", is(tool.getLocation())))
+                .andExpect(jsonPath("$.district", is(tool.getDistrict())))
                 .andExpect(jsonPath("$.availabilityCalendar", is(tool.getAvailabilityCalendar())))
                 .andExpect(jsonPath("$.overallRating", is(tool.getOverallRating())))
                 .andExpect(jsonPath("$.numRatings", is(tool.getNumRatings())))
@@ -229,7 +232,7 @@ class ToolControllerTest {
                 .title("New Tool")
                 .description("Desc")
                 .pricePerDay(10.0)
-                .location("Loc")
+                .district("Aveiro")
                 .supplierId(UUID.randomUUID())
                 .build();
 
@@ -249,7 +252,7 @@ class ToolControllerTest {
         UpdateToolInput input = UpdateToolInput.builder()
                 .title("Updated Tool")
                 .build();
-        
+
         String toolId = UUID.randomUUID().toString();
 
         mockMvc.perform(put("/api/tools/{toolId}", toolId)
@@ -270,5 +273,116 @@ class ToolControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(toolService).deleteTool(toolId);
+    }
+
+    // ==================== PRICE FILTERING TESTS ====================
+
+    @Test
+    @DisplayName("Should pass minPrice and maxPrice parameters to service")
+    void testSearchWithPriceParams() throws Exception {
+        // Arrange
+        Tool tool = createSampleTool("Budget Drill");
+        tool.setPricePerDay(25.0);
+
+        when(toolService.searchTools(null, null, 10.0, 50.0)).thenReturn(List.of(tool));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("minPrice", "10.0")
+                .param("maxPrice", "50.0")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].title", is("Budget Drill")))
+                .andExpect(jsonPath("$[0].pricePerDay", is(25.0)));
+
+        verify(toolService, times(1)).searchTools(null, null, 10.0, 50.0);
+    }
+
+    @Test
+    @DisplayName("Should handle invalid price type and return 400 Bad Request")
+    void testSearchInvalidPriceType() throws Exception {
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("minPrice", "abc")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("Should combine all filters: keyword, district, and price range")
+    void testSearchWithAllFilters() throws Exception {
+        // Arrange
+        Tool tool = createSampleTool("Porto Drill");
+        tool.setPricePerDay(30.0);
+
+        when(toolService.searchTools("drill", "Porto", 10.0, 50.0)).thenReturn(List.of(tool));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("keyword", "drill")
+                .param("district", "Porto")
+                .param("minPrice", "10.0")
+                .param("maxPrice", "50.0")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].title", is("Porto Drill")));
+
+        verify(toolService).searchTools("drill", "Porto", 10.0, 50.0);
+    }
+
+    @Test
+    @DisplayName("Should handle only minPrice parameter")
+    void testSearchWithMinPriceOnly() throws Exception {
+        // Arrange
+        Tool tool = createSampleTool("Premium Hammer");
+        tool.setPricePerDay(100.0);
+
+        when(toolService.searchTools(null, null, 50.0, null)).thenReturn(List.of(tool));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("minPrice", "50.0")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        verify(toolService).searchTools(null, null, 50.0, null);
+    }
+
+    @Test
+    @DisplayName("Should handle only maxPrice parameter")
+    void testSearchWithMaxPriceOnly() throws Exception {
+        // Arrange
+        Tool tool = createSampleTool("Budget Saw");
+        tool.setPricePerDay(15.0);
+
+        when(toolService.searchTools(null, null, null, 20.0)).thenReturn(List.of(tool));
+
+        // Act & Assert
+        mockMvc.perform(get("/api/tools/search")
+                .param("maxPrice", "20.0")
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)));
+
+        verify(toolService).searchTools(null, null, null, 20.0);
+    }
+
+    @Test
+    @DisplayName("Should set maintenance schedule and return 204")
+    void testSetMaintenance() throws Exception {
+        String toolId = UUID.randomUUID().toString();
+        java.time.LocalDate availableDate = java.time.LocalDate.now().plusDays(5);
+        com.toolshed.backend.dto.SetMaintenanceRequest request = new com.toolshed.backend.dto.SetMaintenanceRequest(
+                availableDate);
+
+        mockMvc.perform(post("/api/tools/{toolId}/maintenance", toolId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNoContent());
+
+        verify(toolService).setMaintenance(toolId, availableDate);
     }
 }

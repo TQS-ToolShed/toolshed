@@ -125,6 +125,19 @@ export const WalletSection = () => {
           </p>
         </div>
 
+        {/* Security Deposit Info */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+          <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-medium text-amber-800">About Security Deposits</p>
+            <p className="text-amber-700">
+              Your balance includes €8 security deposits from active rentals. 
+              These deposits are automatically returned to renters when their rentals end 
+              (if tool is returned in good condition).
+            </p>
+          </div>
+        </div>
+
         {/* Status Messages */}
         {errorMessage && (
           <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
@@ -160,31 +173,43 @@ export const WalletSection = () => {
           </div>
         </div>
 
-        {/* Recent Payouts */}
+        {/* Wallet History (Payouts + Income) */}
         {walletData?.recentPayouts && walletData.recentPayouts.length > 0 && (
           <div className="space-y-3">
-            <h4 className="text-sm font-medium">Recent Payouts</h4>
+            <h4 className="text-sm font-medium">Wallet History</h4>
             <div className="space-y-2">
               {walletData.recentPayouts.slice(0, 5).map((payout) => (
                 <div 
                   key={payout.id}
-                  className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    payout.isIncome ? 'bg-green-50 border border-green-200' : 'bg-muted/50'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
-                    {getStatusIcon(payout.status)}
+                    {payout.isIncome ? (
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    ) : (
+                      getStatusIcon(payout.status)
+                    )}
                     <div>
-                      <p className="font-medium">€{payout.amount.toFixed(2)}</p>
+                      <p className={`font-medium ${payout.isIncome ? 'text-green-700' : ''}`}>
+                        {payout.isIncome ? '+' : '-'}€{payout.amount.toFixed(2)}
+                      </p>
+                      {payout.description && (
+                        <p className="text-xs text-muted-foreground">{payout.description}</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {formatDate(payout.requestedAt)}
                       </p>
                     </div>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded-full ${
-                    payout.status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                    payout.isIncome ? 'bg-green-100 text-green-700' :
+                    payout.status === 'COMPLETED' ? 'bg-blue-100 text-blue-700' :
                     payout.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' :
                     'bg-red-100 text-red-700'
                   }`}>
-                    {payout.status}
+                    {payout.isIncome ? 'INCOME' : payout.status}
                   </span>
                 </div>
               ))}

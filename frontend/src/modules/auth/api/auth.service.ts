@@ -12,7 +12,16 @@ export const registerUser = async (userData: RegisterRequest) => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.message || 'Registration failed');
+      // ResponseStatusException returns error in response.data as either string or object with message/reason
+      const data = error.response.data;
+      if (typeof data === 'string') {
+        throw new Error(data);
+      } else if (data.message) {
+        throw new Error(data.message);
+      } else if (data.reason) {
+        throw new Error(data.reason);
+      }
+      throw new Error('Registration failed');
     }
     throw new Error('Network error or unknown issue');
   }
@@ -25,7 +34,16 @@ export const loginUser = async (credentials: LoginRequest) => {
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data || 'Login failed'); // error.response.data might be the string message from backend
+      // ResponseStatusException returns error in response.data as either string or object with message/reason
+      const data = error.response.data;
+      if (typeof data === 'string') {
+        throw new Error(data);
+      } else if (data.message) {
+        throw new Error(data.message);
+      } else if (data.reason) {
+        throw new Error(data.reason);
+      }
+      throw new Error('Login failed');
     }
     throw new Error('Network error or unknown issue');
   }

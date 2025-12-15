@@ -84,7 +84,7 @@ class AuthControllerTest {
         @Test
         void testRegisterError() throws Exception {
                 when(authService.register(any(RegisterRequest.class)))
-                                .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Email already in use"));
+                                .thenThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists"));
 
                 mockMvc.perform(post("/api/auth/register")
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -144,7 +144,7 @@ class AuthControllerTest {
         void testLoginError() throws Exception {
                 when(authService.login(any(LoginRequest.class)))
                                 .thenThrow(new ResponseStatusException(HttpStatus.UNAUTHORIZED,
-                                                "Invalid email or password"));
+                                                "Invalid credentials"));
 
                 mockMvc.perform(post("/api/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)

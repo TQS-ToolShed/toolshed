@@ -108,7 +108,7 @@ class PaymentServiceTest {
                 .title("Test Tool")
                 .description("A test tool")
                 .pricePerDay(25.0)
-                .location("Test Location")
+                .district("Test Location")
                 .owner(owner)
                 .active(true)
                 .overallRating(4.5)
@@ -192,6 +192,61 @@ class PaymentServiceTest {
 
             // Assert
             assertThat(result.getPaymentStatus()).isEqualTo(PaymentStatus.COMPLETED);
+        }
+
+        @Test
+        @DisplayName("Should add security deposit to owner wallet when payment is marked as paid")
+        void shouldAddSecurityDepositToOwnerWallet() {
+            // Arrange - owner has €100 in wallet, booking costs €50
+            owner.setWalletBalance(100.0);
+            booking.setTotalPrice(50.0);
+            // Explicitly set deposit for this test
+            booking.setDepositAmount(8.0);
+
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            paymentService.markBookingAsPaid(bookingId);
+
+            // Assert - owner should get €50 rental + €8 deposit = €58, total €158
+            verify(userRepository).save(owner);
+            assertThat(owner.getWalletBalance()).isEqualTo(158.0); // 100 + 50 + 8
+        }
+
+        @Test
+        @DisplayName("Should set deposit amount on booking when payment is marked as paid")
+        void shouldSetDepositAmountOnBooking() {
+            // Arrange
+            booking.setTotalPrice(50.0);
+            booking.setDepositAmount(null); // Ensure null initially
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            Booking result = paymentService.markBookingAsPaid(bookingId);
+
+            // Assert - deposit should be initialized to 0.0 if not set
+            assertThat(result.getDepositAmount()).isEqualTo(0.0);
+        }
+
+        @Test
+        @DisplayName("Should credit owner wallet with rental price plus deposit")
+        void shouldCreditOwnerWalletWithRentalPlusDeposit() {
+            // Arrange - owner starts with €0, booking costs €25
+            owner.setWalletBalance(0.0);
+            booking.setTotalPrice(25.0);
+            booking.setDepositAmount(8.0); // Set explicit deposit
+
+            when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+            when(bookingRepository.save(any(Booking.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            paymentService.markBookingAsPaid(bookingId);
+
+            // Assert - owner should get €25 rental + €8 deposit = €33
+            assertThat(owner.getWalletBalance()).isEqualTo(33.0);
+            verify(userRepository).save(owner);
         }
     }
 
@@ -1313,6 +1368,100 @@ class PaymentServiceTest {
             // Act & Assert
             assertThatThrownBy(() -> paymentService.getPayoutHistory(unknownId))
                     .isInstanceOf(UserNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("Get Monthly Earnings Tests")
+    class GetMonthlyEarningsTests {
+
+        @Test
+        @DisplayName("Should get monthly earnings successfully with correct grouping")
+        void shouldGetMonthlyEarningsSuccessfully() {
+            // Arrange
+            UUID ownerId = owner.getId();
+
+            // Booking 1: March 2024, 100.0
+            Booking b1 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .paymentStatus(PaymentStatus.COMPLETED)
+                    .endDate(LocalDate.of(2024, 3, 10))
+                    .totalPrice(100.0)
+                    .build();
+
+            // Booking 2: March 2024, 50.0 (Should sum with b1)
+            Booking b2 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .paymentStatus(PaymentStatus.COMPLETED)
+                    .endDate(LocalDate.of(2024, 3, 20))
+                    .totalPrice(50.0)
+                    .build();
+
+            // Booking 3: February 2024, 200.0
+            Booking b3 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .paymentStatus(PaymentStatus.COMPLETED)
+                    .endDate(LocalDate.of(2024, 2, 15))
+                    .totalPrice(200.0)
+                    .build();
+
+            // Irrelevant bookings
+            Booking b4 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(renter) // Wrong owner
+                    .paymentStatus(PaymentStatus.COMPLETED)
+                    .endDate(LocalDate.of(2024, 3, 10))
+                    .totalPrice(500.0)
+                    .build();
+
+            Booking b5 = Booking.builder()
+                    .id(UUID.randomUUID())
+                    .owner(owner)
+                    .paymentStatus(PaymentStatus.PENDING) // Not completed
+                    .endDate(LocalDate.of(2024, 3, 10))
+                    .totalPrice(1000.0)
+                    .build();
+
+            when(bookingRepository.findAll()).thenReturn(Arrays.asList(b1, b2, b3, b4, b5));
+            when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+
+            // Act
+            List<com.toolshed.backend.dto.MonthlyEarningsResponse> result = paymentService.getMonthlyEarnings(ownerId);
+
+            // Assert
+            assertThat(result).hasSize(2);
+
+            // Check March 2024 (100 + 50 = 150)
+            Optional<com.toolshed.backend.dto.MonthlyEarningsResponse> march = result.stream()
+                    .filter(r -> r.getMonth().equals("MARCH") && r.getYear() == 2024)
+                    .findFirst();
+            assertThat(march).isPresent();
+            assertThat(march.get().getAmount()).isEqualTo(150.0);
+
+            // Check February 2024 (200)
+            Optional<com.toolshed.backend.dto.MonthlyEarningsResponse> feb = result.stream()
+                    .filter(r -> r.getMonth().equals("FEBRUARY") && r.getYear() == 2024)
+                    .findFirst();
+            assertThat(feb).isPresent();
+            assertThat(feb.get().getAmount()).isEqualTo(200.0);
+        }
+
+        @Test
+        @DisplayName("Should return empty list when no earnings")
+        void shouldReturnEmptyListWhenNoEarnings() {
+            // Arrange
+            when(bookingRepository.findAll()).thenReturn(Collections.emptyList());
+            when(userRepository.findById(owner.getId())).thenReturn(Optional.of(owner));
+
+            // Act
+            List<com.toolshed.backend.dto.MonthlyEarningsResponse> result = paymentService
+                    .getMonthlyEarnings(owner.getId());
+
+            // Assert
+            assertThat(result).isEmpty();
         }
     }
 }
