@@ -10,6 +10,7 @@ jobs:
     env:
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+      FRONTEND_BASE_URL: ${{ secrets.FRONTEND_BASE_URL }}
 
     steps:
       - name: Checkout repository
@@ -24,11 +25,15 @@ jobs:
             echo "Stripe secrets are not available in this runner. Check repository/organization secrets and runner permissions." >&2
             exit 1
           fi
-          printf "STRIPE_SECRET_KEY=%s\nSTRIPE_PUBLISHABLE_KEY=%s\n" "$STRIPE_SECRET_KEY" "$STRIPE_PUBLISHABLE_KEY" > .env
+          {
+            printf "STRIPE_SECRET_KEY=%s\n" "$STRIPE_SECRET_KEY"
+            printf "STRIPE_PUBLISHABLE_KEY=%s\n" "$STRIPE_PUBLISHABLE_KEY"
+            printf "FRONTEND_BASE_URL=%s\n" "${FRONTEND_BASE_URL:-https://your-frontend-domain}"
+          } > .env
 
       - name: Rebuild and redeploy stack
         env:
           DOCKER_BUILDKIT: 1
         run: |
-          sudo docker compose down --remove-orphans --volumes
+          sudo docker compose down --remove-orphans
           sudo docker compose up -d --build
