@@ -31,6 +31,7 @@ import com.toolshed.backend.repository.enums.UserStatus;
 import lombok.RequiredArgsConstructor;
 
 @Component
+@org.springframework.context.annotation.Profile("!test")
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
@@ -99,11 +100,11 @@ public class DataSeeder implements CommandLineRunner {
         List<Tool> allTools = new ArrayList<>();
         String[] toolNames = { "Drill", "Saw", "Hammer", "Ladder", "Wrench", "Sander", "Mower", "Blower", "Trimmer" };
         int nameIndex = 0;
-        
+
         for (User owner : owners) {
             for (int k = 0; k < 3; k++) {
                 Tool tool = Tool.builder()
-                        .title(toolNames[nameIndex++ % toolNames.length] + " " + (k+1))
+                        .title(toolNames[nameIndex++ % toolNames.length] + " " + (k + 1))
                         .description("High quality tool for your needs.")
                         .pricePerDay(10.0 + k * 5)
                         .district(k % 2 == 0 ? "Aveiro" : "Porto")
@@ -149,7 +150,7 @@ public class DataSeeder implements CommandLineRunner {
                 if (problemCount % 2 == 0) {
                     // Damaged
                     booking.setStatus(BookingStatus.COMPLETED);
-                    booking.setConditionStatus(ConditionStatus.POOR);
+                    booking.setConditionStatus(ConditionStatus.BROKEN);
                     booking.setConditionDescription("Tool returned damaged.");
                     booking.setDepositStatus(DepositStatus.REQUIRED);
                     booking.setConditionReportedBy(owner);
@@ -164,7 +165,7 @@ public class DataSeeder implements CommandLineRunner {
             } else {
                 // Happy path
                 booking.setStatus(BookingStatus.COMPLETED);
-                booking.setConditionStatus(ConditionStatus.EXCELLENT);
+                booking.setConditionStatus(ConditionStatus.OK);
                 booking.setDepositStatus(DepositStatus.NOT_REQUIRED);
             }
 
@@ -182,34 +183,28 @@ public class DataSeeder implements CommandLineRunner {
                         .comment("Great tool!")
                         .build();
                 reviewRepository.save(toolReview);
-                
+
                 // Update tool rating
                 updateToolRating(tool, toolReview.getRating());
 
                 // Owner reviews Renter
+                // Owner reviews Renter
                 Review renterReview = Review.builder()
                         .booking(booking)
                         .reviewer(owner)
-                        .owner(owner) // in this context owner is the reviewer, confusing field name in Review entity?
-                                      // Review entity has 'owner' and 'reviewer'.
-                                      // Usually 'owner' in Review refers to the Profile Owner being reviewed?
-                                      // Let's check ReviewType.
-                                      // OWNER_TO_RENTER: reviewer=Owner, who is being reviewed? Renter?
-                                      // Review Entity has: reviewer (User), owner (User), tool (Tool).
-                                      // If type OWNER_TO_RENTER:
-                                      // reviewer = Booking Owner
-                                      // owner = NO (we are reviewing Renter) - Review entity schema might assume 'owner' means 'Supplier' user?
-                                      // Let's assume Review entity fields semantics:
-                                      // reviewer: Who wrote it.
-                                      // owner: If reviewing an owner? Or is it the target user?
-                                      // tool: If reviewing a tool.
-                                      
-                                      // Let's look at Review entity again or its usage in ReviewService?
-                                      // Saving blindly might be safe if I just set reviewer.
-                                      // But I'll skip Owner-to-Renter to be safe or just set generic comments.
-                
+                        // For OWNER_TO_RENTER, the target is the renter, which is implicitly available
+                        // via booking.renter
+                        // The 'owner' field in Review entity likely refers to the Supplier being
+                        // reviewed (when RENTER_TO_OWNER).
+                        // So for OWNER_TO_RENTER, we might leave 'owner' field null or irrelevant.
+                        .type(ReviewType.OWNER_TO_RENTER)
+                        .rating(5)
+                        .comment("Great renter, returned on time.")
+                        .build();
+                reviewRepository.save(renterReview);
+
                 // Renter reviews Owner
-                 Review ownerReview = Review.builder()
+                Review ownerReview = Review.builder()
                         .booking(booking)
                         .reviewer(renter)
                         .owner(owner) // Target
@@ -217,7 +212,7 @@ public class DataSeeder implements CommandLineRunner {
                         .rating(5)
                         .comment("Nice owner.")
                         .build();
-                 reviewRepository.save(ownerReview);
+                reviewRepository.save(ownerReview);
             }
         }
 
