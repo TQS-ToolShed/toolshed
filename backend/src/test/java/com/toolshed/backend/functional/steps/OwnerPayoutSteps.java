@@ -1,4 +1,4 @@
-package com.toolshed.backend.e2e.steps;
+package com.toolshed.backend.functional.steps;
 
 import com.toolshed.backend.dto.PayoutResponse;
 import com.toolshed.backend.dto.WalletResponse;

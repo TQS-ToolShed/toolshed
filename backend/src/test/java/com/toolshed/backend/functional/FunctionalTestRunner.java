@@ -1,4 +1,4 @@
-package com.toolshed.backend.e2e;
+package com.toolshed.backend.functional;
 
 import org.junit.platform.suite.api.ConfigurationParameter;
 import org.junit.platform.suite.api.IncludeEngines;
@@ -10,8 +10,8 @@ import static io.cucumber.junit.platform.engine.Constants.GLUE_PROPERTY_NAME;
 
 @Suite
 @IncludeEngines("cucumber")
-@SelectClasspathResource("features/e2e")
+@SelectClasspathResource("features/functional")
 @ConfigurationParameter(key = PLUGIN_PROPERTY_NAME, value = "pretty")
-@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.toolshed.backend.e2e")
-public class CucumberTestRunner {
+@ConfigurationParameter(key = GLUE_PROPERTY_NAME, value = "com.toolshed.backend.functional")
+public class FunctionalTestRunner {
 }

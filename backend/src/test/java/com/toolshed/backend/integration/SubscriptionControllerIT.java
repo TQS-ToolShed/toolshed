@@ -18,23 +18,23 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.web.servlet.MockMvc;
 
+import io.restassured.RestAssured;
+import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.hamcrest.Matchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 class SubscriptionControllerIT {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @LocalServerPort
+    private int port;
 
     @Autowired
     private UserRepository userRepository;
@@ -56,6 +56,8 @@ class SubscriptionControllerIT {
 
     @BeforeEach
     void setUp() {
+        RestAssured.port = port;
+
         // Clean up in correct order to avoid FK constraint violations
         cleanupDatabase();
 
@@ -109,31 +111,43 @@ class SubscriptionControllerIT {
 
         @Test
         @DisplayName("Should return Pro status for user with active subscription")
-        void getStatus_proUser_returnsProStatus() throws Exception {
-            mockMvc.perform(get("/api/subscriptions/status/{userId}", proUser.getId()))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.tier").value("PRO"))
-                    .andExpect(jsonPath("$.active").value(true))
-                    .andExpect(jsonPath("$.discountPercentage").value(5.0));
+        void getStatus_proUser_returnsProStatus() {
+            given()
+                    .pathParam("userId", proUser.getId())
+                    .when()
+                    .get("/api/subscriptions/status/{userId}")
+                    .then()
+                    .statusCode(HttpStatus.OK.value())
+                    .body("tier", equalTo("PRO"))
+                    .body("active", equalTo(true))
+                    .body("discountPercentage", equalTo(5.0f));
         }
 
         @Test
         @DisplayName("Should return Free status for user without subscription")
-        void getStatus_freeUser_returnsFreeStatus() throws Exception {
-            mockMvc.perform(get("/api/subscriptions/status/{userId}", freeUser.getId()))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.tier").value("FREE"))
-                    .andExpect(jsonPath("$.active").value(false))
-                    .andExpect(jsonPath("$.discountPercentage").value(0.0));
+        void getStatus_freeUser_returnsFreeStatus() {
+            given()
+                    .pathParam("userId", freeUser.getId())
+                    .when()
+                    .get("/api/subscriptions/status/{userId}")
+                    .then()
+                    .statusCode(HttpStatus.OK.value())
+                    .body("tier", equalTo("FREE"))
+                    .body("active", equalTo(false))
+                    .body("discountPercentage", equalTo(0.0f));
         }
 
         @Test
         @DisplayName("Should return 404 for non-existent user")
-        void getStatus_unknownUser_returns404() throws Exception {
+        void getStatus_unknownUser_returns404() {
             UUID unknownId = UUID.randomUUID();
 
-            mockMvc.perform(get("/api/subscriptions/status/{userId}", unknownId))
-                    .andExpect(status().isNotFound());
+            given()
+                    .pathParam("userId", unknownId)
+                    .when()
+                    .get("/api/subscriptions/status/{userId}")
+                    .then()
+                    .statusCode(HttpStatus.NOT_FOUND.value());
         }
     }
 
@@ -143,14 +157,18 @@ class SubscriptionControllerIT {
 
         @Test
         @DisplayName("Should activate Pro subscription and persist in database")
-        void activateSubscription_persistsInDatabase() throws Exception {
+        void activateSubscription_persistsInDatabase() {
             // Activate subscription
-            mockMvc.perform(post("/api/subscriptions/activate/{userId}", freeUser.getId())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content("{\"stripeSubscriptionId\": \"sub_new_integration\"}"))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.tier").value("PRO"))
-                    .andExpect(jsonPath("$.active").value(true));
+            given()
+                    .pathParam("userId", freeUser.getId())
+                    .contentType(MediaType.APPLICATION_JSON_VALUE)
+                    .body("{\"stripeSubscriptionId\": \"sub_new_integration\"}")
+                    .when()
+                    .post("/api/subscriptions/activate/{userId}")
+                    .then()
+                    .statusCode(HttpStatus.OK.value())
+                    .body("tier", equalTo("PRO"))
+                    .body("active", equalTo(true));
 
             // Verify persistence
             User updatedUser = userRepository.findById(freeUser.getId()).orElseThrow();
@@ -168,18 +186,26 @@ class SubscriptionControllerIT {
 
         @Test
         @DisplayName("Should return 400 when cancelling non-Pro user subscription")
-        void cancelSubscription_freeUser_returns400() throws Exception {
-            mockMvc.perform(delete("/api/subscriptions/{userId}", freeUser.getId()))
-                    .andExpect(status().isBadRequest());
+        void cancelSubscription_freeUser_returns400() {
+            given()
+                    .pathParam("userId", freeUser.getId())
+                    .when()
+                    .delete("/api/subscriptions/{userId}")
+                    .then()
+                    .statusCode(HttpStatus.BAD_REQUEST.value());
         }
 
         @Test
         @DisplayName("Should return 404 for non-existent user")
-        void cancelSubscription_unknownUser_returns404() throws Exception {
+        void cancelSubscription_unknownUser_returns404() {
             UUID unknownId = UUID.randomUUID();
 
-            mockMvc.perform(delete("/api/subscriptions/{userId}", unknownId))
-                    .andExpect(status().isNotFound());
+            given()
+                    .pathParam("userId", unknownId)
+                    .when()
+                    .delete("/api/subscriptions/{userId}")
+                    .then()
+                    .statusCode(HttpStatus.NOT_FOUND.value());
         }
     }
 
@@ -189,18 +215,26 @@ class SubscriptionControllerIT {
 
         @Test
         @DisplayName("Should return 400 when user already has Pro subscription")
-        void createProSubscription_alreadyPro_returns400() throws Exception {
-            mockMvc.perform(post("/api/subscriptions/pro/{userId}", proUser.getId()))
-                    .andExpect(status().isBadRequest());
+        void createProSubscription_alreadyPro_returns400() {
+            given()
+                    .pathParam("userId", proUser.getId())
+                    .when()
+                    .post("/api/subscriptions/pro/{userId}")
+                    .then()
+                    .statusCode(HttpStatus.BAD_REQUEST.value());
         }
 
         @Test
         @DisplayName("Should return 404 for non-existent user")
-        void createProSubscription_unknownUser_returns404() throws Exception {
+        void createProSubscription_unknownUser_returns404() {
             UUID unknownId = UUID.randomUUID();
 
-            mockMvc.perform(post("/api/subscriptions/pro/{userId}", unknownId))
-                    .andExpect(status().isNotFound());
+            given()
+                    .pathParam("userId", unknownId)
+                    .when()
+                    .post("/api/subscriptions/pro/{userId}")
+                    .then()
+                    .statusCode(HttpStatus.NOT_FOUND.value());
         }
     }
 }
