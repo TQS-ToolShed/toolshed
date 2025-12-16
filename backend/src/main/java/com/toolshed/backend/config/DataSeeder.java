@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
+import java.security.SecureRandom;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,7 +121,7 @@ public class DataSeeder implements CommandLineRunner {
         // 5. Create Multiple Bookings
         // Requirement: Multiple completed, most without problems, 3-4 with problems.
         // Let's create 15 bookings.
-        Random random = new Random();
+        SecureRandom random = new SecureRandom();
         int problemCount = 0;
 
         for (int i = 0; i < 15; i++) {
