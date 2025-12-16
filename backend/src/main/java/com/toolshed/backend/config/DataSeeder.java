@@ -1,11 +1,10 @@
 package com.toolshed.backend.config;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.security.SecureRandom;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class DataSeeder implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DataSeeder.class);
+    private static final String DEFAULT_PASSWORD = "password";
 
     private final UserRepository userRepository;
     private final ToolRepository toolRepository;
@@ -51,27 +51,37 @@ public class DataSeeder implements CommandLineRunner {
 
         logger.info("Starting data seeding...");
 
-        // 1. Create Admin
+        createAdmin();
+        List<User> renters = createRenters();
+        List<User> owners = createOwners();
+        List<Tool> allTools = createTools(owners);
+        createBookingsAndReviews(renters, allTools);
+
+        logger.info("Data seeding completed.");
+    }
+
+    private void createAdmin() {
         User admin = User.builder()
                 .firstName("Admin")
                 .lastName("User")
                 .email("admin@toolshed.com")
-                .password("password")
+                .password(DEFAULT_PASSWORD)
                 .role(UserRole.ADMIN)
                 .status(UserStatus.ACTIVE)
                 .reputationScore(5.0)
                 .walletBalance(0.0)
                 .build();
         userRepository.save(admin);
+    }
 
-        // 2. Create 3 Renters
+    private List<User> createRenters() {
         List<User> renters = new ArrayList<>();
         for (int i = 1; i <= 3; i++) {
             User renter = User.builder()
                     .firstName("Renter")
                     .lastName("One" + i)
                     .email("renter" + i + "@toolshed.com")
-                    .password("password")
+                    .password(DEFAULT_PASSWORD)
                     .role(UserRole.RENTER)
                     .status(UserStatus.ACTIVE)
                     .reputationScore(5.0)
@@ -79,15 +89,17 @@ public class DataSeeder implements CommandLineRunner {
                     .build();
             renters.add(userRepository.save(renter));
         }
+        return renters;
+    }
 
-        // 3. Create 3 Owners (Suppliers)
+    private List<User> createOwners() {
         List<User> owners = new ArrayList<>();
         for (int i = 1; i <= 3; i++) {
             User owner = User.builder()
                     .firstName("Owner")
                     .lastName("Two" + i)
                     .email("owner" + i + "@toolshed.com")
-                    .password("password")
+                    .password(DEFAULT_PASSWORD)
                     .role(UserRole.SUPPLIER)
                     .status(UserStatus.ACTIVE)
                     .reputationScore(5.0)
@@ -95,8 +107,10 @@ public class DataSeeder implements CommandLineRunner {
                     .build();
             owners.add(userRepository.save(owner));
         }
+        return owners;
+    }
 
-        // 4. Create 3 Tools per Owner
+    private List<Tool> createTools(List<User> owners) {
         List<Tool> allTools = new ArrayList<>();
         String[] toolNames = { "Drill", "Saw", "Hammer", "Ladder", "Wrench", "Sander", "Mower", "Blower", "Trimmer" };
         int nameIndex = 0;
@@ -117,20 +131,20 @@ public class DataSeeder implements CommandLineRunner {
                 allTools.add(toolRepository.save(tool));
             }
         }
+        return allTools;
+    }
 
-        // 5. Create Multiple Bookings
-        // Requirement: Multiple completed, most without problems, 3-4 with problems.
-        // Let's create 15 bookings.
+    private void createBookingsAndReviews(List<User> renters, List<Tool> tools) {
         SecureRandom random = new SecureRandom();
         int problemCount = 0;
 
         for (int i = 0; i < 15; i++) {
             User renter = renters.get(random.nextInt(renters.size()));
-            Tool tool = allTools.get(random.nextInt(allTools.size()));
+            Tool tool = tools.get(random.nextInt(tools.size()));
             User owner = tool.getOwner();
 
-            LocalDate endDate = LocalDate.now().minusDays(random.nextInt(30) + 1);
-            LocalDate startDate = endDate.minusDays(random.nextInt(5) + 1);
+            LocalDate endDate = LocalDate.now().minusDays((long) random.nextInt(30) + 1);
+            LocalDate startDate = endDate.minusDays((long) random.nextInt(5) + 1);
             double totalPrice = tool.getPricePerDay() * (endDate.toEpochDay() - startDate.toEpochDay() + 1);
 
             Booking booking = Booking.builder()
@@ -143,80 +157,77 @@ public class DataSeeder implements CommandLineRunner {
                     .paymentStatus(PaymentStatus.COMPLETED)
                     .build();
 
-            // Distribute problems
-            if (problemCount < 4 && i > 10) {
-                // Problematic booking
-                problemCount++;
-                if (problemCount % 2 == 0) {
-                    // Damaged
-                    booking.setStatus(BookingStatus.COMPLETED);
-                    booking.setConditionStatus(ConditionStatus.BROKEN);
-                    booking.setConditionDescription("Tool returned damaged.");
-                    booking.setDepositStatus(DepositStatus.REQUIRED);
-                    booking.setConditionReportedBy(owner);
-                    booking.setConditionReportedAt(LocalDateTime.now().minusDays(1));
-                } else {
-                    // Cancelled or issues
-                    booking.setStatus(BookingStatus.CANCELLED);
-                    booking.setCancelledAt(LocalDateTime.now().minusDays(10));
-                    booking.setRefundAmount(totalPrice);
-                    booking.setPaymentStatus(PaymentStatus.REFUNDED);
-                }
-            } else {
-                // Happy path
-                booking.setStatus(BookingStatus.COMPLETED);
-                booking.setConditionStatus(ConditionStatus.OK);
-                booking.setDepositStatus(DepositStatus.NOT_REQUIRED);
-            }
+            problemCount = handleBookingStatus(booking, i, problemCount, owner, totalPrice);
 
             booking = bookingRepository.save(booking);
 
-            // 6. Create Reviews (for some)
-            if (booking.getStatus() == BookingStatus.COMPLETED && random.nextBoolean()) {
-                // Renter reviews Tool
-                Review toolReview = Review.builder()
-                        .booking(booking)
-                        .reviewer(renter)
-                        .tool(tool)
-                        .type(ReviewType.RENTER_TO_TOOL)
-                        .rating(random.nextInt(2) + 4) // 4 or 5
-                        .comment("Great tool!")
-                        .build();
-                reviewRepository.save(toolReview);
-
-                // Update tool rating
-                updateToolRating(tool, toolReview.getRating());
-
-                // Owner reviews Renter
-                // Owner reviews Renter
-                Review renterReview = Review.builder()
-                        .booking(booking)
-                        .reviewer(owner)
-                        // For OWNER_TO_RENTER, the target is the renter, which is implicitly available
-                        // via booking.renter
-                        // The 'owner' field in Review entity likely refers to the Supplier being
-                        // reviewed (when RENTER_TO_OWNER).
-                        // So for OWNER_TO_RENTER, we might leave 'owner' field null or irrelevant.
-                        .type(ReviewType.OWNER_TO_RENTER)
-                        .rating(5)
-                        .comment("Great renter, returned on time.")
-                        .build();
-                reviewRepository.save(renterReview);
-
-                // Renter reviews Owner
-                Review ownerReview = Review.builder()
-                        .booking(booking)
-                        .reviewer(renter)
-                        .owner(owner) // Target
-                        .type(ReviewType.RENTER_TO_OWNER)
-                        .rating(5)
-                        .comment("Nice owner.")
-                        .build();
-                reviewRepository.save(ownerReview);
-            }
+            handleReviews(booking, renter, owner, tool, random);
         }
+    }
 
-        logger.info("Data seeding completed.");
+    private int handleBookingStatus(Booking booking, int index, int problemCount, User owner, double totalPrice) {
+        if (problemCount < 4 && index > 10) {
+            problemCount++;
+            if (problemCount % 2 == 0) {
+                // Damaged
+                booking.setStatus(BookingStatus.COMPLETED);
+                booking.setConditionStatus(ConditionStatus.BROKEN);
+                booking.setConditionDescription("Tool returned damaged.");
+                booking.setDepositStatus(DepositStatus.REQUIRED);
+                booking.setConditionReportedBy(owner);
+                booking.setConditionReportedAt(LocalDateTime.now().minusDays(1));
+            } else {
+                // Cancelled or issues
+                booking.setStatus(BookingStatus.CANCELLED);
+                booking.setCancelledAt(LocalDateTime.now().minusDays(10));
+                booking.setRefundAmount(totalPrice);
+                booking.setPaymentStatus(PaymentStatus.REFUNDED);
+            }
+        } else {
+            // Happy path
+            booking.setStatus(BookingStatus.COMPLETED);
+            booking.setConditionStatus(ConditionStatus.OK);
+            booking.setDepositStatus(DepositStatus.NOT_REQUIRED);
+        }
+        return problemCount;
+    }
+
+    private void handleReviews(Booking booking, User renter, User owner, Tool tool, SecureRandom random) {
+        if (booking.getStatus() == BookingStatus.COMPLETED && random.nextBoolean()) {
+            // Renter reviews Tool
+            Review toolReview = Review.builder()
+                    .booking(booking)
+                    .reviewer(renter)
+                    .tool(tool)
+                    .type(ReviewType.RENTER_TO_TOOL)
+                    .rating(random.nextInt(2) + 4) // 4 or 5
+                    .comment("Great tool!")
+                    .build();
+            reviewRepository.save(toolReview);
+
+            updateToolRating(tool, toolReview.getRating());
+
+            // Owner reviews Renter
+            Review renterReview = Review.builder()
+                    .booking(booking)
+                    .reviewer(owner)
+                    .type(ReviewType.OWNER_TO_RENTER)
+                    .rating(5)
+                    .comment("Great renter, returned on time.")
+                    .build();
+            reviewRepository.save(renterReview);
+
+            // Renter reviews Owner
+            Review ownerReview = Review.builder()
+                    .booking(booking)
+                    .reviewer(renter)
+                    .owner(owner)
+                    .type(ReviewType.RENTER_TO_OWNER)
+                    .rating(5)
+                    .comment("Nice owner.")
+                    .build();
+            reviewRepository.save(ownerReview);
+        }
     }
 
     private void updateToolRating(Tool tool, int newRating) {
